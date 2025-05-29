@@ -392,6 +392,7 @@ class HardwareProfilerDialog(QDialog):
 
     def init_ui(self):
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(3, 3, 3, 3)
 
         self.title_label = QLabel()
         self.title_label.setStyleSheet(
