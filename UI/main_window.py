@@ -1,8 +1,10 @@
 import json
+import logging
 import os
 
 from PyQt6.QtWidgets import QMainWindow, QMessageBox, QStatusBar, QTabWidget
 
+from UI.components.console_widget import ConsoleWidget
 from UI.components.menu_bar import create_menu_bar
 from UI.components.tab_one_widget import TabOneWidget
 from UI.components.tab_three_widget import TabThreeWidget
@@ -33,10 +35,12 @@ class MainWindow(QMainWindow):
         self.tab1 = TabOneWidget()
         self.tab2 = TabTwoWidget()
         self.tab3 = TabThreeWidget()
+        self.console_tab = ConsoleWidget()
 
         self.tabs.addTab(self.tab1, "Zakładka 1")
         self.tabs.addTab(self.tab2, "Zakładka 2")
         self.tabs.addTab(self.tab3, "Zakładka 3")
+        self.tabs.addTab(self.console_tab, "Konsola")
 
         self.setCentralWidget(self.tabs)
 
@@ -47,6 +51,13 @@ class MainWindow(QMainWindow):
         # Jeśli używasz StatusBarManager:
         # self.status_manager = StatusBarManager(self.status_bar)
         # self.status_manager.set_message("Gotowy przez managera.")
+
+        # Testowe logi
+        logger = logging.getLogger("AppLogger")
+        logger.info("Aplikacja uruchomiona")
+        logger.debug("Debug: Test debug")
+        logger.warning("Uwaga: Test warning")
+        logger.error("Błąd: Test error")
 
     def load_preferences(self):
         try:
@@ -63,7 +74,7 @@ class MainWindow(QMainWindow):
             print(f"Błąd zapisu preferencji: {e}")
 
     def show_preferences_dialog(self):
-        dialog = PreferencesDialog(self.preferences.get("show_splash", True), self)
+        dialog = PreferencesDialog(self.preferences, self)
         if dialog.exec():
             self.preferences.update(dialog.get_preferences())
             self.save_preferences()

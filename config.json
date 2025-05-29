@@ -10,6 +10,6 @@
     "y": 100
   },
   "log_to_file": false,
-  "log_ui_to_console": false,
-  "log_level": "INFO"
+  "log_ui_to_console": true,
+  "log_level": "DEBUG"
 }
