@@ -1,14 +1,17 @@
-from PyQt6.QtWidgets import QSplashScreen, QLabel, QProgressBar
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QPixmap
+from PyQt6.QtWidgets import QLabel, QProgressBar, QSplashScreen
+
 
 class SplashScreen(QSplashScreen):
-    def __init__(self, 
-                 image_path: str,
-                 display_time: int = 3000,
-                 window_size: tuple = (642, 250),
-                 messages: list = None,
-                 progress_bar: bool = False):
+    def __init__(
+        self,
+        image_path: str,
+        display_time: int = 3000,
+        window_size: tuple = (642, 250),
+        messages: list = None,
+        progress_bar: bool = False,
+    ):
         pixmap = QPixmap(image_path)
         pixmap = pixmap.scaled(*window_size, Qt.AspectRatioMode.KeepAspectRatio)
         super().__init__(pixmap)
@@ -20,9 +23,11 @@ class SplashScreen(QSplashScreen):
 
         # Etykieta na wiadomości
         self.message_label = QLabel(self)
-        self.message_label.setGeometry(10, 10, window_size[0] - 20, 30)
+        self.message_label.setGeometry(10, window_size[1] - 25, window_size[0] - 20, 30)
         self.message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.message_label.setStyleSheet("color: white; font-size: 18px; font-weight: bold;")
+        self.message_label.setStyleSheet(
+            "color: white; font-size: 11px; font-weight: bold;"
+        )
         self.message_label.setText(self.messages[0] if self.messages else "")
 
         # Pasek postępu (opcjonalny)
@@ -65,4 +70,4 @@ class SplashScreen(QSplashScreen):
 
     def hide_progress(self):
         if self.progress:
-            self.progress.hide() 
+            self.progress.hide()

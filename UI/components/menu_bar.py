@@ -1,15 +1,12 @@
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QMessageBox  # Potrzebne dla "O Programie"
 
+from UI.about_dialog import AboutDialog
+
 
 def show_about_dialog(main_window):
-    QMessageBox.about(
-        main_window,
-        "O Programie",
-        "Moja Zaawansowana Aplikacja PyQt6\n\n"
-        "Wersja 1.0\n"
-        "Stworzona z użyciem PyQt6.",
-    )
+    dialog = AboutDialog(main_window)
+    dialog.exec()
 
 
 def create_menu_bar(main_window):  # Otrzymuje instancję QMainWindow
