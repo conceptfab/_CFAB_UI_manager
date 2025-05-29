@@ -392,7 +392,7 @@ class HardwareProfilerDialog(QDialog):
 
     def init_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(3, 3, 3, 3)
+        layout.setContentsMargins(3, 3, 3, 8)  # Zwiększam margines dolny do 8px
 
         self.title_label = QLabel()
         self.title_label.setStyleSheet(
@@ -417,7 +417,19 @@ class HardwareProfilerDialog(QDialog):
         layout.addLayout(gpu_layout)
 
         self.current_group = QGroupBox()
-        self.current_group.setStyleSheet("QGroupBox { border: none; }")
+        self.current_group.setStyleSheet(
+            """
+            QGroupBox { 
+                border: none; 
+                margin-top: 5px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: 0 3px;
+            }
+        """
+        )
         current_layout = QVBoxLayout(self.current_group)
         self.config_display = QTextEdit()
         self.config_display.setReadOnly(True)
@@ -432,7 +444,19 @@ class HardwareProfilerDialog(QDialog):
         layout.addWidget(self.current_group)
 
         self.optimization_group = QGroupBox()
-        self.optimization_group.setStyleSheet("QGroupBox { border: none; }")
+        self.optimization_group.setStyleSheet(
+            """
+            QGroupBox { 
+                border: none; 
+                margin-top: 5px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: 0 3px;
+            }
+        """
+        )
         opt_layout = QVBoxLayout(self.optimization_group)
         self.optimization_display = QTextEdit()
         self.optimization_display.setReadOnly(True)

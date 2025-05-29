@@ -1,4 +1,6 @@
 import logging
+import sys
+from io import StringIO
 
 from PyQt6.QtWidgets import (
     QFileDialog,
@@ -19,16 +21,39 @@ class ConsoleWidget(QWidget):
         self.setObjectName("ConsoleWidget")
         self.init_ui()
 
-        # Dodaj handler do loggera
+        # Konfiguracja loggera
         self.handler = ConsoleHandler(self)
-        # Dodaj formatter do handlera
-        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+        formatter = logging.Formatter("%(message)s")
         self.handler.setFormatter(formatter)
         logging.getLogger("AppLogger").addHandler(self.handler)
+
+        # Przechwytywanie stdout i stderr
+        self.stdout_capture = StringIO()
+        self.stderr_capture = StringIO()
+        self.old_stdout = sys.stdout
+        self.old_stderr = sys.stderr
+        sys.stdout = self
+        sys.stderr = self
 
         # Rejestracja w TranslationManager
         TranslationManager.register_widget(self)
         self.update_translations()
+
+    def write(self, text):
+        """Przechwytuje wyjście z print() i przekierowuje do konsoli"""
+        self.old_stdout.write(text)  # Zachowujemy oryginalne wyjście
+        if text.strip():  # Ignorujemy puste linie
+            self.append_log(text.strip())
+
+    def flush(self):
+        """Wymagane dla sys.stdout"""
+        self.old_stdout.flush()
+
+    def closeEvent(self, event):
+        """Przywraca oryginalne stdout i stderr przy zamknięciu"""
+        sys.stdout = self.old_stdout
+        sys.stderr = self.old_stderr
+        super().closeEvent(event)
 
     def init_ui(self):
         layout = QVBoxLayout(self)
@@ -64,7 +89,6 @@ class ConsoleWidget(QWidget):
 
     def append_log(self, message):
         self.console.append(message)
-        # Przewiń na dół
         self.console.verticalScrollBar().setValue(
             self.console.verticalScrollBar().maximum()
         )

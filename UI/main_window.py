@@ -124,7 +124,11 @@ class MainWindow(QMainWindow):
         self.tab1 = TabOneWidget()
         self.tab2 = TabTwoWidget()
         self.tab3 = TabThreeWidget()
+
+        # Inicjalizacja konsoli
+        print("Inicjalizacja ConsoleWidget...")  # Debug
         self.console_tab = ConsoleWidget()
+        print("ConsoleWidget zainicjalizowany")  # Debug
 
         # Rejestracja zakładek w TranslationManager
         TranslationManager.register_widget(self.tab1)
@@ -170,13 +174,17 @@ class MainWindow(QMainWindow):
         log_level = self._preferences.get("log_level", "INFO")
         logger.setLevel(getattr(logging, log_level))
 
+        # Usuń wszystkie istniejące handlery
+        for handler in logger.handlers[:]:
+            logger.removeHandler(handler)
+
         if self._preferences.get("log_to_file", False):
             log_file_path = os.path.join(
                 os.path.dirname(os.path.abspath(__file__)), "..", "app.log"
             )
             file_handler = logging.FileHandler(log_file_path, encoding="utf-8")
             file_formatter = logging.Formatter(
-                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+                "%(asctime)s - %(levelname)s - %(message)s"
             )
             file_handler.setFormatter(file_formatter)
             logger.addHandler(file_handler)

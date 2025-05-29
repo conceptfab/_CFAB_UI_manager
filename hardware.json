@@ -8,7 +8,7 @@
     "cpu_count_logical": 20,
     "cpu_count_physical": 14,
     "memory_total": 16855232512,
-    "timestamp": "2025-05-29T23:18:34",
+    "timestamp": "2025-05-29T23:57:39",
     "gpu": "Intel(R) Iris(R) Xe Graphics, NVIDIA GeForce RTX 3050 Laptop GPU",
     "optimizations_flags": {
         "multithreading": true,
@@ -22,10 +22,6 @@
         "numpy",
         "psutil"
     ],
-    "performance_index": null,
-    "performance_benchmark_time": 19.64748787879944,
-    "ai_benchmark_time_s": "Error",
-    "ai_index": 0,
-    "ai_benchmark_device": "Error",
-    "ai_benchmark_error": "CuPy failed to load nvrtc64_112_0.dll: FileNotFoundError: Could not find module 'nvrtc64_112_0.dll' (or one of its dependencies). Try using the full path with constructor syntax."
+    "ai_benchmark_time": 0.12250971794128418,
+    "ai_benchmark_score": 8
 }
