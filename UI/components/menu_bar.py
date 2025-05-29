@@ -41,6 +41,13 @@ def create_menu_bar(main_window): # Otrzymuje instancję QMainWindow
     # copy_action.triggered.connect(lambda: print("Kopiuj")) # Dodaj odpowiednią logikę
     edit_menu.addAction(copy_action)
 
+    # Dodaj separator i Preferencje
+    edit_menu.addSeparator()
+    preferences_action = QAction("Preferencje", main_window)
+    preferences_action.setStatusTip("Ustawienia aplikacji")
+    preferences_action.triggered.connect(main_window.show_preferences_dialog)
+    edit_menu.addAction(preferences_action)
+
     # Menu Pomoc
     help_menu = menu_bar.addMenu("&Pomoc")
     about_action = QAction("&O Programie", main_window)

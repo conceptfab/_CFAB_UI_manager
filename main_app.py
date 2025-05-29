@@ -2,7 +2,10 @@ import sys
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtGui import QIcon
 from UI.main_window import MainWindow
+from UI.splash_screen import SplashScreen
+from UI.progress_controller import ProgressController
 import os
+import json
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
@@ -26,8 +29,34 @@ if __name__ == '__main__':
     else:
         print(f"DEBUG: OSTRZEŻENIE: Plik QSS dla PROSTEJ APLIKACJI nie znaleziony: {style_path}")
 
+    # Wczytaj preferencje
+    config_path = os.path.join(base_dir, 'config.json')
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            preferences = json.load(f)
+    except Exception:
+        preferences = {"show_splash": True}
+
+    # Splash screen jeśli włączony
+    splash = None
+    if preferences.get("show_splash", True):
+        splash_path = os.path.join(base_dir, "resources", "img", "splash.jpg")
+        splash = SplashScreen(
+            image_path=splash_path,
+            display_time=3000,
+            window_size=(642, 250),
+            messages=["Ładowanie aplikacji ConceptFab NeuroSorter..."],
+            progress_bar=False
+        )
+        splash.start()
+        app.processEvents()
+
     main_win = MainWindow()
     # Ustaw ikonę okna głównego
     main_win.setWindowIcon(QIcon(icon_path))
     main_win.show()
+
+    if splash:
+        splash.close()
+
     sys.exit(app.exec())
