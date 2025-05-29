@@ -56,21 +56,25 @@ class ConsoleWidget(QWidget):
         super().closeEvent(event)
 
     def init_ui(self):
+        translator = TranslationManager.get_translator()
         layout = QVBoxLayout(self)
 
         # Konsola
         self.console = QTextEdit()
         self.console.setReadOnly(True)
         self.console.setObjectName("ConsoleTextEdit")
+        self.console.setPlaceholderText(
+            translator.translate("app.tabs.console.placeholder")
+        )
         layout.addWidget(self.console)
 
         # Przyciski
         button_layout = QHBoxLayout()
 
-        self.clear_btn = QPushButton()
+        self.clear_btn = QPushButton(translator.translate("app.tabs.console.clear"))
         self.clear_btn.clicked.connect(self.clear_console)
 
-        self.save_btn = QPushButton()
+        self.save_btn = QPushButton(translator.translate("app.tabs.console.save_logs"))
         self.save_btn.clicked.connect(self.save_logs)
 
         button_layout.addWidget(self.clear_btn)

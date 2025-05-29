@@ -7,16 +7,21 @@ class TabTwoWidget(QWidget):
     def __init__(self):
         super().__init__()
         self.setObjectName("TabTwoContent")
+        translator = TranslationManager.get_translator()
         layout = QVBoxLayout(self)
 
-        self.label = QLabel()
+        self.label = QLabel(translator.translate("app.tabs.content.tab2.content"))
         self.label.setObjectName("TabTwoLabel")
 
-        self.checkbox = QCheckBox()
+        self.checkbox = QCheckBox(
+            translator.translate("app.tabs.content.tab2.checkbox")
+        )
         self.checkbox.setObjectName("TabTwoCheckbox")
         self.checkbox.toggled.connect(self.on_checkbox_toggle)
 
-        self.spinbox_label = QLabel()
+        self.spinbox_label = QLabel(
+            translator.translate("app.tabs.content.tab2.select_value")
+        )
         self.spinbox = QSpinBox()
         self.spinbox.setObjectName("TabTwoSpinBox")
         self.spinbox.setRange(1, 10)
@@ -29,7 +34,7 @@ class TabTwoWidget(QWidget):
         layout.addStretch()
 
         self.setLayout(layout)
-        self.update_translations()
+        TranslationManager.register_widget(self)
 
     def update_translations(self):
         translator = TranslationManager.get_translator()

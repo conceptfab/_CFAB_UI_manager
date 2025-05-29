@@ -7,6 +7,8 @@ from utils.translation_manager import TranslationManager
 class AboutDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
+        translator = TranslationManager.get_translator()
+        self.setWindowTitle(translator.translate("app.dialogs.about.title"))
         self.setMinimumWidth(400)
 
         layout = QVBoxLayout(self)
@@ -19,16 +21,18 @@ class AboutDialog(QDialog):
         # layout.addWidget(logo_label)
 
         # Nazwa aplikacji
-        self.title_label = QLabel()
+        self.title_label = QLabel(translator.translate("app.dialogs.about.title"))
         self.title_label.setStyleSheet("font-size: 16px; font-weight: bold;")
         layout.addWidget(self.title_label)
 
         # Wersja
-        self.version_label = QLabel()
+        self.version_label = QLabel(translator.translate("app.dialogs.about.version"))
         layout.addWidget(self.version_label)
 
         # Opis
-        self.description_label = QLabel()
+        self.description_label = QLabel(
+            translator.translate("app.dialogs.about.description")
+        )
         self.description_label.setWordWrap(True)
         layout.addWidget(self.description_label)
 
@@ -36,7 +40,7 @@ class AboutDialog(QDialog):
 
         # Przycisk OK
         button_layout = QHBoxLayout()
-        self.ok_button = QPushButton()
+        self.ok_button = QPushButton(translator.translate("app.dialogs.about.ok"))
         self.ok_button.clicked.connect(self.accept)
         button_layout.addStretch()
         button_layout.addWidget(self.ok_button)

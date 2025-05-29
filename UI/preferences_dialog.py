@@ -16,13 +16,16 @@ class PreferencesDialog(QDialog):
     def __init__(self, preferences: dict, parent=None):
         super().__init__(parent)
         self.preferences = preferences
-        self.setWindowTitle("Preferencje")
+        translator = TranslationManager.get_translator()
+        self.setWindowTitle(translator.translate("app.dialogs.preferences.title"))
         self.setMinimumWidth(400)
 
         layout = QVBoxLayout(self)
 
         # Grupa: Ogólne
-        general_group = QGroupBox()
+        general_group = QGroupBox(
+            translator.translate("app.dialogs.preferences.general")
+        )
         general_layout = QFormLayout(general_group)
 
         self.splash_checkbox = QCheckBox()
@@ -41,12 +44,17 @@ class PreferencesDialog(QDialog):
         current_language = preferences.get("language", "pl")
         lang_text = "Polski" if current_language == "pl" else "English"
         self.language_combo.setCurrentText(lang_text)
-        general_layout.addRow("Język:", self.language_combo)
+        general_layout.addRow(
+            translator.translate("app.dialogs.preferences.language"),
+            self.language_combo,
+        )
 
         layout.addWidget(general_group)
 
         # Grupa: Logowanie
-        logging_group = QGroupBox()
+        logging_group = QGroupBox(
+            translator.translate("app.dialogs.preferences.logging")
+        )
         logging_layout = QFormLayout(logging_group)
 
         self.log_to_file_checkbox = QCheckBox()
@@ -64,14 +72,21 @@ class PreferencesDialog(QDialog):
         self.log_level_combo.addItems(log_levels)
         current_level = preferences.get("log_level", "INFO")
         self.log_level_combo.setCurrentText(current_level)
-        logging_layout.addRow("Poziom logowania:", self.log_level_combo)
+        logging_layout.addRow(
+            translator.translate("app.dialogs.preferences.log_level"),
+            self.log_level_combo,
+        )
 
         layout.addWidget(logging_group)
 
         # Przyciski
         button_layout = QHBoxLayout()
-        self.save_btn = QPushButton()
-        self.cancel_btn = QPushButton()
+        self.save_btn = QPushButton(
+            translator.translate("app.dialogs.preferences.save")
+        )
+        self.cancel_btn = QPushButton(
+            translator.translate("app.dialogs.preferences.cancel")
+        )
         button_layout.addWidget(self.save_btn)
         button_layout.addWidget(self.cancel_btn)
         layout.addLayout(button_layout)

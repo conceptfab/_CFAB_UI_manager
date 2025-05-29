@@ -93,8 +93,22 @@
         "save_profile": "Save profile",
         "close": "Close",
         "cpu": "CPU: {0}",
-        "ram": "RAM: {0}",
+        "ram": "RAM: {0} GB",
         "gpu": "GPU: {0}",
+        "status": {
+          "starting": "Starting scan...",
+          "scan_completed": "Scan completed.",
+          "scan_error_detailed": "Scan finished with errors. Check details.",
+          "scan_failed": "Scan did not produce a profile.",
+          "profile_ready": "Profile ready.",
+          "profile_loaded": "Existing profile loaded.",
+          "profile_corrupt": "Error loading profile (corrupted?): {error}",
+          "profile_load_error": "Error loading profile: {error}",
+          "no_profile_found": "No existing profile found. Scan hardware to create one.",
+          "save_no_data": "No valid profile data to save.",
+          "profile_saved": "Hardware profile saved to: {path}",
+          "profile_save_error": "Error saving profile: {error}"
+        },
         "profile": {
           "uuid": "UUID: {0}",
           "system": "System: {0}",
@@ -104,6 +118,9 @@
           "last_update": "Last update: {0}",
           "no_data": "No profile data to analyze.",
           "no_optimizations": "No available optimizations.",
+          "error_display": "Error during profiling:",
+          "traceback": "Details (Traceback):",
+          "no_optimizations_due_to_error": "Optimizations cannot be determined due to error.",
           "optimizations": {
             "multithreading_high": "• Enable multithreading (8+ cores)",
             "multithreading_medium": "• Partial multithreading (4-7 cores)",

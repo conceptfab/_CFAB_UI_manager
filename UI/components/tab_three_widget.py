@@ -7,15 +7,21 @@ class TabThreeWidget(QWidget):
     def __init__(self):
         super().__init__()
         self.setObjectName("TabThreeContent")
+        translator = TranslationManager.get_translator()
         layout = QVBoxLayout(self)
 
-        self.label = QLabel()
+        self.label = QLabel(translator.translate("app.tabs.content.tab3.content"))
         self.label.setObjectName("TabThreeLabel")
 
         self.text_edit = QTextEdit()
         self.text_edit.setObjectName("TabThreeTextEdit")
+        self.text_edit.setPlaceholderText(
+            translator.translate("app.tabs.content.tab3.placeholder")
+        )
 
-        self.button = QPushButton()
+        self.button = QPushButton(
+            translator.translate("app.tabs.content.tab3.show_text")
+        )
         self.button.setObjectName("TabThreeButton")
         self.button.clicked.connect(self.on_button_click)
 
@@ -25,7 +31,7 @@ class TabThreeWidget(QWidget):
         layout.addStretch()
 
         self.setLayout(layout)
-        self.update_translations()
+        TranslationManager.register_widget(self)
 
     def update_translations(self):
         translator = TranslationManager.get_translator()

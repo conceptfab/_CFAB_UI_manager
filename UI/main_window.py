@@ -66,7 +66,8 @@ class MainWindow(QMainWindow):
         Inicjalizuje główne okno aplikacji.
         """
         super().__init__()
-        self.setWindowTitle("Moja Zaawansowana Aplikacja PyQt6")
+        translator = TranslationManager.get_translator()
+        self.setWindowTitle(translator.translate("app.title"))
         self.thread_manager = ThreadManager()
         self.file_worker = FileWorker()
 
@@ -103,6 +104,7 @@ class MainWindow(QMainWindow):
         """
         Inicjalizuje elementy interfejsu użytkownika.
         """
+        translator = TranslationManager.get_translator()
         # Ustawienie rozmiaru okna na podstawie preferencji
         if self._preferences.get("remember_window_size", True):
             window_size = self._preferences.get(
@@ -135,17 +137,19 @@ class MainWindow(QMainWindow):
         TranslationManager.register_widget(self.tab2)
         TranslationManager.register_widget(self.tab3)
 
-        self.tabs.addTab(self.tab1, "Tab 1")
-        self.tabs.addTab(self.tab2, "Tab 2")
-        self.tabs.addTab(self.tab3, "Tab 3")
-        self.tabs.addTab(self.console_tab, "Console")
+        self.tabs.addTab(self.tab1, translator.translate("app.tabs.tab1"))
+        self.tabs.addTab(self.tab2, translator.translate("app.tabs.tab2"))
+        self.tabs.addTab(self.tab3, translator.translate("app.tabs.tab3"))
+        self.tabs.addTab(
+            self.console_tab, translator.translate("app.tabs.console.clear")
+        )
 
         self.setCentralWidget(self.tabs)
 
         # Pasek statusu
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("Ready")
+        self.status_bar.showMessage(translator.translate("app.status.ready"))
         # Jeśli używasz StatusBarManager:
         # self.status_manager = StatusBarManager(self.status_bar)
         # self.status_manager.set_message("Gotowy przez managera.")
@@ -282,18 +286,19 @@ class MainWindow(QMainWindow):
         Aktualizuje wszystkie teksty w interfejsie użytkownika.
         """
         translator = TranslationManager.get_translator()
-
-        # Aktualizacja tytułu okna
         self.setWindowTitle(translator.translate("app.title"))
 
-        # Aktualizacja menu
-        create_menu_bar(self)
-
-        # Aktualizacja nazw zakładek
+        # Aktualizacja zakładek
         self.tabs.setTabText(0, translator.translate("app.tabs.tab1"))
         self.tabs.setTabText(1, translator.translate("app.tabs.tab2"))
         self.tabs.setTabText(2, translator.translate("app.tabs.tab3"))
-        self.tabs.setTabText(3, translator.translate("app.tabs.console"))
+        self.tabs.setTabText(3, translator.translate("app.tabs.console.clear"))
+
+        # Aktualizacja statusu
+        self.status_bar.showMessage(translator.translate("app.status.ready"))
+
+        # Aktualizacja menu
+        create_menu_bar(self)
 
         # Aktualizacja zawartości zakładek
         self.tab1.label.setText(translator.translate("app.tabs.content.tab1.content"))
@@ -317,9 +322,6 @@ class MainWindow(QMainWindow):
         self.tab3.button.setText(
             translator.translate("app.tabs.content.tab3.show_text")
         )
-
-        # Aktualizacja paska statusu
-        self.status_bar.showMessage(translator.translate("app.status.ready"))
 
     def closeEvent(self, event):
         """

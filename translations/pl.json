@@ -93,8 +93,22 @@
         "save_profile": "Zapisz profil",
         "close": "Zamknij",
         "cpu": "CPU: {0}",
-        "ram": "RAM: {0}",
+        "ram": "RAM: {0} GB",
         "gpu": "GPU: {0}",
+        "status": {
+          "starting": "Rozpoczynam skanowanie...",
+          "scan_completed": "Skanowanie zakończone.",
+          "scan_error_detailed": "Skanowanie zakończone z błędami. Sprawdź szczegóły.",
+          "scan_failed": "Skanowanie nie wygenerowało profilu.",
+          "profile_ready": "Profil gotowy.",
+          "profile_loaded": "Wczytano istniejący profil.",
+          "profile_corrupt": "Błąd wczytywania profilu (uszkodzony?): {error}",
+          "profile_load_error": "Błąd wczytywania profilu: {error}",
+          "no_profile_found": "Nie znaleziono istniejącego profilu. Skanuj sprzęt, aby utworzyć nowy.",
+          "save_no_data": "Brak prawidłowych danych profilu do zapisania.",
+          "profile_saved": "Profil sprzętowy zapisany w: {path}",
+          "profile_save_error": "Błąd zapisywania profilu: {error}"
+        },
         "profile": {
           "uuid": "UUID: {0}",
           "system": "System: {0}",
@@ -104,6 +118,9 @@
           "last_update": "Ostatnia aktualizacja: {0}",
           "no_data": "Brak danych profilu do analizy.",
           "no_optimizations": "Brak dostępnych optymalizacji.",
+          "error_display": "Błąd podczas profilowania:",
+          "traceback": "Szczegóły (Traceback):",
+          "no_optimizations_due_to_error": "Nie można określić optymalizacji z powodu błędu.",
           "optimizations": {
             "multithreading_high": "• Włącz wielowątkowe przetwarzanie (8+ rdzeni)",
             "multithreading_medium": "• Częściowa wielowątkowość (4-7 rdzeni)",
