@@ -1,0 +1,119 @@
+{
+  "app": {
+    "title": "ConceptFab NeuroSorter",
+    "menu": {
+      "file": "File",
+      "edit": "Edit",
+      "help": "Help",
+      "new": "New",
+      "open": "Open",
+      "save": "Save",
+      "exit": "Exit",
+      "preferences": "Preferences",
+      "about": "About",
+      "copy": "Copy",
+      "hardware_profiler": "Hardware Profiler",
+      "hardware_profiler_tip": "Hardware profile configuration"
+    },
+    "tabs": {
+      "tab1": "Tab 1",
+      "tab2": "Tab 2",
+      "tab3": "Tab 3",
+      "console": {
+        "clear": "Clear",
+        "save_logs": "Save logs",
+        "save_logs_title": "Save logs",
+        "file_filters": "Text files (*.txt);;All files (*.*)",
+        "error": "Error",
+        "save_error": "Failed to save logs: {0}"
+      },
+      "content": {
+        "tab1": {
+          "content": "This is the content of the first tab.",
+          "button": "Button in tab 1",
+          "placeholder": "Type something in tab 1...",
+          "text_entered": "In tab 1 entered: {0}",
+          "nothing_entered": "Nothing was entered in tab 1."
+        },
+        "tab2": {
+          "content": "This is the content of the second tab.",
+          "checkbox": "Check me in tab 2",
+          "select_value": "Select value:",
+          "checkbox_checked": "Tab 2: Checkbox is checked!",
+          "checkbox_unchecked": "Tab 2: Checkbox is not checked.",
+          "new_value": "New spinbox value: {0}"
+        },
+        "tab3": {
+          "content": "This is the content of the third tab.",
+          "placeholder": "Type a longer text here...",
+          "show_text": "Show text from field",
+          "text_content": "Text from field in tab 3:\n{0}...",
+          "empty_field": "Text field in tab 3 is empty."
+        }
+      }
+    },
+    "status": {
+      "ready": "Ready",
+      "loading": "Loading...",
+      "saving": "Saving...",
+      "error": "Error: {0}"
+    },
+    "dialogs": {
+      "exit": {
+        "title": "Exit Application",
+        "message": "Are you sure you want to exit?",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "preferences": {
+        "title": "Preferences",
+        "general": "General",
+        "logging": "Logging",
+        "show_splash": "Show splash screen",
+        "remember_window": "Remember window size",
+        "log_to_file": "Save logs to file",
+        "log_ui": "Log UI messages to console",
+        "log_level": "Log level",
+        "language": "Language",
+        "save": "Save",
+        "cancel": "Cancel"
+      },
+      "about": {
+        "title": "About",
+        "version": "Version 1.0",
+        "description": "Created with PyQt6\n\nDemo application with advanced user interface features.",
+        "ok": "OK"
+      },
+      "hardware_profiler": {
+        "title": "Hardware Profiler",
+        "current_config": "Current hardware configuration",
+        "available_optimizations": "Available optimizations",
+        "scan_hardware": "Scan hardware",
+        "scanning": "Scanning...",
+        "save_profile": "Save profile",
+        "close": "Close",
+        "cpu": "CPU: {0}",
+        "ram": "RAM: {0}",
+        "gpu": "GPU: {0}",
+        "profile": {
+          "uuid": "UUID: {0}",
+          "system": "System: {0}",
+          "processor": "Processor: {0}",
+          "cpu_cores": "CPU cores: {0}",
+          "ram": "RAM: {0} GB",
+          "last_update": "Last update: {0}",
+          "no_data": "No profile data to analyze.",
+          "no_optimizations": "No available optimizations.",
+          "optimizations": {
+            "multithreading_high": "• Enable multithreading (8+ cores)",
+            "multithreading_medium": "• Partial multithreading (4-7 cores)",
+            "multithreading_low": "• Single thread mode (less than 4 cores)",
+            "buffering_high": "• Enable advanced buffering (16+ GB RAM)",
+            "buffering_medium": "• Standard buffering (8-15 GB RAM)",
+            "buffering_low": "• Limited buffering (less than 8 GB RAM)"
+          }
+        }
+      }
+    }
+  }
+}

@@ -10,6 +10,7 @@ from UI.main_window import MainWindow
 from UI.splash_screen import SplashScreen
 from utils.logger import AppLogger
 from utils.thread_manager import ThreadManager
+from utils.translator import Translator
 
 
 class ConfigLoader(QObject):
@@ -76,7 +77,10 @@ class Application(QApplication):
             "log_to_file": False,
             "log_ui_to_console": False,
             "log_level": "INFO",
+            "language": "en",
         }
+        print(f"Inicjalizacja aplikacji z językiem: {self._config['language']}")
+        self.translator = Translator(self._config["language"])
 
     @property
     def config(self):
@@ -85,6 +89,9 @@ class Application(QApplication):
     @config.setter
     def config(self, value):
         self._config = value
+        # Aktualizujemy język w translatorze
+        if "language" in value:
+            self.translator.set_language(value["language"])
 
 
 if __name__ == "__main__":
@@ -98,8 +105,28 @@ if __name__ == "__main__":
     # 1. Wczytanie konfiguracji w osobnym wątku
     print("1. Wczytywanie konfiguracji...")
     config_loader = ConfigLoader()
-    config_loader.config_loaded.connect(lambda config: setattr(app, "_config", config))
+
+    # Klasa do przechowywania stanu konfiguracji
+    class ConfigState:
+        def __init__(self):
+            self.loaded = False
+            self.config = None
+
+    state = ConfigState()
+
+    def on_config_loaded(loaded_config):
+        state.config = loaded_config
+        state.loaded = True
+
+    config_loader.config_loaded.connect(on_config_loaded)
     thread_manager.run_in_thread(config_loader.load_config)
+
+    # Czekamy na załadowanie konfiguracji
+    while not state.loaded:
+        app.processEvents()
+
+    # Ustawiamy konfigurację
+    app._config = state.config
 
     # 2. Inicjalizacja loggera
     print("2. Inicjalizacja systemu logowania...")
@@ -152,6 +179,8 @@ if __name__ == "__main__":
     main_win = MainWindow()
     main_win.setWindowIcon(QIcon(icon_path))
     main_win.logger = logger
+    main_win.preferences = app.config  # Przekazujemy już załadowaną konfigurację
+    main_win.translator = app.translator  # Przekazujemy translator
 
     # Obsługa splash screenu
     splash = None
@@ -162,7 +191,7 @@ if __name__ == "__main__":
             image_path=splash_path,
             display_time=3000,
             window_size=(642, 250),
-            messages=["Ładowanie aplikacji ConceptFab NeuroSorter..."],
+            messages=[app.translator.translate("app.status.loading")],
             progress_bar=False,
         )
         splash.start()

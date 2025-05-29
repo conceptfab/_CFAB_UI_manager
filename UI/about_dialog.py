@@ -1,14 +1,13 @@
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QPixmap
 from PyQt6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
+
+from utils.translation_manager import TranslationManager
 
 
 class AboutDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("O Programie")
-        self.setFixedSize(400, 300)
-        self.setModal(True)
+        self.setMinimumWidth(400)
 
         layout = QVBoxLayout(self)
 
@@ -20,35 +19,41 @@ class AboutDialog(QDialog):
         # layout.addWidget(logo_label)
 
         # Nazwa aplikacji
-        title_label = QLabel("Moja Zaawansowana Aplikacja PyQt6")
-        title_font = QFont()
-        title_font.setPointSize(16)
-        title_font.setBold(True)
-        title_label.setFont(title_font)
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title_label)
+        self.title_label = QLabel()
+        self.title_label.setStyleSheet("font-size: 16px; font-weight: bold;")
+        layout.addWidget(self.title_label)
 
         # Wersja
-        version_label = QLabel("Wersja 1.0")
-        version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(version_label)
+        self.version_label = QLabel()
+        layout.addWidget(self.version_label)
 
         # Opis
-        description_label = QLabel(
-            "Stworzona z użyciem PyQt6\n\nAplikacja demonstracyjna z zaawansowanymi funkcjami interfejsu użytkownika."
-        )
-        description_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        description_label.setWordWrap(True)
-        layout.addWidget(description_label)
+        self.description_label = QLabel()
+        self.description_label.setWordWrap(True)
+        layout.addWidget(self.description_label)
 
         layout.addStretch()
 
         # Przycisk OK
         button_layout = QHBoxLayout()
-        ok_button = QPushButton("OK")
-        ok_button.clicked.connect(self.accept)
+        self.ok_button = QPushButton()
+        self.ok_button.clicked.connect(self.accept)
         button_layout.addStretch()
-        button_layout.addWidget(ok_button)
+        button_layout.addWidget(self.ok_button)
         button_layout.addStretch()
 
         layout.addLayout(button_layout)
+
+        # Rejestracja w TranslationManager
+        TranslationManager.register_widget(self)
+        self.update_translations()
+
+    def update_translations(self):
+        translator = TranslationManager.get_translator()
+        self.setWindowTitle(translator.translate("app.dialogs.about.title"))
+        self.title_label.setText(translator.translate("app.dialogs.about.title"))
+        self.version_label.setText(translator.translate("app.dialogs.about.version"))
+        self.description_label.setText(
+            translator.translate("app.dialogs.about.description")
+        )
+        self.ok_button.setText(translator.translate("app.dialogs.about.ok"))

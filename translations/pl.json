@@ -1,0 +1,119 @@
+{
+  "app": {
+    "title": "ConceptFab NeuroSorter",
+    "menu": {
+      "file": "Plik",
+      "edit": "Edycja",
+      "help": "Pomoc",
+      "new": "Nowy",
+      "open": "Otwórz",
+      "save": "Zapisz",
+      "exit": "Wyjście",
+      "preferences": "Preferencje",
+      "about": "O programie",
+      "copy": "Kopiuj",
+      "hardware_profiler": "Profil sprzętowy",
+      "hardware_profiler_tip": "Konfiguracja profilu sprzętowego"
+    },
+    "tabs": {
+      "tab1": "Zakładka 1",
+      "tab2": "Zakładka 2",
+      "tab3": "Zakładka 3",
+      "console": {
+        "clear": "Wyczyść",
+        "save_logs": "Zapisz logi",
+        "save_logs_title": "Zapisz logi",
+        "file_filters": "Pliki tekstowe (*.txt);;Wszystkie pliki (*.*)",
+        "error": "Błąd",
+        "save_error": "Nie udało się zapisać logów: {0}"
+      },
+      "content": {
+        "tab1": {
+          "content": "To jest zawartość pierwszej zakładki.",
+          "button": "Przycisk w zakładce 1",
+          "placeholder": "Wpisz coś w zakładce 1...",
+          "text_entered": "W zakładce 1 wpisano: {0}",
+          "nothing_entered": "W zakładce 1 nic nie wpisano."
+        },
+        "tab2": {
+          "content": "To jest zawartość drugiej zakładki.",
+          "checkbox": "Zaznacz mnie w zakładce 2",
+          "select_value": "Wybierz wartość:",
+          "checkbox_checked": "Zakładka 2: Checkbox jest zaznaczony!",
+          "checkbox_unchecked": "Zakładka 2: Checkbox nie jest zaznaczony.",
+          "new_value": "Nowa wartość spinbox: {0}"
+        },
+        "tab3": {
+          "content": "To jest zawartość trzeciej zakładki.",
+          "placeholder": "Wpisz dłuższy tekst tutaj...",
+          "show_text": "Pokaż tekst z pola",
+          "text_content": "Tekst z pola w zakładce 3:\n{0}...",
+          "empty_field": "Pole tekstowe w zakładce 3 jest puste."
+        }
+      }
+    },
+    "status": {
+      "ready": "Gotowy",
+      "loading": "Ładowanie...",
+      "saving": "Zapisywanie...",
+      "error": "Błąd: {0}"
+    },
+    "dialogs": {
+      "exit": {
+        "title": "Wyjście z aplikacji",
+        "message": "Czy na pewno chcesz wyjść?",
+        "yes": "Tak",
+        "no": "Nie"
+      },
+      "preferences": {
+        "title": "Preferencje",
+        "general": "Ogólne",
+        "logging": "Logowanie",
+        "show_splash": "Pokaż ekran powitalny",
+        "remember_window": "Zapamiętaj rozmiar okna",
+        "log_to_file": "Zapisz logi do pliku",
+        "log_ui": "Loguj komunikaty UI do konsoli",
+        "log_level": "Poziom logowania",
+        "language": "Język",
+        "save": "Zapisz",
+        "cancel": "Anuluj"
+      },
+      "about": {
+        "title": "O programie",
+        "version": "Wersja 1.0",
+        "description": "Stworzona z użyciem PyQt6\n\nAplikacja demonstracyjna z zaawansowanymi funkcjami interfejsu użytkownika.",
+        "ok": "OK"
+      },
+      "hardware_profiler": {
+        "title": "Profil sprzętowy",
+        "current_config": "Aktualna konfiguracja sprzętowa",
+        "available_optimizations": "Dostępne optymalizacje",
+        "scan_hardware": "Skanuj sprzęt",
+        "scanning": "Skanowanie...",
+        "save_profile": "Zapisz profil",
+        "close": "Zamknij",
+        "cpu": "CPU: {0}",
+        "ram": "RAM: {0}",
+        "gpu": "GPU: {0}",
+        "profile": {
+          "uuid": "UUID: {0}",
+          "system": "System: {0}",
+          "processor": "Procesor: {0}",
+          "cpu_cores": "Liczba rdzeni: {0}",
+          "ram": "Pamięć RAM: {0} GB",
+          "last_update": "Ostatnia aktualizacja: {0}",
+          "no_data": "Brak danych profilu do analizy.",
+          "no_optimizations": "Brak dostępnych optymalizacji.",
+          "optimizations": {
+            "multithreading_high": "• Włącz wielowątkowe przetwarzanie (8+ rdzeni)",
+            "multithreading_medium": "• Częściowa wielowątkowość (4-7 rdzeni)",
+            "multithreading_low": "• Tryb pojedynczego wątku (mniej niż 4 rdzenie)",
+            "buffering_high": "• Włącz zaawansowane buforowanie (16+ GB RAM)",
+            "buffering_medium": "• Standardowe buforowanie (8-15 GB RAM)",
+            "buffering_low": "• Ograniczone buforowanie (mniej niż 8 GB RAM)"
+          }
+        }
+      }
+    }
+  }
+}

@@ -5,11 +5,12 @@
   "log_level": "INFO",
   "remember_window_size": true,
   "window_size": {
-    "width": 800,
-    "height": 600
+    "width": 973,
+    "height": 466
   },
   "window_position": {
-    "x": 100,
-    "y": 70
-  }
+    "x": 188,
+    "y": 40
+  },
+  "language": "pl"
 }

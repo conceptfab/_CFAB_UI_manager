@@ -13,6 +13,7 @@ from UI.components.tab_two_widget import TabTwoWidget
 from UI.hardware_profiler import HardwareProfilerDialog
 from UI.preferences_dialog import PreferencesDialog
 from utils.thread_manager import ThreadManager
+from utils.translation_manager import TranslationManager
 
 # from UI.components.status_bar_manager import StatusBarManager # Jeśli używasz
 
@@ -70,7 +71,7 @@ class MainWindow(QMainWindow):
         self.file_worker = FileWorker()
 
         # Domyślne preferencje
-        self.preferences = {
+        self._preferences = {
             "show_splash": True,
             "log_to_file": False,
             "log_ui_to_console": False,
@@ -78,16 +79,16 @@ class MainWindow(QMainWindow):
             "remember_window_size": True,
             "window_size": {"width": 800, "height": 600},
             "window_position": {"x": 100, "y": 100},
+            "language": "en",
         }
 
-        # Inicjalizacja preferencji
+        # Inicjalizacja TranslationManager
+        TranslationManager.initialize(self._preferences["language"])
+
+        # Ścieżka do pliku konfiguracyjnego
         self.config_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "..", "config.json"
         )
-        self.load_preferences_async()
-
-        # Konfiguracja okna
-        self.setGeometry(100, 100, 800, 600)
 
         # Konfiguracja logowania
         self.configure_logging()
@@ -95,10 +96,26 @@ class MainWindow(QMainWindow):
         # Inicjalizacja interfejsu
         self._init_ui()
 
+        # Rejestracja głównego okna w TranslationManager
+        TranslationManager.register_widget(self)
+
     def _init_ui(self):
         """
         Inicjalizuje elementy interfejsu użytkownika.
         """
+        # Ustawienie rozmiaru okna na podstawie preferencji
+        if self._preferences.get("remember_window_size", True):
+            window_size = self._preferences.get(
+                "window_size", {"width": 800, "height": 600}
+            )
+            window_pos = self._preferences.get("window_position", {"x": 100, "y": 100})
+            self.setGeometry(
+                window_pos["x"],
+                window_pos["y"],
+                window_size["width"],
+                window_size["height"],
+            )
+
         # Menu
         create_menu_bar(self)
 
@@ -109,17 +126,22 @@ class MainWindow(QMainWindow):
         self.tab3 = TabThreeWidget()
         self.console_tab = ConsoleWidget()
 
-        self.tabs.addTab(self.tab1, "Zakładka 1")
-        self.tabs.addTab(self.tab2, "Zakładka 2")
-        self.tabs.addTab(self.tab3, "Zakładka 3")
-        self.tabs.addTab(self.console_tab, "Konsola")
+        # Rejestracja zakładek w TranslationManager
+        TranslationManager.register_widget(self.tab1)
+        TranslationManager.register_widget(self.tab2)
+        TranslationManager.register_widget(self.tab3)
+
+        self.tabs.addTab(self.tab1, "Tab 1")
+        self.tabs.addTab(self.tab2, "Tab 2")
+        self.tabs.addTab(self.tab3, "Tab 3")
+        self.tabs.addTab(self.console_tab, "Console")
 
         self.setCentralWidget(self.tabs)
 
         # Pasek statusu
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("Gotowy.")
+        self.status_bar.showMessage("Ready")
         # Jeśli używasz StatusBarManager:
         # self.status_manager = StatusBarManager(self.status_bar)
         # self.status_manager.set_message("Gotowy przez managera.")
@@ -137,7 +159,7 @@ class MainWindow(QMainWindow):
         logger.warning("Uwaga: Używana wersja testowa")
         logger.error("Błąd: Test obsługi błędów")
 
-        if self.preferences.get("log_ui_to_console", False):
+        if self._preferences.get("log_ui_to_console", False):
             logger.info("UI: Logowanie akcji interfejsu włączone")
 
     def configure_logging(self):
@@ -145,10 +167,10 @@ class MainWindow(QMainWindow):
         Konfiguruje system logowania na podstawie preferencji.
         """
         logger = logging.getLogger("AppLogger")
-        log_level = self.preferences.get("log_level", "INFO")
+        log_level = self._preferences.get("log_level", "INFO")
         logger.setLevel(getattr(logging, log_level))
 
-        if self.preferences.get("log_to_file", False):
+        if self._preferences.get("log_to_file", False):
             log_file_path = os.path.join(
                 os.path.dirname(os.path.abspath(__file__)), "..", "app.log"
             )
@@ -177,20 +199,15 @@ class MainWindow(QMainWindow):
             preferences (dict): Słownik z preferencjami
         """
         if preferences:
-            self.preferences.update(preferences)
-            if self.preferences.get("remember_window_size", True):
-                window_size = self.preferences.get(
-                    "window_size", {"width": 800, "height": 600}
-                )
-                window_pos = self.preferences.get(
-                    "window_position", {"x": 100, "y": 100}
-                )
-                self.setGeometry(
-                    window_pos["x"],
-                    window_pos["y"],
-                    window_size["width"],
-                    window_size["height"],
-                )
+            print(f"Wczytano preferencje: {preferences}")
+            self._preferences.update(preferences)
+            # Stosujemy ustawienia okna
+            self._apply_window_settings()
+            # Aktualizujemy język
+            if "language" in preferences:
+                print(f"Zmiana języka na: {preferences['language']}")
+                TranslationManager.set_language(preferences["language"])
+                self.update_translations()
 
     def on_preferences_error(self, error):
         """
@@ -207,21 +224,34 @@ class MainWindow(QMainWindow):
         Zapisuje preferencje asynchronicznie.
         """
         worker = self.thread_manager.run_in_thread(
-            self.file_worker.save_preferences, self.config_path, self.preferences
+            self.file_worker.save_preferences, self.config_path, self._preferences
         )
         worker.finished.connect(
-            lambda _: self.status_bar.showMessage("Zapisano preferencje.")
+            lambda _: self.status_bar.showMessage(
+                TranslationManager.get_translator().translate("app.status.saving")
+            )
         )
-        worker.error.connect(lambda e: self.status_bar.showMessage(f"Błąd zapisu: {e}"))
+        worker.error.connect(
+            lambda e: self.status_bar.showMessage(
+                TranslationManager.get_translator().translate(
+                    "app.status.error", str(e)
+                )
+            )
+        )
 
     def show_preferences_dialog(self):
         """
         Wyświetla okno dialogowe preferencji.
         """
-        dialog = PreferencesDialog(self.preferences, self)
+        dialog = PreferencesDialog(self._preferences, self)
         if dialog.exec():
-            self.preferences.update(dialog.get_preferences())
+            new_preferences = dialog.get_preferences()
+            self._preferences.update(new_preferences)
             self.save_preferences_async()
+            # Aktualizujemy język jeśli się zmienił
+            if "language" in new_preferences:
+                TranslationManager.set_language(new_preferences["language"])
+                self.update_translations()
 
     def show_hardware_profiler(self):
         """
@@ -239,6 +269,50 @@ class MainWindow(QMainWindow):
         """
         self.status_bar.showMessage(message)
 
+    def update_translations(self):
+        """
+        Aktualizuje wszystkie teksty w interfejsie użytkownika.
+        """
+        translator = TranslationManager.get_translator()
+
+        # Aktualizacja tytułu okna
+        self.setWindowTitle(translator.translate("app.title"))
+
+        # Aktualizacja menu
+        create_menu_bar(self)
+
+        # Aktualizacja nazw zakładek
+        self.tabs.setTabText(0, translator.translate("app.tabs.tab1"))
+        self.tabs.setTabText(1, translator.translate("app.tabs.tab2"))
+        self.tabs.setTabText(2, translator.translate("app.tabs.tab3"))
+        self.tabs.setTabText(3, translator.translate("app.tabs.console"))
+
+        # Aktualizacja zawartości zakładek
+        self.tab1.label.setText(translator.translate("app.tabs.content.tab1.content"))
+        self.tab1.button.setText(translator.translate("app.tabs.content.tab1.button"))
+        self.tab1.line_edit.setPlaceholderText(
+            translator.translate("app.tabs.content.tab1.placeholder")
+        )
+
+        self.tab2.label.setText(translator.translate("app.tabs.content.tab2.content"))
+        self.tab2.checkbox.setText(
+            translator.translate("app.tabs.content.tab2.checkbox")
+        )
+        self.tab2.spinbox_label.setText(
+            translator.translate("app.tabs.content.tab2.select_value")
+        )
+
+        self.tab3.label.setText(translator.translate("app.tabs.content.tab3.content"))
+        self.tab3.text_edit.setPlaceholderText(
+            translator.translate("app.tabs.content.tab3.placeholder")
+        )
+        self.tab3.button.setText(
+            translator.translate("app.tabs.content.tab3.show_text")
+        )
+
+        # Aktualizacja paska statusu
+        self.status_bar.showMessage(translator.translate("app.status.ready"))
+
     def closeEvent(self, event):
         """
         Obsługuje zdarzenie zamknięcia okna.
@@ -246,21 +320,22 @@ class MainWindow(QMainWindow):
         Args:
             event: Zdarzenie zamknięcia
         """
-        if self.preferences.get("remember_window_size", True):
-            self.preferences["window_size"] = {
+        if self._preferences.get("remember_window_size", True):
+            self._preferences["window_size"] = {
                 "width": self.size().width(),
                 "height": self.size().height(),
             }
-            self.preferences["window_position"] = {
+            self._preferences["window_position"] = {
                 "x": self.pos().x(),
                 "y": self.pos().y(),
             }
             self.save_preferences_async()
 
+        translator = TranslationManager.get_translator()
         reply = QMessageBox.question(
             self,
-            "Zamykanie Aplikacji",
-            "Czy na pewno chcesz zamknąć aplikację?",
+            translator.translate("app.dialogs.exit.title"),
+            translator.translate("app.dialogs.exit.message"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -271,6 +346,31 @@ class MainWindow(QMainWindow):
             event.accept()
         else:
             event.ignore()
+
+    @property
+    def preferences(self):
+        return self._preferences
+
+    @preferences.setter
+    def preferences(self, value):
+        self._preferences = value
+        self._apply_window_settings()
+
+    def _apply_window_settings(self):
+        """
+        Stosuje ustawienia okna na podstawie preferencji.
+        """
+        if self._preferences.get("remember_window_size", True):
+            window_size = self._preferences.get(
+                "window_size", {"width": 800, "height": 600}
+            )
+            window_pos = self._preferences.get("window_position", {"x": 100, "y": 100})
+            self.setGeometry(
+                window_pos["x"],
+                window_pos["y"],
+                window_size["width"],
+                window_size["height"],
+            )
 
 
 # Dodaj import QMessageBox jeśli go używasz w closeEvent

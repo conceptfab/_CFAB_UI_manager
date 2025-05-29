@@ -1,0 +1,1 @@
+konsola nie wyswietla info
