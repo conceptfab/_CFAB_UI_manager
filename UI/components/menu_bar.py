@@ -1,14 +1,19 @@
 from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import QMessageBox # Potrzebne dla "O Programie"
+from PyQt6.QtWidgets import QMessageBox  # Potrzebne dla "O Programie"
+
 
 def show_about_dialog(main_window):
-    QMessageBox.about(main_window, "O Programie",
-                      "Moja Zaawansowana Aplikacja PyQt6\n\n"
-                      "Wersja 1.0\n"
-                      "Stworzona z użyciem PyQt6.")
+    QMessageBox.about(
+        main_window,
+        "O Programie",
+        "Moja Zaawansowana Aplikacja PyQt6\n\n"
+        "Wersja 1.0\n"
+        "Stworzona z użyciem PyQt6.",
+    )
 
-def create_menu_bar(main_window): # Otrzymuje instancję QMainWindow
-    menu_bar = main_window.menuBar() # Używamy menuBar() z QMainWindow
+
+def create_menu_bar(main_window):  # Otrzymuje instancję QMainWindow
+    menu_bar = main_window.menuBar()  # Używamy menuBar() z QMainWindow
 
     # Menu Plik
     file_menu = menu_bar.addMenu("&Plik")
@@ -16,7 +21,9 @@ def create_menu_bar(main_window): # Otrzymuje instancję QMainWindow
     new_action = QAction("&Nowy", main_window)
     new_action.setShortcut("Ctrl+N")
     new_action.setStatusTip("Tworzy nowy plik")
-    new_action.triggered.connect(lambda: main_window.update_status("Wybrano Nowy")) # Przykład użycia statusu
+    new_action.triggered.connect(
+        lambda: main_window.update_status("Wybrano Nowy")
+    )  # Przykład użycia statusu
     file_menu.addAction(new_action)
 
     open_action = QAction("&Otwórz", main_window)
@@ -38,10 +45,16 @@ def create_menu_bar(main_window): # Otrzymuje instancję QMainWindow
     copy_action = QAction("&Kopiuj", main_window)
     copy_action.setShortcut("Ctrl+C")
     copy_action.setStatusTip("Kopiuje zaznaczenie")
-    # copy_action.triggered.connect(lambda: print("Kopiuj")) # Dodaj odpowiednią logikę
     edit_menu.addAction(copy_action)
 
-    # Dodaj separator i Preferencje
+    # Dodaj separator i Hardware Profiler
+    edit_menu.addSeparator()
+    hardware_profiler_action = QAction("Hardware Profiler", main_window)
+    hardware_profiler_action.setStatusTip("Konfiguracja profilu sprzętowego")
+    hardware_profiler_action.triggered.connect(main_window.show_hardware_profiler)
+    edit_menu.addAction(hardware_profiler_action)
+
+    # Separator i Preferencje
     edit_menu.addSeparator()
     preferences_action = QAction("Preferencje", main_window)
     preferences_action.setStatusTip("Ustawienia aplikacji")

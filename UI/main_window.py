@@ -1,12 +1,17 @@
-from PyQt6.QtWidgets import QMainWindow, QTabWidget, QStatusBar
-from UI.components.menu_bar import create_menu_bar
-from UI.components.tab_one_widget import TabOneWidget
-from UI.components.tab_two_widget import TabTwoWidget
-from UI.components.tab_three_widget import TabThreeWidget
-from UI.preferences_dialog import PreferencesDialog
 import json
 import os
+
+from PyQt6.QtWidgets import QMainWindow, QMessageBox, QStatusBar, QTabWidget
+
+from UI.components.menu_bar import create_menu_bar
+from UI.components.tab_one_widget import TabOneWidget
+from UI.components.tab_three_widget import TabThreeWidget
+from UI.components.tab_two_widget import TabTwoWidget
+from UI.hardware_profiler import HardwareProfilerDialog
+from UI.preferences_dialog import PreferencesDialog
+
 # from UI.components.status_bar_manager import StatusBarManager # Jeśli używasz
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -15,11 +20,13 @@ class MainWindow(QMainWindow):
         self.setGeometry(100, 100, 800, 600)
 
         # Preferencje
-        self.config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'config.json')
+        self.config_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "..", "config.json"
+        )
         self.preferences = self.load_preferences()
 
         # Menu
-        create_menu_bar(self) # Przekazujemy self (QMainWindow), aby menu mogło być do niego dodane
+        create_menu_bar(self)  # Przekazujemy self (QMainWindow)
 
         # Zakładki
         self.tabs = QTabWidget()
@@ -43,14 +50,14 @@ class MainWindow(QMainWindow):
 
     def load_preferences(self):
         try:
-            with open(self.config_path, 'r', encoding='utf-8') as f:
+            with open(self.config_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             return {"show_splash": True}
 
     def save_preferences(self):
         try:
-            with open(self.config_path, 'w', encoding='utf-8') as f:
+            with open(self.config_path, "w", encoding="utf-8") as f:
                 json.dump(self.preferences, f, indent=2, ensure_ascii=False)
         except Exception as e:
             print(f"Błąd zapisu preferencji: {e}")
@@ -62,21 +69,29 @@ class MainWindow(QMainWindow):
             self.save_preferences()
             self.status_bar.showMessage("Zapisano preferencje.")
 
+    def show_hardware_profiler(self):
+        dialog = HardwareProfilerDialog(self)
+        dialog.exec()
+
     def update_status(self, message):
         self.status_bar.showMessage(message)
 
     def closeEvent(self, event):
         # Tutaj możesz dodać logikę przed zamknięciem, np. zapis stanu
-        reply = QMessageBox.question(self, 'Zamykanie Aplikacji',
-                                     "Czy na pewno chcesz zamknąć aplikację?",
-                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                                     QMessageBox.StandardButton.No)
+        reply = QMessageBox.question(
+            self,
+            "Zamykanie Aplikacji",
+            "Czy na pewno chcesz zamknąć aplikację?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
 
         if reply == QMessageBox.StandardButton.Yes:
             print("Zamykanie aplikacji...")
             event.accept()
         else:
             event.ignore()
+
 
 # Dodaj import QMessageBox jeśli go używasz w closeEvent
 from PyQt6.QtWidgets import QMessageBox
