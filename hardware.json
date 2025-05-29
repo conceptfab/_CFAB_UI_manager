@@ -1,9 +1,31 @@
 {
-  "uuid": "63f7e536-093d-4e23-aacd-7c6ffbd014f8",
-  "system": "Windows",
-  "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
-  "cpu_count": 20,
-  "memory_total": 16855232512,
-  "timestamp": "Thu May 29 21:23:02 2025",
-  "gpu": "Intel(R) Iris(R) Xe Graphics, NVIDIA GeForce RTX 3050 Laptop GPU"
+    "uuid": "fab96a08-e641-55b3-95c9-1a19d51695fb",
+    "system": "Windows",
+    "release": "11",
+    "version": "10.0.26120",
+    "machine": "AMD64",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "cpu_count_logical": 20,
+    "cpu_count_physical": 14,
+    "memory_total": 16855232512,
+    "timestamp": "2025-05-29T23:18:34",
+    "gpu": "Intel(R) Iris(R) Xe Graphics, NVIDIA GeForce RTX 3050 Laptop GPU",
+    "optimizations_flags": {
+        "multithreading": true,
+        "advanced_multithreading": true,
+        "high_memory_buffering": false,
+        "standard_memory_buffering": true
+    },
+    "python_libraries": [
+        "PyQt6",
+        "cupy",
+        "numpy",
+        "psutil"
+    ],
+    "performance_index": null,
+    "performance_benchmark_time": 19.64748787879944,
+    "ai_benchmark_time_s": "Error",
+    "ai_index": 0,
+    "ai_benchmark_device": "Error",
+    "ai_benchmark_error": "CuPy failed to load nvrtc64_112_0.dll: FileNotFoundError: Could not find module 'nvrtc64_112_0.dll' (or one of its dependencies). Try using the full path with constructor syntax."
 }
