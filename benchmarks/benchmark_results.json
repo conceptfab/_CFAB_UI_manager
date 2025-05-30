@@ -1,0 +1,25 @@
+{
+  "config_loading": {
+    "direct_time": 0.004553079605102539,
+    "cached_time": 0.011651039123535156,
+    "direct_memory": 0.00390625,
+    "cached_memory": 0.109375,
+    "speedup": 0.39078742735532457
+  },
+  "lazy_loading": {
+    "immediate_time": 0.10415768623352051,
+    "first_lazy_time": 0.010522842407226562,
+    "subsequent_lazy_time": 0.0
+  },
+  "memory_monitoring": {
+    "unmonitored_time": 0.002511262893676758,
+    "monitored_time": 0.003505706787109375,
+    "overhead": 0.0009944438934326172,
+    "overhead_percent": 39.59935440994968
+  },
+  "memory_usage": {
+    "initial": 30.2109375,
+    "final": 30.4921875,
+    "used": 0.28125
+  }
+}

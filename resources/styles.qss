@@ -79,6 +79,7 @@ QTabWidget::pane {
     border: 1px solid #3F3F46; /* border_color */
     background-color: #252526; /* surface */
     color: #CCCCCC; /* text_color - dziedziczone, ale można jawnie */
+    top: -1px; /* Zapobiega podwójnej granicy */
 }
 
 QTabBar::tab {
@@ -96,6 +97,28 @@ QTabBar::tab {
 QTabBar::tab:selected {
     background-color: #252526; /* surface */
     border-bottom-color: #252526; /* Łączy się z panelem */
+    font-weight: bold; /* Wyróżnienie aktywnej zakładki */
+}
+
+QTabBar::tab:hover {
+    background-color: #2A2D2E; /* Lekko jaśniejszy przy najechaniu */
+}
+
+QTabBar::tab:disabled {
+    color: #666666; /* Wygaszone zakładki */
+    background-color: #1A1A1A;
+}
+
+/* Zapobiega znikaniu zakładek */
+QTabWidget::tab-bar {
+    alignment: left;
+    background: #1E1E1E;
+}
+
+/* Poprawia widoczność aktywnej zakładki */
+QTabWidget::tab-bar::tab:selected {
+    margin-bottom: -1px;
+    border-bottom: 2px solid #007ACC; /* primary_color */
 }
 
 /* --- Grupy (GroupBox) z _apply_material_theme --- */

@@ -20,6 +20,7 @@
       "tab2": "Tab 2",
       "tab3": "Tab 3",
       "console": {
+        "title": "Console",
         "clear": "Clear",
         "save_logs": "Save logs",
         "save_logs_title": "Save logs",
@@ -98,37 +99,34 @@
         "status": {
           "starting": "Starting scan...",
           "scan_completed": "Scan completed.",
-          "scan_error_detailed": "Scan finished with errors. Check details.",
-          "scan_failed": "Scan did not produce a profile.",
+          "scan_error_detailed": "Scan completed with errors. Check details.",
+          "scan_failed": "Scan did not generate a profile.",
           "profile_ready": "Profile ready.",
-          "profile_loaded": "Existing profile loaded.",
+          "profile_loaded": "Loaded existing profile.",
           "profile_corrupt": "Error loading profile (corrupted?): {error}",
           "profile_load_error": "Error loading profile: {error}",
-          "no_profile_found": "No existing profile found. Scan hardware to create one.",
+          "no_profile_found": "No existing profile found. Scan hardware to create new one.",
           "save_no_data": "No valid profile data to save.",
           "profile_saved": "Hardware profile saved to: {path}",
-          "profile_save_error": "Error saving profile: {error}"
+          "profile_save_error": "Error saving profile: {error}",
+          "collecting_info": "Collecting system information...",
+          "detecting_gpu": "Detecting GPU...",
+          "gpu_detection_error": "Error detecting GPU",
+          "running_cpu_benchmark": "Running CPU benchmark (pyperformance)...",
+          "running_ai_benchmark": "Running AI benchmark..."
         },
         "profile": {
-          "uuid": "UUID: {0}",
-          "system": "System: {0}",
-          "processor": "Processor: {0}",
-          "cpu_cores": "CPU cores: {0}",
-          "ram": "RAM: {0} GB",
-          "last_update": "Last update: {0}",
-          "no_data": "No profile data to analyze.",
-          "no_optimizations": "No available optimizations.",
+          "uuid": "UUID: {}",
+          "system": "System: {}",
+          "processor": "Processor: {}",
+          "cpu_cores": "CPU Cores: {}",
+          "ram": "RAM: {} GB",
+          "last_update": "Last Update: {}",
+          "no_data": "No profile data",
           "error_display": "Error during profiling:",
-          "traceback": "Details (Traceback):",
-          "no_optimizations_due_to_error": "Optimizations cannot be determined due to error.",
-          "optimizations": {
-            "multithreading_high": "• Enable multithreading (8+ cores)",
-            "multithreading_medium": "• Partial multithreading (4-7 cores)",
-            "multithreading_low": "• Single thread mode (less than 4 cores)",
-            "buffering_high": "• Enable advanced buffering (16+ GB RAM)",
-            "buffering_medium": "• Standard buffering (8-15 GB RAM)",
-            "buffering_low": "• Limited buffering (less than 8 GB RAM)"
-          }
+          "traceback": "Error details:",
+          "no_optimizations_due_to_error": "Cannot determine optimizations due to error",
+          "cpu_benchmark": "CPU Test: {}"
         }
       }
     }

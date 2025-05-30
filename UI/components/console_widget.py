@@ -1,5 +1,6 @@
 import logging
 import sys
+import weakref
 from io import StringIO
 
 from PyQt6.QtWidgets import (
@@ -15,44 +16,88 @@ from PyQt6.QtWidgets import (
 from utils.translation_manager import TranslationManager
 
 
+class SafeStdoutRedirector:
+    """
+    Bezpieczniejsze przechwytywanie stdout który nie powoduje problemów z innymi komponentami
+    """
+
+    def __init__(self, console_widget):
+        self.console_widget = weakref.ref(console_widget)
+        self.original_stdout = sys.stdout
+
+    def write(self, text):
+        """Przechwytuje wyjście z print() i przekierowuje do konsoli"""
+        self.original_stdout.write(text)  # Zachowujemy oryginalne wyjście
+        widget = self.console_widget()
+        if widget and text.strip():  # Sprawdź czy widget jeszcze istnieje
+            widget.append_log(text.strip())
+
+    def flush(self):
+        """Wymagane dla sys.stdout"""
+        self.original_stdout.flush()
+
+    def restore(self):
+        """Przywraca oryginalne stdout"""
+        sys.stdout = self.original_stdout
+
+
 class ConsoleWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("ConsoleWidget")
         self.init_ui()
 
-        # Konfiguracja loggera
+        # Konfiguracja loggera - bezpieczniej
         self.handler = ConsoleHandler(self)
-        formatter = logging.Formatter("%(message)s")
+        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         self.handler.setFormatter(formatter)
-        logging.getLogger("AppLogger").addHandler(self.handler)
 
-        # Przechwytywanie stdout i stderr
-        self.stdout_capture = StringIO()
-        self.stderr_capture = StringIO()
-        self.old_stdout = sys.stdout
-        self.old_stderr = sys.stderr
-        sys.stdout = self
-        sys.stderr = self
+        # Dodaj handler do root loggera
+        root_logger = logging.getLogger()
+        root_logger.addHandler(self.handler)
+
+        # Ustaw poziom logowania z konfiguracji
+        level_map = {
+            "DEBUG": logging.DEBUG,
+            "INFO": logging.INFO,
+            "WARNING": logging.WARNING,
+            "ERROR": logging.ERROR,
+            "CRITICAL": logging.CRITICAL,
+        }
+
+        # Pobierz poziom logowania z konfiguracji
+        config = TranslationManager.get_config()
+        log_level = level_map.get(config.get("log_level", "INFO"), logging.INFO)
+        root_logger.setLevel(log_level)
+
+        # Dodaj też do specific logger
+        app_logger = logging.getLogger("AppLogger")
+        app_logger.addHandler(self.handler)
+        app_logger.setLevel(log_level)
+
+        # Bezpieczniejsze przechwytywanie stdout (włączone domyślnie)
+        self.stdout_redirector = None
+        self.redirect_stdout = True  # Włączamy domyślnie
+
+        if self.redirect_stdout:
+            self.stdout_redirector = SafeStdoutRedirector(self)
+            sys.stdout = self.stdout_redirector
 
         # Rejestracja w TranslationManager
         TranslationManager.register_widget(self)
         self.update_translations()
 
-    def write(self, text):
-        """Przechwytuje wyjście z print() i przekierowuje do konsoli"""
-        self.old_stdout.write(text)  # Zachowujemy oryginalne wyjście
-        if text.strip():  # Ignorujemy puste linie
-            self.append_log(text.strip())
-
-    def flush(self):
-        """Wymagane dla sys.stdout"""
-        self.old_stdout.flush()
+        logging.getLogger("AppLogger").info("Console widget initialized")
 
     def closeEvent(self, event):
-        """Przywraca oryginalne stdout i stderr przy zamknięciu"""
-        sys.stdout = self.old_stdout
-        sys.stderr = self.old_stderr
+        """Przywraca oryginalne stdout przy zamknięciu"""
+        if self.stdout_redirector:
+            self.stdout_redirector.restore()
+
+        # Usuń handler z loggera
+        app_logger = logging.getLogger("AppLogger")
+        app_logger.removeHandler(self.handler)
+
         super().closeEvent(event)
 
     def init_ui(self):

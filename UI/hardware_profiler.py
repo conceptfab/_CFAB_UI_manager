@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import platform
 import re
@@ -22,7 +23,17 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from utils.exceptions import HardwareProfilingError, handle_error_gracefully
+from utils.secure_commands import (
+    CommandExecutionError,
+    CommandTimeoutError,
+    HardwareDetector,
+    SecureCommandRunner,
+)
+from utils.system_info import get_stable_uuid
 from utils.translation_manager import TranslationManager
+
+logger = logging.getLogger(__name__)
 
 try:
     import cupy as cp
@@ -38,69 +49,27 @@ PYPERFORMANCE_BENCHMARKS = "bm_ai,bm_json_loads,bm_nbody,bm_regex_dna,bm_spectra
 # For full 'default' set (slower):
 # PYPERFORMANCE_BENCHMARKS = "default"
 
-
-def get_stable_uuid():
-    machine_id_str = ""
-    # Try to get a unique machine identifier
-    if platform.system() == "Windows":
-        try:
-            # Motherboard serial number is often a good candidate
-            result = subprocess.check_output(
-                "wmic baseboard get serialnumber",
-                shell=True,
-                text=True,
-                stderr=subprocess.DEVNULL,
-            )
-            serial = result.split("\n")[1].strip()
-            if serial and serial != "To be filled by O.E.M.":
-                machine_id_str = serial
-        except (subprocess.CalledProcessError, FileNotFoundError, IndexError):
-            pass  # Fall through
-    elif platform.system() == "Linux":
-        try:
-            # /etc/machine-id is usually available and stable
-            with open("/etc/machine-id", "r") as f:
-                machine_id_str = f.read().strip()
-        except FileNotFoundError:
-            pass  # Fall through
-    elif platform.system() == "Darwin":  # macOS
-        try:
-            # IOPlatformUUID is a good candidate on macOS
-            result = subprocess.check_output(
-                "ioreg -rd1 -c IOPlatformExpertDevice | grep IOPlatformUUID",
-                shell=True,
-                text=True,
-                stderr=subprocess.DEVNULL,
-            )
-            match = re.search(r'"IOPlatformUUID"\s*=\s*"([^"]+)"', result)
-            if match:
-                machine_id_str = match.group(1)
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            pass  # Fall through
-
-    # Fallback if specific IDs aren't available or if they are empty
-    if not machine_id_str:
-        machine_id_str = (
-            platform.node()
-            + platform.machine()
-            + (platform.processor() or "unknown_processor")
-        )
-
-    # Add MAC address of the first non-loopback interface for more stability if needed,
-    # but this can change (e.g., USB NICs) and might be too volatile for some use cases.
-    # For this example, the above should be sufficient for "stable enough".
-
-    return str(uuid.uuid5(uuid.NAMESPACE_DNS, machine_id_str))
+# Funkcja get_stable_uuid została przeniesiona do utils.system_info
 
 
 class HardwareProfilerThread(QThread):
     profile_ready = pyqtSignal(dict)
     progress_update = pyqtSignal(str)
 
+    def __init__(self, parent=None, hardware_path=None):
+        super().__init__(parent)
+        self.hardware_detector = HardwareDetector()
+        self.hardware_path = hardware_path
+
     def run(self):
-        print("STARTING BENCHMARK THREAD")
+        logger.info("Starting hardware profiling thread")
         try:
-            self.progress_update.emit("Collecting system information...")
+            translator = TranslationManager.get_translator()
+            self.progress_update.emit(
+                translator.translate(
+                    "app.dialogs.hardware_profiler.status.collecting_info"
+                )
+            )
             profile = {
                 "uuid": get_stable_uuid(),
                 "system": platform.system(),
@@ -116,109 +85,19 @@ class HardwareProfilerThread(QThread):
                 ),
             }
 
-            self.progress_update.emit("Detecting GPU...")
-            if platform.system() == "Windows":
-                try:
-                    cmd = "wmic path win32_VideoController get name"
-                    try:
-                        output = subprocess.check_output(
-                            cmd,
-                            shell=True,
-                            text=True,
-                            stderr=subprocess.PIPE,
-                            encoding="utf-8",
-                            errors="ignore",
-                        )
-                    except UnicodeDecodeError:
-                        output = subprocess.check_output(
-                            cmd, shell=True, text=False, stderr=subprocess.PIPE
-                        ).decode(errors="ignore")
-
-                    print("WMIC GPU output:", output)
-                    lines = output.strip().split("\n")
-                    gpus = [
-                        line.strip()
-                        for line in lines
-                        if line.strip() and line.strip().lower() != "name"
-                    ]
-                    profile["gpu"] = ", ".join(gpus) if gpus else "N/A"
-                except Exception as e:
-                    print(f"GPU detection error (Windows): {e}")
-                    profile["gpu"] = "Error detecting GPU"
-            elif platform.system() == "Linux":
-                gpu_info_list = []
-                try:  # Try lspci
-                    output_lspci = subprocess.check_output(
-                        "lspci -vnn | grep -i VGA -A 12",
-                        shell=True,
-                        text=True,
-                        stderr=subprocess.PIPE,
-                    )
-                    for line in output_lspci.splitlines():
-                        if "VGA compatible controller" in line:
-                            match = re.search(
-                                r":\s*(.*?)(?:\[|\(|$)", line
-                            )  # More robust regex
-                            if match:
-                                gpu_info_list.append(match.group(1).strip())
-                except (subprocess.CalledProcessError, FileNotFoundError) as e:
-                    print(f"lspci for GPU failed: {e}")
-
-                try:  # Try nvidia-smi if NVIDIA might be present or lspci failed
-                    output_smi = subprocess.check_output(
-                        "nvidia-smi --query-gpu=gpu_name --format=csv,noheader",
-                        shell=True,
-                        text=True,
-                        stderr=subprocess.PIPE,
-                    )
-                    nvidia_gpus = [
-                        line.strip() for line in output_smi.splitlines() if line.strip()
-                    ]
-                    if nvidia_gpus:
-                        gpu_info_list = nvidia_gpus  # Prefer nvidia-smi if successful
-                except (subprocess.CalledProcessError, FileNotFoundError):
-                    pass  # nvidia-smi not found or failed, stick with lspci if it worked
-
-                profile["gpu"] = (
-                    ", ".join(list(set(gpu_info_list)))
-                    if gpu_info_list
-                    else "N/A (Linux)"
+            self.progress_update.emit(
+                translator.translate(
+                    "app.dialogs.hardware_profiler.status.detecting_gpu"
                 )
-            elif platform.system() == "Darwin":  # macOS
-                try:
-                    # system_profiler SPDisplaysDataType
-                    output = subprocess.check_output(
-                        "system_profiler SPDisplaysDataType",
-                        shell=True,
-                        text=True,
-                        stderr=subprocess.PIPE,
-                    )
-                    gpus = []
-                    current_gpu_name = None
-                    for line in output.splitlines():
-                        line = line.strip()
-                        if "Chipset Model:" in line:
-                            current_gpu_name = line.split(":", 1)[1].strip()
-                        elif (
-                            "VRAM (Total):" in line and current_gpu_name
-                        ):  # Confirm it's a display entry
-                            gpus.append(current_gpu_name)
-                            current_gpu_name = None  # Reset for next GPU
-                        elif (
-                            "Graphics:" in line and ":" in line
-                        ):  # Fallback for some structures
-                            gpus.append(
-                                line.split(":", 1)[1].strip().split(",")[0]
-                            )  # Take first part
-
-                    profile["gpu"] = (
-                        ", ".join(list(set(gpus))) if gpus else "N/A (macOS)"
-                    )
-                except (subprocess.CalledProcessError, FileNotFoundError) as e:
-                    print(f"GPU detection error (macOS): {e}")
-                    profile["gpu"] = "Error detecting GPU"
-            else:
-                profile["gpu"] = "N/A (OS not Windows/Linux/macOS)"
+            )
+            try:
+                profile["gpu"] = self.hardware_detector.get_gpu_info()
+                logger.debug(f"GPU detected: {profile['gpu']}")
+            except Exception as e:
+                logger.error(f"GPU detection failed: {e}")
+                profile["gpu"] = translator.translate(
+                    "app.dialogs.hardware_profiler.status.gpu_detection_error"
+                )
 
             cpu_cores = (
                 profile["cpu_count_physical"]
@@ -241,58 +120,110 @@ class HardwareProfilerThread(QThread):
 
                     python_libraries.append("numba")
                 except ImportError:
-                    print("Numba not installed, skipping.")
+                    logger.debug("Numba not installed, skipping.")
             if "nvidia" in profile["gpu"].lower() and HAS_CUPY:
                 python_libraries.append("cupy")
             profile["python_libraries"] = sorted(list(set(python_libraries)))
 
-            self.progress_update.emit("Running CPU benchmark (pyperformance)...")
+            self.progress_update.emit(
+                translator.translate(
+                    "app.dialogs.hardware_profiler.status.running_cpu_benchmark"
+                )
+            )
 
             def run_pyperformance():
                 try:
                     import pyperformance  # sprawdzamy czy jest zainstalowane
+
+                    logger.info("Pyperformance jest zainstalowane")
                 except ImportError:
-                    print("pyperformance nie jest zainstalowane! Pomijam test CPU.")
+                    logger.warning(
+                        "pyperformance nie jest zainstalowane! Pomijam test CPU."
+                    )
                     return None, 0.0
                 try:
+                    import os
+                    import sys
                     import time
 
+                    secure_runner = SecureCommandRunner()
                     start = time.time()
-                    # Uruchamiamy tylko jeden szybki benchmark
-                    result = subprocess.run(
-                        [
-                            "python",
-                            "-m",
-                            "pyperformance",
-                            "run",
-                            "--benchmarks",
-                            "json_loads",
-                        ],
-                        capture_output=True,
-                        text=True,
-                        check=True,
+
+                    # Używamy pełnej ścieżki do Pythona
+                    python_path = sys.executable
+                    logger.info(f"Używam Pythona z: {python_path}")
+
+                    # Uruchamiamy benchmark
+                    cmd = [
+                        python_path,
+                        "-m",
+                        "pyperformance",
+                        "run",
+                        "--benchmarks",
+                        "json_loads",
+                    ]
+                    logger.info(f"Uruchamiam komendę: {' '.join(cmd)}")
+
+                    stdout, stderr = secure_runner.run_command(
+                        cmd,
+                        timeout=120,
                     )
                     elapsed = time.time() - start
-                    output = result.stdout
-                    match = re.search(r"Geometric mean:\s+([0-9.]+)", output)
+
+                    logger.info(f"Output pyperformance: {stdout}")
+                    if stderr:
+                        logger.warning(f"Błędy pyperformance: {stderr}")
+
+                    # Szukamy wyniku w output - nowy format
+                    match = re.search(r"Mean \+-\s+std dev:\s+([0-9.]+)\s+us", stdout)
                     if match:
                         score = float(match.group(1))
+                        logger.info(f"Wynik testu CPU: {score} (czas: {elapsed:.2f}s)")
                         return score, elapsed
                     else:
-                        print(
-                            "Nie znaleziono wyniku Geometric mean w output pyperformance."
-                        )
+                        logger.warning("Nie znaleziono wyniku testu CPU w output")
                         return None, elapsed
+
+                except (CommandTimeoutError, CommandExecutionError) as e:
+                    logger.error(f"Błąd uruchamiania pyperformance: {e}")
+                    return None, 0.0
                 except Exception as e:
-                    print("Błąd uruchamiania pyperformance:", e)
+                    logger.error(f"Nieoczekiwany błąd podczas testu CPU: {e}")
                     return None, 0.0
 
             perf_score, perf_time = run_pyperformance()
             if perf_score is not None:
-                profile["cpu_benchmark_score"] = perf_score
-                profile["cpu_benchmark_time"] = perf_time
+                profile["cpu_benchmark"] = {
+                    "score": perf_score,
+                    "time": perf_time,
+                    "benchmark": "json_loads",
+                }
+                logger.info(f"Zapisano wynik testu CPU w profilu: {perf_score}")
 
-            self.progress_update.emit("Running AI benchmark...")
+                # Bezpośrednie zapisanie do pliku hardware.json
+                try:
+                    with open(self.hardware_path, "r", encoding="utf-8") as f:
+                        hardware_data = json.load(f)
+
+                    hardware_data["cpu_benchmark"] = {
+                        "score": perf_score,
+                        "time": perf_time,
+                        "benchmark": "json_loads",
+                    }
+
+                    with open(self.hardware_path, "w", encoding="utf-8") as f:
+                        json.dump(hardware_data, f, indent=4, ensure_ascii=False)
+                    logger.info("Zapisano wyniki testu CPU do pliku hardware.json")
+                except Exception as e:
+                    logger.error(f"Błąd podczas zapisywania wyników CPU do pliku: {e}")
+            else:
+                logger.warning("Nie udało się uzyskać wyniku testu CPU")
+
+            self.progress_update.emit(
+                translator.translate(
+                    "app.dialogs.hardware_profiler.status.running_ai_benchmark"
+                )
+            )
             try:
                 import time
 
@@ -305,13 +236,13 @@ class HardwareProfilerThread(QThread):
                 profile["ai_benchmark_time"] = elapsed
                 profile["ai_benchmark_score"] = calculate_ai_score(elapsed)
             except Exception as e:
-                print(f"AI benchmark error: {e}")
+                logger.error(f"AI benchmark error: {e}")
                 profile["ai_benchmark_time"] = None
                 profile["ai_benchmark_score"] = None
 
             self.profile_ready.emit(profile)
         except Exception as e:
-            print(f"Error in hardware profiling: {e}")
+            logger.error(f"Error in hardware profiling: {e}")
             self.progress_update.emit(f"Error: {str(e)}")
             self.profile_ready.emit({})
 
@@ -485,10 +416,12 @@ class HardwareProfilerDialog(QDialog):
         self.timer.start(1000)  # Update co sekundę
 
         if self.thread and self.thread.isRunning():
-            print("Profiler thread is already running. This should not happen.")
+            logger.warning(
+                "Profiler thread is already running. This should not happen."
+            )
             return
 
-        self.thread = HardwareProfilerThread(self)
+        self.thread = HardwareProfilerThread(self, hardware_path=self.hardware_path)
         self.thread.profile_ready.connect(self.on_profile_ready)
         self.thread.progress_update.connect(self.on_progress_update)
         self.thread.finished.connect(self.on_scan_finished)
@@ -540,7 +473,7 @@ class HardwareProfilerDialog(QDialog):
             )
 
     def on_profile_ready(self, profile):
-        print("PROFILE RECEIVED IN DIALOG:", json.dumps(profile, indent=2))
+        logger.debug(f"PROFILE RECEIVED IN DIALOG: {json.dumps(profile, indent=2)}")
         translator = TranslationManager.get_translator()
         self.profile_data = profile  # Store the received profile immediately
         if "error" in profile:
@@ -575,7 +508,11 @@ class HardwareProfilerDialog(QDialog):
         self.ram_label.setText(
             translator.translate("app.dialogs.hardware_profiler.ram").format(ram_gb)
         )
-        self.gpu_value_label.setText(self.profile_data.get("gpu", "N/A"))
+        self.gpu_value_label.setText(
+            translator.translate("app.dialogs.hardware_profiler.gpu").format(
+                self.profile_data.get("gpu", "N/A")
+            )
+        )
 
         if not self.profile_data:
             self.config_display.setText(
@@ -612,11 +549,22 @@ class HardwareProfilerDialog(QDialog):
             (
                 "memory_total",
                 "app.dialogs.hardware_profiler.profile.ram",
-                lambda x: x / (1024**3),
+                lambda x: round(x / (1024**3), 1),
             ),
-            ("gpu", "app.dialogs.hardware_profiler.profile.gpu"),
+            ("gpu", "app.dialogs.hardware_profiler.gpu"),
             ("timestamp", "app.dialogs.hardware_profiler.profile.last_update"),
         ]
+
+        # Dodajemy wyniki testu CPU jeśli są dostępne
+        if "cpu_benchmark" in self.profile_data:
+            cpu_benchmark = self.profile_data["cpu_benchmark"]
+            config_items.append(
+                (
+                    "cpu_benchmark",
+                    "app.dialogs.hardware_profiler.profile.cpu_benchmark",
+                    lambda x: f"Score: {x['score']:.2f} (Time: {x['time']:.2f}s)",
+                )
+            )
 
         config_text_parts = []
         for key, trans_key, *formatter_and_condition in config_items:
@@ -745,7 +693,7 @@ class HardwareProfilerDialog(QDialog):
                     "app.dialogs.hardware_profiler.status.save_no_data"
                 )
             )
-            print("No valid profile data to save.")
+            logger.warning("No valid profile data to save.")
             return
 
         try:
@@ -755,13 +703,13 @@ class HardwareProfilerDialog(QDialog):
                 "app.dialogs.hardware_profiler.status.profile_saved"
             ).format(path=self.hardware_path)
             self.status_message_requested.emit(msg)
-            print(f"Profile saved to {self.hardware_path}")
+            logger.info(f"Profile saved to {self.hardware_path}")
             self.save_btn.setEnabled(True)
         except Exception as e:
             error_msg = translator.translate(
                 "app.dialogs.hardware_profiler.status.profile_save_error"
             ).format(error=e)
-            print(f"Error saving profile: {e}")
+            logger.error(f"Error saving profile: {e}")
             self.status_message_requested.emit(error_msg)
 
     def update_translations(self):
@@ -805,7 +753,7 @@ class HardwareProfilerDialog(QDialog):
         if self.thread and self.thread.isRunning():
             # Consider if a more graceful shutdown is needed (e.g., signal thread to stop)
             # For now, QThread should handle termination if parent dialog is destroyed.
-            print("Profiler thread is running. Dialog closing.")
+            logger.info("Profiler thread is running. Dialog closing.")
         super().closeEvent(event)
 
     def resizeEvent(self, event):
@@ -857,7 +805,7 @@ if __name__ == "__main__":
 
     # To see status messages from the dialog (if it were part of a main window)
     def show_status(message):
-        print(f"STATUS UPDATE (from dialog): {message}")
+        logger.info(f"STATUS UPDATE (from dialog): {message}")
 
     dialog.status_message_requested.connect(show_status)
 

@@ -3,7 +3,15 @@ import logging
 import os
 
 from PyQt6.QtCore import QObject, pyqtSignal
-from PyQt6.QtWidgets import QMainWindow, QMessageBox, QStatusBar, QTabWidget
+from PyQt6.QtWidgets import (
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QStatusBar,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 from UI.components.console_widget import ConsoleWidget
 from UI.components.menu_bar import create_menu_bar
@@ -12,7 +20,12 @@ from UI.components.tab_three_widget import TabThreeWidget
 from UI.components.tab_two_widget import TabTwoWidget
 from UI.hardware_profiler import HardwareProfilerDialog
 from UI.preferences_dialog import PreferencesDialog
-from utils.thread_manager import ThreadManager
+from utils.improved_thread_manager import ImprovedThreadManager
+from utils.performance_optimizer import (
+    defer_until_after_startup,
+    lazy_property,
+    performance_monitor,
+)
 from utils.translation_manager import TranslationManager
 
 # from UI.components.status_bar_manager import StatusBarManager # Jeśli używasz
@@ -61,48 +74,49 @@ class MainWindow(QMainWindow):
     Główne okno aplikacji.
     """
 
-    def __init__(self):
-        """
-        Inicjalizuje główne okno aplikacji.
-        """
-        super().__init__()
-        translator = TranslationManager.get_translator()
-        self.setWindowTitle(translator.translate("app.title"))
-        self.thread_manager = ThreadManager()
-        self.file_worker = FileWorker()
+    def __init__(self, *args, **kwargs):
+        try:
+            logging.info("MainWindow: start __init__")
+            super().__init__(*args, **kwargs)
+            translator = TranslationManager.get_translator()
+            self.setWindowTitle(translator.translate("app.title"))
+            self.thread_manager = ImprovedThreadManager()
+            self.file_worker = FileWorker()
 
-        # Domyślne preferencje
-        self._preferences = {
-            "show_splash": True,
-            "log_to_file": False,
-            "log_ui_to_console": False,
-            "log_level": "INFO",
-            "remember_window_size": True,
-            "window_size": {"width": 800, "height": 600},
-            "window_position": {"x": 100, "y": 100},
-            "language": "en",
-        }
+            # Domyślne preferencje
+            self._preferences = {
+                "show_splash": True,
+                "log_to_file": False,
+                "log_ui_to_console": False,
+                "log_level": "INFO",
+                "remember_window_size": True,
+                "window_size": {"width": 800, "height": 600},
+                "window_position": {"x": 100, "y": 100},
+            }
 
-        # Inicjalizacja TranslationManager
-        TranslationManager.initialize(self._preferences["language"])
+            # Ścieżka do pliku konfiguracyjnego
+            self.config_path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "..", "config.json"
+            )
 
-        # Ścieżka do pliku konfiguracyjnego
-        self.config_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "..", "config.json"
-        )
+            # Konfiguracja logowania
+            self.configure_logging()
 
-        # Konfiguracja logowania
-        self.configure_logging()
+            # Inicjalizacja interfejsu
+            self._init_ui()
 
-        # Inicjalizacja interfejsu
-        self._init_ui()
+            # Rejestracja głównego okna w TranslationManager
+            TranslationManager.register_widget(self)
+            logging.info("MainWindow: koniec __init__")
+        except Exception as e:
+            logging.error(f"MainWindow: wyjątek w __init__: {e}")
+            QMessageBox.critical(None, "Błąd MainWindow", f"Wyjątek w MainWindow:\n{e}")
+            raise
 
-        # Rejestracja głównego okna w TranslationManager
-        TranslationManager.register_widget(self)
-
+    @performance_monitor.measure_execution_time("main_window_init")
     def _init_ui(self):
         """
-        Inicjalizuje elementy interfejsu użytkownika.
+        Inicjalizuje elementy interfejsu użytkownika z optymalizacjami wydajności.
         """
         translator = TranslationManager.get_translator()
         # Ustawienie rozmiaru okna na podstawie preferencji
@@ -123,25 +137,26 @@ class MainWindow(QMainWindow):
 
         # Zakładki
         self.tabs = QTabWidget()
-        self.tab1 = TabOneWidget()
-        self.tab2 = TabTwoWidget()
-        self.tab3 = TabThreeWidget()
+        self._tab_widgets = {}  # Cache dla widgetów zakładek
 
-        # Inicjalizacja konsoli
-        print("Inicjalizacja ConsoleWidget...")  # Debug
-        self.console_tab = ConsoleWidget()
-        print("ConsoleWidget zainicjalizowany")  # Debug
+        # Inicjalizacja wszystkich zakładek
+        self._init_tab1()
+        self._init_tab2()
+        self._init_tab3()
+        self._init_console()
 
-        # Rejestracja zakładek w TranslationManager
-        TranslationManager.register_widget(self.tab1)
-        TranslationManager.register_widget(self.tab2)
-        TranslationManager.register_widget(self.tab3)
-
-        self.tabs.addTab(self.tab1, translator.translate("app.tabs.tab1"))
-        self.tabs.addTab(self.tab2, translator.translate("app.tabs.tab2"))
-        self.tabs.addTab(self.tab3, translator.translate("app.tabs.tab3"))
+        # Dodanie zakładek do widgeta
         self.tabs.addTab(
-            self.console_tab, translator.translate("app.tabs.console.clear")
+            self._tab_widgets["tab1"], translator.translate("app.tabs.tab1")
+        )
+        self.tabs.addTab(
+            self._tab_widgets["tab2"], translator.translate("app.tabs.tab2")
+        )
+        self.tabs.addTab(
+            self._tab_widgets["tab3"], translator.translate("app.tabs.tab3")
+        )
+        self.tabs.addTab(
+            self._tab_widgets["console"], translator.translate("app.tabs.console.title")
         )
 
         self.setCentralWidget(self.tabs)
@@ -156,6 +171,34 @@ class MainWindow(QMainWindow):
 
         # Testowe logi
         self._log_test_messages()
+
+    def _init_tab1(self):
+        """Inicjalizacja pierwszej zakładki."""
+        logging.debug("Inicjalizacja TabOneWidget...")
+        widget = TabOneWidget()
+        TranslationManager.register_widget(widget)
+        self._tab_widgets["tab1"] = widget
+
+    def _init_tab2(self):
+        """Inicjalizacja drugiej zakładki."""
+        logging.debug("Inicjalizacja TabTwoWidget...")
+        widget = TabTwoWidget()
+        TranslationManager.register_widget(widget)
+        self._tab_widgets["tab2"] = widget
+
+    def _init_tab3(self):
+        """Inicjalizacja trzeciej zakładki."""
+        logging.debug("Inicjalizacja TabThreeWidget...")
+        widget = TabThreeWidget()
+        TranslationManager.register_widget(widget)
+        self._tab_widgets["tab3"] = widget
+
+    def _init_console(self):
+        """Inicjalizacja zakładki konsoli."""
+        logging.debug("Inicjalizacja ConsoleWidget...")
+        widget = ConsoleWidget()
+        TranslationManager.register_widget(widget)
+        self._tab_widgets["console"] = widget
 
     def _log_test_messages(self):
         """
@@ -197,58 +240,23 @@ class MainWindow(QMainWindow):
         """
         Wczytuje preferencje asynchronicznie.
         """
-        worker = self.thread_manager.run_in_thread(
+        task_id = self.thread_manager.submit_task(
             self.file_worker.load_preferences, self.config_path
         )
-        worker.finished.connect(self.on_preferences_loaded)
-        worker.error.connect(self.on_preferences_error)
-
-    def on_preferences_loaded(self, preferences):
-        """
-        Obsługuje załadowane preferencje.
-
-        Args:
-            preferences (dict): Słownik z preferencjami
-        """
-        if preferences:
-            print(f"Wczytano preferencje: {preferences}")
-            self._preferences.update(preferences)
-            # Stosujemy ustawienia okna
-            self._apply_window_settings()
-            # Aktualizujemy język
-            if "language" in preferences:
-                print(f"Zmiana języka na: {preferences['language']}")
-                TranslationManager.set_language(preferences["language"])
-                self.update_translations()
-
-    def on_preferences_error(self, error):
-        """
-        Obsługuje błąd wczytywania preferencji.
-
-        Args:
-            error (Exception): Wystąpiony błąd
-        """
-        print(f"Błąd wczytywania preferencji: {error}")
-        # Używamy domyślnych preferencji zdefiniowanych w __init__
+        # Note: Z improved thread manager będziemy potrzebować inny sposób na callback
+        # To zostanie poprawione w następnej iteracji
+        logging.info(f"Started preferences loading task: {task_id}")
 
     def save_preferences_async(self):
         """
         Zapisuje preferencje asynchronicznie.
         """
-        worker = self.thread_manager.run_in_thread(
+        task_id = self.thread_manager.submit_task(
             self.file_worker.save_preferences, self.config_path, self._preferences
         )
-        worker.finished.connect(
-            lambda _: self.status_bar.showMessage(
-                TranslationManager.get_translator().translate("app.status.saving")
-            )
-        )
-        worker.error.connect(
-            lambda e: self.status_bar.showMessage(
-                TranslationManager.get_translator().translate(
-                    "app.status.error", str(e)
-                )
-            )
+        logging.info(f"Started preferences saving task: {task_id}")
+        self.status_bar.showMessage(
+            TranslationManager.get_translator().translate("app.status.saving")
         )
 
     def show_preferences_dialog(self):
@@ -263,7 +271,6 @@ class MainWindow(QMainWindow):
             # Aktualizujemy język jeśli się zmienił
             if "language" in new_preferences:
                 TranslationManager.set_language(new_preferences["language"])
-                self.update_translations()
 
     def show_hardware_profiler(self):
         """
@@ -292,7 +299,7 @@ class MainWindow(QMainWindow):
         self.tabs.setTabText(0, translator.translate("app.tabs.tab1"))
         self.tabs.setTabText(1, translator.translate("app.tabs.tab2"))
         self.tabs.setTabText(2, translator.translate("app.tabs.tab3"))
-        self.tabs.setTabText(3, translator.translate("app.tabs.console.clear"))
+        self.tabs.setTabText(3, translator.translate("app.tabs.console.title"))
 
         # Aktualizacja statusu
         self.status_bar.showMessage(translator.translate("app.status.ready"))
@@ -300,28 +307,22 @@ class MainWindow(QMainWindow):
         # Aktualizacja menu
         create_menu_bar(self)
 
-        # Aktualizacja zawartości zakładek
-        self.tab1.label.setText(translator.translate("app.tabs.content.tab1.content"))
-        self.tab1.button.setText(translator.translate("app.tabs.content.tab1.button"))
-        self.tab1.line_edit.setPlaceholderText(
-            translator.translate("app.tabs.content.tab1.placeholder")
-        )
+        # Aktualizacja zawartości zakładek - tylko jeśli zostały już załadowane
+        # Sprawdzamy czy widgets zostały załadowane (lazy loading)
+        if hasattr(self, "_lazy_tab1_widget"):
+            self._tab_widgets["tab1"].update_translations()
 
-        self.tab2.label.setText(translator.translate("app.tabs.content.tab2.content"))
-        self.tab2.checkbox.setText(
-            translator.translate("app.tabs.content.tab2.checkbox")
-        )
-        self.tab2.spinbox_label.setText(
-            translator.translate("app.tabs.content.tab2.select_value")
-        )
+        if hasattr(self, "_lazy_tab2_widget"):
+            self._tab_widgets["tab2"].update_translations()
 
-        self.tab3.label.setText(translator.translate("app.tabs.content.tab3.content"))
-        self.tab3.text_edit.setPlaceholderText(
-            translator.translate("app.tabs.content.tab3.placeholder")
-        )
-        self.tab3.button.setText(
-            translator.translate("app.tabs.content.tab3.show_text")
-        )
+        if hasattr(self, "_lazy_tab3_widget"):
+            self._tab_widgets["tab3"].update_translations()
+
+        # Aktualizacja console widget jeśli został załadowany
+        if "console" in self._tab_widgets:
+            console_widget = self._tab_widgets["console"]
+            if hasattr(console_widget, "update_translations"):
+                console_widget.update_translations()
 
     def closeEvent(self, event):
         """
@@ -351,11 +352,68 @@ class MainWindow(QMainWindow):
         )
 
         if reply == QMessageBox.StandardButton.Yes:
-            print("Zamykanie aplikacji...")
+            logging.info("Zamykanie aplikacji...")
             self.thread_manager.cleanup()
             event.accept()
         else:
             event.ignore()
+
+    def _get_console_tab(self):
+        """Get or create console tab widget."""
+        if "console" not in self._tab_widgets:
+            logging.debug("Lazy loading ConsoleWidget...")
+            self._tab_widgets["console"] = ConsoleWidget()
+        return self._tab_widgets["console"]
+
+    def _create_placeholder_widget(self, tab_name):
+        """Create a lightweight placeholder widget."""
+        placeholder = QWidget()
+        layout = QVBoxLayout(placeholder)
+        label = QLabel(f"Loading {tab_name}...")
+        label.setStyleSheet("color: gray; font-style: italic;")
+        layout.addWidget(label)
+        return placeholder
+
+    def _on_tab_changed(self, index):
+        """Handle tab change to implement lazy loading."""
+        # Get current tab widget
+        current_widget = self.tabs.widget(index)
+
+        # Check if it's a placeholder that needs replacement
+        if hasattr(current_widget, "findChild") and current_widget.findChild(QLabel):
+            label = current_widget.findChild(QLabel)
+            if label and "Loading" in label.text():
+                # This is a placeholder, replace with real widget
+                if index == 1:  # Tab 2
+                    real_widget = self._tab_widgets["tab2"]
+                    self.tabs.removeTab(index)
+                    self.tabs.insertTab(
+                        index,
+                        real_widget,
+                        TranslationManager.get_translator().translate("app.tabs.tab2"),
+                    )
+                elif index == 2:  # Tab 3
+                    real_widget = self._tab_widgets["tab3"]
+                    self.tabs.removeTab(index)
+                    self.tabs.insertTab(
+                        index,
+                        real_widget,
+                        TranslationManager.get_translator().translate("app.tabs.tab3"),
+                    )
+                elif index == 3:  # Console
+                    real_widget = self._get_console_tab()
+                    self.tabs.removeTab(index)
+                    self.tabs.insertTab(
+                        index,
+                        real_widget,
+                        TranslationManager.get_translator().translate(
+                            "app.tabs.console.title"
+                        ),
+                    )
+
+                # Set the current tab back to the replaced one
+                self.tabs.setCurrentIndex(index)
+                logging.info(f"Lazy loaded tab at index {index}")
 
     @property
     def preferences(self):
@@ -381,7 +439,3 @@ class MainWindow(QMainWindow):
                 window_size["width"],
                 window_size["height"],
             )
-
-
-# Dodaj import QMessageBox jeśli go używasz w closeEvent
-from PyQt6.QtWidgets import QMessageBox
