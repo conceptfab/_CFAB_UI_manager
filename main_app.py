@@ -4,7 +4,7 @@ import logging
 import os
 import platform
 import sys
-import uuid
+import time
 
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 from PyQt6.QtGui import QIcon
@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import QApplication
 
 from UI.main_window import MainWindow
 from UI.splash_screen import SplashScreen
+from utils.application_startup import ApplicationStartup
 from utils.enhanced_splash import StartupProgressTracker, create_optimized_splash
 from utils.exceptions import (
     ConfigurationError,
@@ -27,11 +28,10 @@ from utils.performance_optimizer import (
     defer_until_after_startup,
     lazy_loader,
     performance_monitor,
-    startup_optimizer,
 )
+from utils.resource_manager import ResourceManager
 from utils.system_info import get_stable_uuid
 from utils.translation_manager import TranslationManager
-from utils.translator import Translator
 from utils.validators import ConfigValidator
 
 logger = logging.getLogger(__name__)
@@ -223,7 +223,7 @@ def verify_hardware_profile():
 
 class Application(QApplication):
     """
-    Rozszerzona klasa aplikacji z obsługą konfiguracji.
+    Rozszerzona klasa aplikacji z obsługą konfiguracji i zasobów.
     """
 
     def __init__(self, *args, **kwargs):
@@ -234,11 +234,9 @@ class Application(QApplication):
             "log_ui_to_console": False,
             "log_level": "INFO",
         }
-
-        # Inicjalizacja TranslationManager z ścieżką do config.json
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(base_dir, "config.json")
-        TranslationManager.initialize(config_path)
+        self.base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.startup = None
+        self.resource_manager = None
 
     @property
     def config(self):
@@ -248,100 +246,69 @@ class Application(QApplication):
     def config(self, value):
         self._config = value
 
+    def initialize(self):
+        """
+        Scentralizowana inicjalizacja aplikacji.
+        """
+        self.startup = ApplicationStartup(self.base_dir)
+
+        # Podłącz sygnały
+        self.startup.config_loaded.connect(self.on_config_loaded)
+        self.startup.startup_failed.connect(self.on_startup_failed)
+
+        # Uruchom inicjalizację
+        success = self.startup.initialize()
+
+        if success:
+            # Pobierz resource manager z inicjalizacji
+            self.resource_manager = self.startup.resource_manager
+
+            # Podłącz sygnały resource managera
+            if self.resource_manager:
+                self.resource_manager.css_loaded.connect(self.on_css_loaded)
+
+        return success
+
+    def on_config_loaded(self, config):
+        """Handler dla załadowanej konfiguracji"""
+        self._config = config
+        logger.info("Zaktualizowano konfigurację aplikacji")
+
+    def on_css_loaded(self, css):
+        """Handler dla załadowanych stylów CSS"""
+        self.setStyleSheet(css)
+        logger.info(f"Zastosowano {len(css)} znaków styli CSS")
+
+    def on_startup_failed(self, error):
+        """Handler dla błędów podczas uruchamiania"""
+        logger.error(f"Błąd inicjalizacji aplikacji: {error}")
+
+    def cleanup(self):
+        """Sprzątanie zasobów przed zamknięciem aplikacji"""
+        if self.startup:
+            self.startup.cleanup()
+
 
 if __name__ == "__main__":
     # Inicjalizacja aplikacji
-    app = Application(sys.argv)
-    thread_manager = ThreadManager()
-
-    # Sekwencja startowa
     logger.info("=== Sekwencja startowa ===")
 
-    # 1. Wczytanie konfiguracji w osobnym wątku
-    logger.info("1. Wczytywanie konfiguracji...")
-    config_loader = ConfigLoader()
-
-    # Klasa do przechowywania stanu konfiguracji
-    class ConfigState:
-        def __init__(self):
-            self.loaded = False
-            self.config = None
-
-    state = ConfigState()
-
-    def on_config_loaded(loaded_config):
-        state.config = loaded_config
-        state.loaded = True
-
-    config_loader.config_loaded.connect(on_config_loaded)
-    thread_manager.run_in_thread(config_loader.load_config)
-
-    # Czekamy na załadowanie konfiguracji
-    while not state.loaded:
-        app.processEvents()
-
-    # Ustawiamy konfigurację
-    app._config = state.config
-
-    # 2. Inicjalizacja loggera
-    logger.info("2. Inicjalizacja systemu logowania...")
-    app_logger = AppLogger(app.config)
-    logger.info("Aplikacja uruchomiona")
-
-    # 3. Initialize performance optimization
-    logger.info("3. Initializing performance optimization...")
-    async_loader = AsyncResourceLoader()
+    # Utwórz aplikację
+    app = Application(sys.argv)
 
     # Take initial memory snapshot
     initial_memory = performance_monitor.take_memory_snapshot("application_start")
     logger.info(f"Initial memory usage: {initial_memory.get('rss_mb', 0):.1f}MB")
 
-    # Register lazy loaders for heavy resources
+    # Uruchom scentralizowaną inicjalizację
+    if not app.initialize():
+        logger.error("Nie udało się zainicjalizować aplikacji")
+        sys.exit(1)
+
+    # Konfiguracja interfejsu
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    css_path = os.path.join(base_dir, "resources", "styles.qss")
-    lazy_loader.register_loader("main_css", create_css_loader(css_path))
-
-    # 4. Weryfikacja profilu sprzętowego w osobnym wątku (deferred)
-    @defer_until_after_startup(delay_ms=500)
-    def deferred_hardware_verification():
-        logger.info("4. Weryfikacja profilu sprzętowego (deferred)...")
-        thread_manager.run_in_thread(verify_hardware_profile)
-
-    deferred_hardware_verification()
-
-    # Konfiguracja interfejsu (reuse base_dir from above)
     icon_path = os.path.join(base_dir, "resources", "img", "icon.png")
     app.setWindowIcon(QIcon(icon_path))
-
-    # Optimized async style loading
-    @performance_monitor.measure_execution_time("css_loading")
-    def load_styles_optimized():
-        """
-        Optimized CSS loading with lazy loading and caching.
-        """
-        try:
-            # Try to get from lazy loader cache first
-            styles = lazy_loader.get_resource("main_css")
-            logger.info("CSS styles loaded from cache")
-            return styles
-        except Exception as e:
-            logger.warning(f"Could not load CSS from cache: {e}")
-            return ""
-
-    # Load styles asynchronously
-    async_loader.resource_loaded.connect(
-        lambda name, styles: (
-            app.setStyleSheet(styles),
-            logger.info(f"Applied {len(styles)} characters of CSS styles"),
-        )
-    )
-
-    async_loader.loading_failed.connect(
-        lambda name, error: logger.warning(f"Failed to load CSS: {error}")
-    )
-
-    # Start async CSS loading
-    async_loader.load_resource_async("main_css", load_styles_optimized)
 
     # Inicjalizacja głównego okna
     logger.info("Inicjalizacja głównego okna")
@@ -388,19 +355,19 @@ if __name__ == "__main__":
         progress_tracker.start_task("Loading translations")
         progress_tracker.complete_task("Loading translations")
 
-        # CSS and hardware tasks will be completed by their respective async operations
+        progress_tracker.start_task("Loading CSS styles")
+        progress_tracker.complete_task("Loading CSS styles")
+
+        progress_tracker.start_task("Initializing hardware detection")
+        progress_tracker.complete_task("Initializing hardware detection")
 
         # Show main window when splash completes
         splash.startup_completed.connect(main_win.show)
 
         # Complete remaining tasks after a short delay
         QTimer.singleShot(
-            2000,
+            1000,
             lambda: [
-                progress_tracker.start_task("Loading CSS styles"),
-                progress_tracker.complete_task("Loading CSS styles"),
-                progress_tracker.start_task("Initializing hardware detection"),
-                progress_tracker.complete_task("Initializing hardware detection"),
                 progress_tracker.start_task("Finalizing startup"),
                 progress_tracker.complete_task("Finalizing startup"),
             ],
@@ -435,7 +402,7 @@ if __name__ == "__main__":
     )
     memory_timer.start(30000)  # Every 30 seconds
 
-    # Czyszczenie wątków przy zamknięciu
-    app.aboutToQuit.connect(thread_manager.cleanup)
+    # Czyszczenie zasobów przy zamknięciu
+    app.aboutToQuit.connect(app.cleanup)
 
     sys.exit(app.exec())
