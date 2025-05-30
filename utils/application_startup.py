@@ -193,10 +193,14 @@ class ApplicationStartup(QObject):
         """
         if self._hardware_verification_attempted:
             if self.logger:
-                self.logger.info("Weryfikacja sprzętu została już wcześniej zainicjowana/wykonana. Pomijanie.")
+                self.logger.info(
+                    "Weryfikacja sprzętu została już wcześniej zainicjowana/wykonana. Pomijanie."
+                )
             else:
                 # Fallback, gdyby logger nie był jeszcze dostępny
-                print("Weryfikacja sprzętu została już wcześniej zainicjowana/wykonana. Pomijanie.")
+                print(
+                    "Weryfikacja sprzętu została już wcześniej zainicjowana/wykonana. Pomijanie."
+                )
             return True  # Lub odpowiednia wartość wskazująca na pominięcie
 
         self._hardware_verification_attempted = True
@@ -223,7 +227,9 @@ class ApplicationStartup(QObject):
                         new_profile = self._create_new_hardware_profile()
                         with open(hardware_path, "w") as f:
                             json.dump(new_profile, f, indent=4)
-                        self.logger.info(f"Utworzono nowy profil sprzętowy: {current_uuid}")
+                        self.logger.info(
+                            f"Utworzono nowy profil sprzętowy: {current_uuid}"
+                        )
                     else:
                         self.logger.warning(
                             "Niewielka niezgodność UUID bez zmiany parametrów systemu. Aktualizacja UUID w profilu."
@@ -259,7 +265,11 @@ class ApplicationStartup(QObject):
         if self.logger and self.logger.handlers:
             # Sprawdź, czy poziom logowania jest ustawiony na DEBUG
             # To jest uproszczenie; idealnie AppLogger miałby metodę do sprawdzania poziomu
-            is_debug_level = any(handler.level <= logging.DEBUG for handler in self.logger.handlers if hasattr(handler, 'level'))
+            is_debug_level = any(
+                handler.level <= logging.DEBUG
+                for handler in self.logger.handlers
+                if hasattr(handler, "level")
+            )
             # Lub, jeśli AppLogger ma bezpośredni dostęp do swojego poziomu:
             # is_debug_level = self.logger.level <= logging.DEBUG
 
@@ -269,12 +279,16 @@ class ApplicationStartup(QObject):
             # Ponieważ bezpośrednie sprawdzenie poziomu loggera może być skomplikowane bez modyfikacji AppLogger,
             # możemy po prostu użyć self.logger.debug() i pozwolić konfiguracji loggera zdecydować.
 
-            self.logger.debug(f"====== UUID DEBUG INFO (zapis do pliku uuid_debug.txt) ======")
+            self.logger.debug(
+                f"====== UUID DEBUG INFO (zapis do pliku uuid_debug.txt) ======"
+            )
             self.logger.debug(f"System: {platform.system()}")
             self.logger.debug(f"Node: {platform.node()}")
             self.logger.debug(f"Machine: {platform.machine()}")
             self.logger.debug(f"UUID (cached): {uuid_value}")
-            self.logger.debug(f"===========================================================")
+            self.logger.debug(
+                f"==========================================================="
+            )
 
             # Zapisz na dysku do analizy - to działanie powinno być rzadsze, np. tylko przy konkretnych błędach
             # lub jeśli tryb debug jest bardzo szczegółowy.
@@ -288,7 +302,9 @@ class ApplicationStartup(QObject):
                     f.write(f"UUID (cached): {uuid_value}\n")
                     f.write("-" * 50 + "\n")
             except Exception as e:
-                self.logger.error(f"Nie udało się zapisać debugowania UUID do pliku: {e}")
+                self.logger.error(
+                    f"Nie udało się zapisać debugowania UUID do pliku: {e}"
+                )
         else:
             # Fallback, jeśli logger nie jest jeszcze w pełni skonfigurowany
             print(f"[DEBUG FALLBACK] UUID DEBUG: {uuid_value}")

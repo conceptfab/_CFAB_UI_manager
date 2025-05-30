@@ -152,7 +152,11 @@
           "error_display": "Error during profiling:",
           "traceback": "Error details:",
           "no_optimizations_due_to_error": "Cannot determine optimizations due to error",
-          "cpu_benchmark": "CPU Test: {}"
+          "cpu_benchmark": "CPU Test: {}",
+          "optimizations": {
+            "multithreading_high": "Multithreading (High)",
+            "buffering_medium": "Buffering (Medium)"
+          }
         }
       }
     }
