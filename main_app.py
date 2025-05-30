@@ -36,6 +36,10 @@ from utils.validators import ConfigValidator
 
 logger = logging.getLogger(__name__)
 
+base_dir = os.path.dirname(os.path.abspath(__file__))
+icon_path = os.path.join(base_dir, "resources", "img", "icon.png")
+app_icon = QIcon(icon_path)  # Stwórz obiekt QIcon raz
+
 
 class ConfigLoader(QObject):
     """
@@ -51,7 +55,6 @@ class ConfigLoader(QObject):
         Wczytuje konfigurację z pliku config.json.
         Emituje sygnał config_loaded z konfiguracją lub error w przypadku błędu.
         """
-        base_dir = os.path.dirname(os.path.abspath(__file__))
         config_path = os.path.join(base_dir, "config.json")
 
         logger.debug(f"Loading configuration from: {config_path}")
@@ -146,7 +149,6 @@ def verify_hardware_profile():
         bool: True jeśli profil istnieje i został poprawnie wczytany lub utworzony,
               False w przypadku błędu
     """
-    base_dir = os.path.dirname(os.path.abspath(__file__))
     hardware_path = os.path.join(base_dir, "hardware.json")
 
     # Generuj UUID tylko raz i zapisz do logów - używamy stabilnej metody z cache
@@ -306,9 +308,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # Konfiguracja interfejsu
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    icon_path = os.path.join(base_dir, "resources", "img", "icon.png")
-    app.setWindowIcon(QIcon(icon_path))
+    app.setWindowIcon(app_icon)
 
     # Inicjalizacja głównego okna
     logger.info("Inicjalizacja głównego okna")
@@ -317,7 +317,7 @@ if __name__ == "__main__":
     performance_monitor.take_memory_snapshot("before_main_window")
 
     main_win = MainWindow()
-    main_win.setWindowIcon(QIcon(icon_path))
+    main_win.setWindowIcon(app_icon)
     main_win.logger = logger
     main_win.preferences = app.config  # Przekazujemy już załadowaną konfigurację
 
