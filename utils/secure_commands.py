@@ -19,7 +19,10 @@ class CommandTimeoutError(Exception):
 class CommandExecutionError(Exception):
     """Wyjątek rzucany gdy komenda zakończy się błędem"""
 
-    pass
+    def __init__(self, message, stdout=None, stderr=None):
+        super().__init__(message)
+        self.stdout = stdout
+        self.stderr = stderr
 
 
 class SecureCommandRunner:
@@ -61,11 +64,12 @@ class SecureCommandRunner:
             )
 
             if result.returncode != 0:
-                error_msg = (
-                    f"Command failed with code {result.returncode}: {result.stderr}"
-                )
+                error_msg = f"Command failed with code {result.returncode}: {result.stderr.strip()}"
                 logger.error(error_msg)
-                raise CommandExecutionError(error_msg)
+                # Pass stdout and stderr to the exception
+                raise CommandExecutionError(
+                    error_msg, stdout=result.stdout, stderr=result.stderr
+                )
 
             logger.debug(f"Command succeeded: {len(result.stdout)} chars output")
             return result.stdout, result.stderr

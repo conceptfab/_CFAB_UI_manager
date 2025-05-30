@@ -125,6 +125,7 @@
           "running_command": "Running command: {}",
           "cpu_test_result": "CPU test result: {score} (time: {time:.2f}s)",
           "cpu_test_result_not_found": "CPU test result not found in output",
+          "cpu_test_result_not_found_json": "CPU test result (json_loads benchmark) not found in JSON output",
           "pyperformance_run_error": "Error running pyperformance: {e}",
           "cpu_test_unexpected_error": "Unexpected error during CPU test: {e}",
           "cpu_test_result_saved": "Saved CPU test result in profile: {}",

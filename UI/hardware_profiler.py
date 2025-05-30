@@ -150,93 +150,263 @@ class HardwareProfilerThread(QThread):
                         )  # CHANGED
                     )
                     return None, 0.0
+
+                import sys
+                import time
+
+                # import uuid # uuid is already imported at the top of the file
+                # import tempfile # tempfile is already imported at the top of the file
+                # import os # os is already imported at the top of the file
+
+                secure_runner = SecureCommandRunner()
+                start_time_perf = time.time()
+
+                python_path = sys.executable
+                logger.info(
+                    TranslationManager.translate(
+                        "app.dialogs.hardware_profiler.status.using_python_path"
+                    ).format(python_path)
+                )
+
+                temp_json_path = None  # Initialize for the finally block
                 try:
-                    import os
-                    import sys
-                    import time
+                    # Generate a unique name for the temporary JSON file.
+                    # pyperformance will create this file.
+                    temp_dir = tempfile.gettempdir()
+                    temp_filename = f"pyperformance_output_{uuid.uuid4().hex}.json"
+                    temp_json_path = os.path.join(temp_dir, temp_filename)
 
-                    secure_runner = SecureCommandRunner()
-                    start = time.time()
+                    # Safeguard: Ensure this path does not exist.
+                    # pyperformance will fail if it does. uuid.uuid4() makes collisions highly unlikely.
+                    if os.path.exists(temp_json_path):
+                        logger.warning(
+                            f"Generated temporary path {temp_json_path} already exists. Attempting to remove."
+                        )
+                        try:
+                            os.remove(temp_json_path)
+                            logger.info(
+                                f"Successfully removed pre-existing temp file: {temp_json_path}"
+                            )
+                        except OSError as e_remove:
+                            logger.error(
+                                f"Failed to remove pre-existing temp file {temp_json_path}: {e_remove}. Pyperformance will likely fail."
+                            )
+                            # Let pyperformance handle the error if removal fails.
 
-                    # Używamy pełnej ścieżki do Pythona
-                    python_path = sys.executable
                     logger.info(
-                        TranslationManager.translate(
-                            "app.dialogs.hardware_profiler.status.using_python_path"
-                        ).format(python_path)
-                    )  # CHANGED
+                        f"Pyperformance will output to temporary file: {temp_json_path}"
+                    )
 
-                    # Uruchamiamy benchmark
                     cmd = [
                         python_path,
                         "-m",
                         "pyperformance",
                         "run",
                         "--benchmarks",
-                        "json_loads",
+                        "json_loads",  # Using a single, quick benchmark for now
+                        # PYPERFORMANCE_BENCHMARKS, # Consider using the constant for more benchmarks later
+                        "-o",
+                        temp_json_path,  # This path should not exist when pyperformance is called
                     ]
                     logger.info(
                         TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.running_command"
                         ).format(" ".join(cmd))
-                    )  # CHANGED
-
-                    stdout, stderr = secure_runner.run_command(
-                        cmd,
-                        timeout=120,
                     )
-                    elapsed = time.time() - start
 
-                    logger.info(f"Output pyperformance: {stdout}")
-                    if stderr:
-                        logger.warning(f"Błędy pyperformance: {stderr}")
+                    stdout, stderr = secure_runner.run_command(cmd, timeout=180)
+                    elapsed_perf = time.time() - start_time_perf
 
-                    # Szukamy wyniku w output - nowy format
-                    match = re.search(
-                        r"Mean \\+-\\s+std dev:\\s+([0-9.]+)\\s+us", stdout
-                    )
-                    if match:
-                        score = float(match.group(1))
-                        logger.info(
-                            TranslationManager.translate(
-                                "app.dialogs.hardware_profiler.status.cpu_test_result"
-                            ).format(score=score, time=elapsed)
-                        )  # CHANGED
-                        return score, elapsed
-                    else:
-                        logger.warning(
-                            TranslationManager.translate(
-                                "app.dialogs.hardware_profiler.status.cpu_test_result_not_found"
+                    if (
+                        stdout
+                    ):  # pyperformance run command usually doesn't output much to stdout if -o is used
+                        logger.info(f"Output pyperformance (stdout): {stdout.strip()}")
+                    if (
+                        stderr
+                    ):  # pyperformance might output progress or warnings to stderr
+                        logger.info(f"Output pyperformance (stderr): {stderr.strip()}")
+
+                    score = None
+                    try:
+                        # Check if the file was created by pyperformance
+                        if not os.path.exists(temp_json_path):
+                            logger.error(
+                                f"Pyperformance output file {temp_json_path} was not created."
                             )
-                        )  # CHANGED
-                        return None, elapsed
+                            # Log stdout/stderr again if the file is missing, as it might contain the error
+                            if stdout:
+                                logger.error(
+                                    f"pyperformance stdout (file not created): {stdout.strip()}"
+                                )
+                            if stderr:
+                                logger.error(
+                                    f"pyperformance stderr (file not created): {stderr.strip()}"
+                                )
+                            raise FileNotFoundError(
+                                f"Pyperformance output file not found: {temp_json_path}"
+                            )
+
+                        with open(temp_json_path, "r", encoding="utf-8") as f:
+                            perf_data = json.load(f)
+
+                        # Check the main metadata for the benchmark name first
+                        if perf_data.get("metadata", {}).get("name") == "json_loads":
+                            logger.info("Found json_loads benchmark in main metadata.")
+                            all_run_values = []
+                            if perf_data.get("benchmarks"):
+                                for bench_run_detail in perf_data["benchmarks"]:
+                                    if bench_run_detail.get("runs"):
+                                        for run_item in bench_run_detail["runs"]:
+                                            if (
+                                                isinstance(run_item, dict)
+                                                and "values" in run_item
+                                            ):
+                                                all_run_values.extend(
+                                                    run_item["values"]
+                                                )
+
+                            if all_run_values:
+                                mean_time_seconds = sum(all_run_values) / len(
+                                    all_run_values
+                                )
+                                score = (
+                                    mean_time_seconds * 1_000_000
+                                )  # Convert to microseconds
+                                logger.info(
+                                    TranslationManager.translate(
+                                        "app.dialogs.hardware_profiler.status.cpu_test_result"
+                                    ).format(score=score, time=elapsed_perf)
+                                )
+                            else:
+                                logger.warning(
+                                    "json_loads benchmark found, but no 'values' array in any run or runs are empty."
+                                    + f" Data: {json.dumps(perf_data, indent=2)}"
+                                )
+
+                        # Fallback to iterating through benchmarks array if not found in main metadata
+                        # (This part might be redundant if the above always works for json_loads)
+                        elif perf_data.get("benchmarks"):
+                            logger.info("Checking 'benchmarks' array for json_loads.")
+                            for bench_result in perf_data["benchmarks"]:
+                                is_json_loads_in_array = (
+                                    bench_result.get("name") == "json_loads"
+                                    or bench_result.get("metadata", {}).get("name")
+                                    == "json_loads"
+                                )
+                                if is_json_loads_in_array:
+                                    logger.info(
+                                        f"Found json_loads in benchmarks array: {bench_result.get('metadata', {}).get('name')}"
+                                    )
+                                    all_run_values_item = []
+                                    if bench_result.get("runs"):
+                                        for run_item in bench_result["runs"]:
+                                            if (
+                                                isinstance(run_item, dict)
+                                                and "values" in run_item
+                                            ):
+                                                all_run_values_item.extend(
+                                                    run_item["values"]
+                                                )
+
+                                    if all_run_values_item:
+                                        mean_time_seconds = sum(
+                                            all_run_values_item
+                                        ) / len(all_run_values_item)
+                                        score = (
+                                            mean_time_seconds * 1_000_000
+                                        )  # Convert to microseconds
+                                        logger.info(
+                                            TranslationManager.translate(
+                                                "app.dialogs.hardware_profiler.status.cpu_test_result"
+                                            ).format(score=score, time=elapsed_perf)
+                                        )
+                                        break  # Found and processed, exit loop
+                                    else:
+                                        logger.warning(
+                                            f"json_loads benchmark found in array (name: {bench_result.get('metadata', {}).get('name')}), but no 'values' in runs."
+                                        )
+                                else:
+                                    logger.debug(
+                                        f"Skipping benchmark item, not json_loads: {bench_result.get('metadata', {}).get('name')}"
+                                    )
+
+                        if score is None:  # Moved the warning outside the loops
+                            logger.warning(
+                                TranslationManager.translate(
+                                    "app.dialogs.hardware_profiler.status.cpu_test_result_not_found_json"
+                                )
+                                + f" in {temp_json_path}. Data: {json.dumps(perf_data, indent=2)}"
+                            )
+
+                    except FileNotFoundError:
+                        logger.error(
+                            f"Pyperformance output file not found: {temp_json_path}"
+                        )
+                        if stdout:
+                            logger.error(f"pyperformance stdout was: {stdout}")
+                        if stderr:
+                            logger.error(f"pyperformance stderr was: {stderr}")
+                    except json.JSONDecodeError:
+                        logger.error(
+                            f"Failed to decode JSON from pyperformance output: {temp_json_path}"
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"Error processing pyperformance JSON output {temp_json_path}: {e}"
+                        )
+
+                    return score, elapsed_perf
 
                 except (CommandTimeoutError, CommandExecutionError) as e:
                     logger.error(
                         TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.pyperformance_run_error"
-                        ).format(e=e)
-                    )  # CHANGED
+                        ).format(
+                            e=str(e)
+                        )  # Explicitly use string representation of e
+                    )
+                    # Attempt to log stdout/stderr from the exception if available
+                    if hasattr(e, "stdout") and e.stdout:
+                        logger.error(f"pyperformance stdout on error: {e.stdout}")
+                    if hasattr(e, "stderr") and e.stderr:
+                        logger.error(f"pyperformance stderr on error: {e.stderr}")
                     return None, 0.0
                 except Exception as e:
                     logger.error(
                         TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.cpu_test_unexpected_error"
                         ).format(e=e)
-                    )  # CHANGED
+                    )
                     return None, 0.0
+                finally:
+                    if temp_json_path and os.path.exists(temp_json_path):
+                        try:
+                            os.remove(temp_json_path)
+                            logger.info(f"Temporary file {temp_json_path} deleted.")
+                        except OSError as e_remove:
+                            logger.error(
+                                f"Error deleting temporary file {temp_json_path}: {e_remove}"
+                            )
+                    elif (
+                        temp_json_path
+                    ):  # If path was generated but file doesn't exist (e.g. pyperformance failed to create it)
+                        logger.info(
+                            f"Temporary file {temp_json_path} was not found for deletion (possibly not created)."
+                        )
 
-            perf_score, perf_time = run_pyperformance()
-            if perf_score is not None:
+            profile["cpu_benchmark_score"], profile["cpu_benchmark_time"] = (
+                run_pyperformance()
+            )
+            if profile["cpu_benchmark_score"] is not None:
                 profile["cpu_benchmark"] = {
-                    "score": perf_score,
-                    "time": perf_time,
+                    "score": profile["cpu_benchmark_score"],
+                    "time": profile["cpu_benchmark_time"],
                     "benchmark": "json_loads",
                 }
                 logger.info(
                     TranslationManager.translate(
                         "app.dialogs.hardware_profiler.status.cpu_test_result_saved"
-                    ).format(perf_score)
+                    ).format(profile["cpu_benchmark_score"])
                 )  # CHANGED
 
                 # Bezpośrednie zapisanie do pliku hardware.json
@@ -245,8 +415,8 @@ class HardwareProfilerThread(QThread):
                         hardware_data = json.load(f)
 
                     hardware_data["cpu_benchmark"] = {
-                        "score": perf_score,
-                        "time": perf_time,
+                        "score": profile["cpu_benchmark_score"],
+                        "time": profile["cpu_benchmark_time"],
                         "benchmark": "json_loads",
                     }
 
