@@ -20,7 +20,9 @@ from UI.components.tab_three_widget import TabThreeWidget
 from UI.components.tab_two_widget import TabTwoWidget
 from UI.hardware_profiler import HardwareProfilerDialog
 from UI.preferences_dialog import PreferencesDialog
-from utils.improved_thread_manager import ImprovedThreadManager
+from utils.improved_thread_manager import (
+    ThreadManager,
+)  # Zmieniono ImprovedThreadManager na ThreadManager
 from utils.performance_optimizer import (
     defer_until_after_startup,
     lazy_property,
@@ -80,7 +82,7 @@ class MainWindow(QMainWindow):
             super().__init__(*args, **kwargs)
             translator = TranslationManager.get_translator()
             self.setWindowTitle(translator.translate("app.title"))
-            self.thread_manager = ImprovedThreadManager()
+            self.thread_manager = ThreadManager()
             self.file_worker = FileWorker()
 
             # Domyślne preferencje
