@@ -64,9 +64,8 @@ class HardwareProfilerThread(QThread):
     def run(self):
         logger.info("Starting hardware profiling thread")
         try:
-            translator = TranslationManager.get_translator()
             self.progress_update.emit(
-                translator.translate(
+                TranslationManager.translate(
                     "app.dialogs.hardware_profiler.status.collecting_info"
                 )
             )
@@ -86,7 +85,7 @@ class HardwareProfilerThread(QThread):
             }
 
             self.progress_update.emit(
-                translator.translate(
+                TranslationManager.translate(
                     "app.dialogs.hardware_profiler.status.detecting_gpu"
                 )
             )
@@ -95,7 +94,7 @@ class HardwareProfilerThread(QThread):
                 logger.debug(f"GPU detected: {profile['gpu']}")
             except Exception as e:
                 logger.error(f"GPU detection failed: {e}")
-                profile["gpu"] = translator.translate(
+                profile["gpu"] = TranslationManager.translate(
                     "app.dialogs.hardware_profiler.status.gpu_detection_error"
                 )
 
@@ -121,7 +120,7 @@ class HardwareProfilerThread(QThread):
                     python_libraries.append("numba")
                 except ImportError:
                     logger.debug(
-                        translator.translate(
+                        TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.numba_not_installed"
                         )
                     )  # CHANGED
@@ -130,7 +129,7 @@ class HardwareProfilerThread(QThread):
             profile["python_libraries"] = sorted(list(set(python_libraries)))
 
             self.progress_update.emit(
-                translator.translate(
+                TranslationManager.translate(
                     "app.dialogs.hardware_profiler.status.running_cpu_benchmark"
                 )
             )
@@ -140,13 +139,13 @@ class HardwareProfilerThread(QThread):
                     import pyperformance  # sprawdzamy czy jest zainstalowane
 
                     logger.info(
-                        translator.translate(
+                        TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.pyperformance_installed"
                         )
                     )  # CHANGED
                 except ImportError:
                     logger.warning(
-                        translator.translate(
+                        TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.pyperformance_not_installed"
                         )  # CHANGED
                     )
@@ -162,7 +161,7 @@ class HardwareProfilerThread(QThread):
                     # Używamy pełnej ścieżki do Pythona
                     python_path = sys.executable
                     logger.info(
-                        translator.translate(
+                        TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.using_python_path"
                         ).format(python_path)
                     )  # CHANGED
@@ -177,7 +176,7 @@ class HardwareProfilerThread(QThread):
                         "json_loads",
                     ]
                     logger.info(
-                        translator.translate(
+                        TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.running_command"
                         ).format(" ".join(cmd))
                     )  # CHANGED
@@ -199,14 +198,14 @@ class HardwareProfilerThread(QThread):
                     if match:
                         score = float(match.group(1))
                         logger.info(
-                            translator.translate(
+                            TranslationManager.translate(
                                 "app.dialogs.hardware_profiler.status.cpu_test_result"
                             ).format(score=score, time=elapsed)
                         )  # CHANGED
                         return score, elapsed
                     else:
                         logger.warning(
-                            translator.translate(
+                            TranslationManager.translate(
                                 "app.dialogs.hardware_profiler.status.cpu_test_result_not_found"
                             )
                         )  # CHANGED
@@ -214,14 +213,14 @@ class HardwareProfilerThread(QThread):
 
                 except (CommandTimeoutError, CommandExecutionError) as e:
                     logger.error(
-                        translator.translate(
+                        TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.pyperformance_run_error"
                         ).format(e=e)
                     )  # CHANGED
                     return None, 0.0
                 except Exception as e:
                     logger.error(
-                        translator.translate(
+                        TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.cpu_test_unexpected_error"
                         ).format(e=e)
                     )  # CHANGED
@@ -235,7 +234,7 @@ class HardwareProfilerThread(QThread):
                     "benchmark": "json_loads",
                 }
                 logger.info(
-                    translator.translate(
+                    TranslationManager.translate(
                         "app.dialogs.hardware_profiler.status.cpu_test_result_saved"
                     ).format(perf_score)
                 )  # CHANGED
@@ -254,25 +253,25 @@ class HardwareProfilerThread(QThread):
                     with open(self.hardware_path, "w", encoding="utf-8") as f:
                         json.dump(hardware_data, f, indent=4, ensure_ascii=False)
                     logger.info(
-                        translator.translate(
+                        TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.cpu_test_results_saved_to_file"
                         )
                     )  # CHANGED
                 except Exception as e:
                     logger.error(
-                        translator.translate(
+                        TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.cpu_test_save_to_file_error"
                         ).format(e=e)
                     )  # CHANGED
             else:
                 logger.warning(
-                    translator.translate(
+                    TranslationManager.translate(
                         "app.dialogs.hardware_profiler.status.cpu_test_result_not_obtained"
                     )
                 )  # CHANGED
 
             self.progress_update.emit(
-                translator.translate(
+                TranslationManager.translate(
                     "app.dialogs.hardware_profiler.status.running_ai_benchmark"
                 )
             )
@@ -296,7 +295,7 @@ class HardwareProfilerThread(QThread):
         except Exception as e:
             logger.error(f"Error in hardware profiling: {e}")
             self.progress_update.emit(
-                translator.translate(
+                TranslationManager.translate(
                     "app.dialogs.hardware_profiler.status.profiling_error"
                 ).format(e=str(e))
             )  # CHANGED
@@ -408,7 +407,7 @@ class HardwareProfilerDialog(QDialog):
         layout.addWidget(self.optimization_group)
 
         self.status_label = QLabel(
-            TranslationManager.get_translator().translate(
+            TranslationManager.translate(
                 "app.dialogs.hardware_profiler.status.ready_status"
             )
         )  # CHANGED
@@ -455,13 +454,14 @@ class HardwareProfilerDialog(QDialog):
         layout.addLayout(button_layout)
 
     def scan_hardware(self):
-        translator = TranslationManager.get_translator()
         self.scan_btn.setEnabled(False)
         self.scan_btn.setText(
-            translator.translate("app.dialogs.hardware_profiler.scanning")
+            TranslationManager.translate("app.dialogs.hardware_profiler.scanning")
         )
         self.status_label.setText(
-            translator.translate("app.dialogs.hardware_profiler.status.starting")
+            TranslationManager.translate(
+                "app.dialogs.hardware_profiler.status.starting"
+            )
         )
         self.save_btn.setEnabled(False)
         self.profile_data = {}  # Clear old data before scan
@@ -498,7 +498,7 @@ class HardwareProfilerDialog(QDialog):
         self.status_label.setText(message)
         # Aktualizujemy licznik czasu
         if (
-            TranslationManager.get_translator().translate(
+            TranslationManager.translate(
                 "app.dialogs.hardware_profiler.status.cpu_benchmark_duration_prefix"
             )
             in message
@@ -506,12 +506,12 @@ class HardwareProfilerDialog(QDialog):
             try:
                 time_str = (
                     message.split(
-                        TranslationManager.get_translator().translate(
+                        TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.cpu_benchmark_duration_prefix"
                         )
                     )[1]
                     .split(
-                        TranslationManager.get_translator().translate(
+                        TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.cpu_benchmark_duration_suffix"
                         )
                     )[0]
@@ -525,45 +525,45 @@ class HardwareProfilerDialog(QDialog):
         if self.timer:
             self.timer.stop()
         self.progress_bar.setValue(self.progress_bar.maximum())  # Ustaw na 100%
-        translator = TranslationManager.get_translator()
         self.scan_btn.setEnabled(True)
         self.scan_btn.setText(
-            translator.translate("app.dialogs.hardware_profiler.scan_hardware")
+            TranslationManager.translate("app.dialogs.hardware_profiler.scan_hardware")
         )
         if self.profile_data and not self.profile_data.get("error"):
             self.status_label.setText(
-                translator.translate(
+                TranslationManager.translate(
                     "app.dialogs.hardware_profiler.status.scan_completed"
                 )
             )
         elif self.profile_data.get("error"):
             self.status_label.setText(
-                translator.translate(
+                TranslationManager.translate(
                     "app.dialogs.hardware_profiler.status.scan_error_detailed"
                 )
             )
         else:
             self.status_label.setText(
-                translator.translate("app.dialogs.hardware_profiler.status.scan_failed")
+                TranslationManager.translate(
+                    "app.dialogs.hardware_profiler.status.scan_failed"
+                )
             )
 
     def on_profile_ready(self, profile):
         logger.debug(f"PROFILE RECEIVED IN DIALOG: {json.dumps(profile, indent=2)}")
-        translator = TranslationManager.get_translator()
         self.profile_data = profile  # Store the received profile immediately
         if "error" in profile:
             self.status_label.setText(
-                translator.translate(
+                TranslationManager.translate(
                     "app.dialogs.hardware_profiler.status.error_profile"
                 ).format(error=profile["error"][:100] + "...")
             )
         else:
             # Status might be set by on_scan_finished or progress_update, only update if still generic
-            if self.status_label.text() == translator.translate(
+            if self.status_label.text() == TranslationManager.translate(
                 "app.dialogs.hardware_profiler.status.starting"
             ):
                 self.status_label.setText(
-                    translator.translate(
+                    TranslationManager.translate(
                         "app.dialogs.hardware_profiler.status.profile_ready"
                     )
                 )
@@ -571,14 +571,12 @@ class HardwareProfilerDialog(QDialog):
         self.display_profile()
 
     def display_profile(self):
-        translator = TranslationManager.get_translator()
-
         # Update quick info labels first
         self.cpu_label.setText(
-            translator.translate("app.dialogs.hardware_profiler.cpu").format(
+            TranslationManager.translate("app.dialogs.hardware_profiler.cpu").format(
                 self.profile_data.get(
                     "processor",
-                    translator.translate(
+                    TranslationManager.translate(
                         "app.dialogs.hardware_profiler.status.not_available"
                     ),
                 )  # CHANGED
@@ -586,7 +584,9 @@ class HardwareProfilerDialog(QDialog):
         )
         ram_gb = self.profile_data.get("memory_total", 0) // (1024**3)
         self.ram_label.setText(
-            translator.translate("app.dialogs.hardware_profiler.ram").format(ram_gb)
+            TranslationManager.translate("app.dialogs.hardware_profiler.ram").format(
+                ram_gb
+            )
         )
         self.gpu_value_label.setText(
             # translator.translate("app.dialogs.hardware_profiler.gpu").format( # Original line, seems like a bug, GPU is already in the key
@@ -594,7 +594,7 @@ class HardwareProfilerDialog(QDialog):
             # )
             self.profile_data.get(
                 "gpu",
-                translator.translate(
+                TranslationManager.translate(
                     "app.dialogs.hardware_profiler.status.not_available"
                 ),
             )  # Corrected line
@@ -602,7 +602,9 @@ class HardwareProfilerDialog(QDialog):
 
         if not self.profile_data:
             self.config_display.setText(
-                translator.translate("app.dialogs.hardware_profiler.profile.no_data")
+                TranslationManager.translate(
+                    "app.dialogs.hardware_profiler.profile.no_data"
+                )
             )
             self.optimization_display.setText("")
             self.save_btn.setEnabled(False)
@@ -610,17 +612,17 @@ class HardwareProfilerDialog(QDialog):
 
         if "error" in self.profile_data:
             error_details = (
-                f"{translator.translate('app.dialogs.hardware_profiler.profile.error_display')}\n"
-                f"{self.profile_data.get('error', 'Unknown error')}\n\n"
+                f"{TranslationManager.translate('app.dialogs.hardware_profiler.profile.error_display')}\\n"
+                f"{self.profile_data.get('error', 'Unknown error')}\\n\\n"
             )
             if "traceback" in self.profile_data:
                 error_details += (
-                    f"{translator.translate('app.dialogs.hardware_profiler.profile.traceback')}\\n"
-                    f"{self.profile_data.get('traceback', translator.translate('app.dialogs.hardware_profiler.status.no_details_available'))}"  # CHANGED
+                    f"{TranslationManager.translate('app.dialogs.hardware_profiler.profile.traceback')}\\\\n"
+                    f"{self.profile_data.get('traceback', TranslationManager.translate('app.dialogs.hardware_profiler.status.no_details_available'))}"  # CHANGED
                 )
             self.config_display.setText(error_details)
             self.optimization_display.setText(
-                translator.translate(
+                TranslationManager.translate(
                     "app.dialogs.hardware_profiler.profile.no_optimizations_due_to_error"
                 )
             )
@@ -660,7 +662,7 @@ class HardwareProfilerDialog(QDialog):
                     try:
                         value = formatter_and_condition[0](value)
                     except Exception:
-                        value = translator.translate(
+                        value = TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.not_available_in_formatter"
                         )  # CHANGED
 
@@ -668,18 +670,18 @@ class HardwareProfilerDialog(QDialog):
                     isinstance(value, str)
                     and (
                         value.lower()
-                        == translator.translate(
+                        == TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.not_available_short"
                         ).lower()
                         or value
-                        == translator.translate(
+                        == TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.error_short"
                         )
                     )  # CHANGED
                 ):
                     try:
                         config_text_parts.append(
-                            translator.translate(trans_key).format(value)
+                            TranslationManager.translate(trans_key).format(value)
                         )
                     except KeyError:
                         config_text_parts.append(
@@ -691,13 +693,12 @@ class HardwareProfilerDialog(QDialog):
         self.save_btn.setEnabled(True)
 
     def generate_optimizations_text(self):
-        translator = TranslationManager.get_translator()
         if (
             not self.profile_data
             or "optimizations_flags" not in self.profile_data
             or "error" in self.profile_data
         ):
-            return translator.translate(
+            return TranslationManager.translate(
                 "app.dialogs.hardware_profiler.profile.no_optimizations"
             )
 
@@ -706,87 +707,85 @@ class HardwareProfilerDialog(QDialog):
 
         if opt_flags.get("advanced_multithreading"):
             opt_texts.append(
-                translator.translate(
+                TranslationManager.translate(
                     "app.dialogs.hardware_profiler.profile.optimizations.multithreading_high"
                 )
             )
         elif opt_flags.get("multithreading"):
             opt_texts.append(
-                translator.translate(
+                TranslationManager.translate(
                     "app.dialogs.hardware_profiler.profile.optimizations.multithreading_medium"
                 )
             )
         else:
             opt_texts.append(
-                translator.translate(
+                TranslationManager.translate(
                     "app.dialogs.hardware_profiler.profile.optimizations.multithreading_low"
                 )
             )
 
         if opt_flags.get("high_memory_buffering"):
             opt_texts.append(
-                translator.translate(
+                TranslationManager.translate(
                     "app.dialogs.hardware_profiler.profile.optimizations.buffering_high"
                 )
             )
         elif opt_flags.get("standard_memory_buffering"):
             opt_texts.append(
-                translator.translate(
+                TranslationManager.translate(
                     "app.dialogs.hardware_profiler.profile.optimizations.buffering_medium"
                 )
             )
         else:
             opt_texts.append(
-                translator.translate(
+                TranslationManager.translate(
                     "app.dialogs.hardware_profiler.profile.optimizations.buffering_low"
                 )
             )
 
         if not opt_texts:
-            return translator.translate(
+            return TranslationManager.translate(
                 "app.dialogs.hardware_profiler.profile.no_optimizations"
             )
-        return "\n".join(opt_texts)
+        return "\\n".join(opt_texts)
 
     def load_existing_profile(self):
-        translator = TranslationManager.get_translator()
         if os.path.exists(self.hardware_path):
             try:
                 with open(self.hardware_path, "r", encoding="utf-8") as f:
                     self.profile_data = json.load(f)
                 self.status_label.setText(
-                    translator.translate(
+                    TranslationManager.translate(
                         "app.dialogs.hardware_profiler.status.profile_loaded"
                     )
                 )
                 self.save_btn.setEnabled(True)
             except json.JSONDecodeError as e:
                 self.status_label.setText(
-                    translator.translate(
+                    TranslationManager.translate(
                         "app.dialogs.hardware_profiler.status.profile_corrupt"
                     ).format(error=e)
                 )
                 self.profile_data = {}
             except Exception as e:
                 self.status_label.setText(
-                    translator.translate(
+                    TranslationManager.translate(
                         "app.dialogs.hardware_profiler.status.profile_load_error"
                     ).format(error=e)
                 )
                 self.profile_data = {}
         else:
             self.status_label.setText(
-                translator.translate(
+                TranslationManager.translate(
                     "app.dialogs.hardware_profiler.status.no_profile_found"
                 )
             )
         self.display_profile()
 
     def save_profile(self):
-        translator = TranslationManager.get_translator()
         if not self.profile_data or "error" in self.profile_data:
             self.status_message_requested.emit(
-                translator.translate(
+                TranslationManager.translate(
                     "app.dialogs.hardware_profiler.status.save_no_data"
                 )
             )
@@ -796,52 +795,55 @@ class HardwareProfilerDialog(QDialog):
         try:
             with open(self.hardware_path, "w", encoding="utf-8") as f:
                 json.dump(self.profile_data, f, indent=4, ensure_ascii=False)
-            msg = translator.translate(
+            msg = TranslationManager.translate(
                 "app.dialogs.hardware_profiler.status.profile_saved"
             ).format(path=self.hardware_path)
             self.status_message_requested.emit(msg)
             logger.info(f"Profile saved to {self.hardware_path}")
             self.save_btn.setEnabled(True)
         except Exception as e:
-            error_msg = translator.translate(
+            error_msg = TranslationManager.translate(
                 "app.dialogs.hardware_profiler.status.profile_save_error"
             ).format(error=e)
             logger.error(f"Error saving profile: {e}")
             self.status_message_requested.emit(error_msg)
 
     def update_translations(self):
-        translator = TranslationManager.get_translator()
-        self.setWindowTitle(translator.translate("app.dialogs.hardware_profiler.title"))
+        self.setWindowTitle(
+            TranslationManager.translate("app.dialogs.hardware_profiler.title")
+        )
         self.title_label.setText(
-            translator.translate("app.dialogs.hardware_profiler.title")
+            TranslationManager.translate("app.dialogs.hardware_profiler.title")
         )
 
         self.gpu_label_static.setText(
-            translator.translate("app.dialogs.hardware_profiler.gpu")
+            TranslationManager.translate("app.dialogs.hardware_profiler.gpu")
         )
         self.current_group.setTitle(
-            translator.translate("app.dialogs.hardware_profiler.current_config")
+            TranslationManager.translate("app.dialogs.hardware_profiler.current_config")
         )
         self.optimization_group.setTitle(
-            translator.translate(
+            TranslationManager.translate(
                 "app.dialogs.hardware_profiler.available_optimizations"
             )
         )
 
         if not (self.thread and self.thread.isRunning()):
             self.scan_btn.setText(
-                translator.translate("app.dialogs.hardware_profiler.scan_hardware")
+                TranslationManager.translate(
+                    "app.dialogs.hardware_profiler.scan_hardware"
+                )
             )
         else:
             self.scan_btn.setText(
-                translator.translate("app.dialogs.hardware_profiler.scanning")
+                TranslationManager.translate("app.dialogs.hardware_profiler.scanning")
             )
 
         self.save_btn.setText(
-            translator.translate("app.dialogs.hardware_profiler.save_profile")
+            TranslationManager.translate("app.dialogs.hardware_profiler.save_profile")
         )
         self.close_btn.setText(
-            translator.translate("app.dialogs.hardware_profiler.close")
+            TranslationManager.translate("app.dialogs.hardware_profiler.close")
         )
 
         self.display_profile()

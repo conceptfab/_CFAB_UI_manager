@@ -7,20 +7,21 @@ class TabTwoWidget(QWidget):
     def __init__(self):
         super().__init__()
         self.setObjectName("TabTwoContent")
-        translator = TranslationManager.get_translator()
         layout = QVBoxLayout(self)
 
-        self.label = QLabel(translator.translate("app.tabs.content.tab2.content"))
+        self.label = QLabel(
+            TranslationManager.translate("app.tabs.content.tab2.content")
+        )
         self.label.setObjectName("TabTwoLabel")
 
         self.checkbox = QCheckBox(
-            translator.translate("app.tabs.content.tab2.checkbox")
+            TranslationManager.translate("app.tabs.content.tab2.checkbox")
         )
         self.checkbox.setObjectName("TabTwoCheckbox")
         self.checkbox.toggled.connect(self.on_checkbox_toggle)
 
         self.spinbox_label = QLabel(
-            translator.translate("app.tabs.content.tab2.select_value")
+            TranslationManager.translate("app.tabs.content.tab2.select_value")
         )
         self.spinbox = QSpinBox()
         self.spinbox.setObjectName("TabTwoSpinBox")
@@ -37,26 +38,27 @@ class TabTwoWidget(QWidget):
         TranslationManager.register_widget(self)
 
     def update_translations(self):
-        translator = TranslationManager.get_translator()
-        self.label.setText(translator.translate("app.tabs.content.tab2.content"))
-        self.checkbox.setText(translator.translate("app.tabs.content.tab2.checkbox"))
+        self.label.setText(
+            TranslationManager.translate("app.tabs.content.tab2.content")
+        )
+        self.checkbox.setText(
+            TranslationManager.translate("app.tabs.content.tab2.checkbox")
+        )
         self.spinbox_label.setText(
-            translator.translate("app.tabs.content.tab2.select_value")
+            TranslationManager.translate("app.tabs.content.tab2.select_value")
         )
 
     def on_checkbox_toggle(self, checked):
-        translator = TranslationManager.get_translator()
         if checked:
             self.label.setText(
-                translator.translate("app.tabs.content.tab2.checkbox_checked")
+                TranslationManager.translate("app.tabs.content.tab2.checkbox_checked")
             )
         else:
             self.label.setText(
-                translator.translate("app.tabs.content.tab2.checkbox_unchecked")
+                TranslationManager.translate("app.tabs.content.tab2.checkbox_unchecked")
             )
 
     def on_spinbox_change(self, value):
-        translator = TranslationManager.get_translator()
         self.checkbox.setText(
-            translator.translate("app.tabs.content.tab2.new_value", str(value))
+            TranslationManager.translate("app.tabs.content.tab2.new_value", str(value))
         )

@@ -80,8 +80,7 @@ class MainWindow(QMainWindow):
         try:
             logging.info("MainWindow: start __init__")
             super().__init__(*args, **kwargs)
-            translator = TranslationManager.get_translator()
-            self.setWindowTitle(translator.translate("app.title"))
+            self.setWindowTitle(TranslationManager.translate("app.title"))
             self.thread_manager = ThreadManager()
             self.file_worker = FileWorker()
 
@@ -120,7 +119,6 @@ class MainWindow(QMainWindow):
         """
         Inicjalizuje elementy interfejsu użytkownika z optymalizacjami wydajności.
         """
-        translator = TranslationManager.get_translator()
         # Ustawienie rozmiaru okna na podstawie preferencji
         if self._preferences.get("remember_window_size", True):
             window_size = self._preferences.get(
@@ -149,16 +147,17 @@ class MainWindow(QMainWindow):
 
         # Dodanie zakładek do widgeta
         self.tabs.addTab(
-            self._tab_widgets["tab1"], translator.translate("app.tabs.tab1")
+            self._tab_widgets["tab1"], TranslationManager.translate("app.tabs.tab1")
         )
         self.tabs.addTab(
-            self._tab_widgets["tab2"], translator.translate("app.tabs.tab2")
+            self._tab_widgets["tab2"], TranslationManager.translate("app.tabs.tab2")
         )
         self.tabs.addTab(
-            self._tab_widgets["tab3"], translator.translate("app.tabs.tab3")
+            self._tab_widgets["tab3"], TranslationManager.translate("app.tabs.tab3")
         )
         self.tabs.addTab(
-            self._tab_widgets["console"], translator.translate("app.tabs.console.title")
+            self._tab_widgets["console"],
+            TranslationManager.translate("app.tabs.console.title"),
         )
 
         self.setCentralWidget(self.tabs)
@@ -166,13 +165,10 @@ class MainWindow(QMainWindow):
         # Pasek statusu
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage(translator.translate("app.status.ready"))
+        self.status_bar.showMessage(TranslationManager.translate("app.status.ready"))
         # Jeśli używasz StatusBarManager:
         # self.status_manager = StatusBarManager(self.status_bar)
         # self.status_manager.set_message("Gotowy przez managera.")
-
-        # Testowe logi
-        self._log_test_messages()
 
     def _init_tab1(self):
         """Inicjalizacja pierwszej zakładki."""
@@ -207,10 +203,10 @@ class MainWindow(QMainWindow):
         Loguje testowe wiadomości dla różnych poziomów logowania.
         """
         logger = logging.getLogger("AppLogger")
-        logger.info("Aplikacja uruchomiona")
+        # logger.info("Aplikacja uruchomiona") # Usunięto
         logger.debug("Debug: Inicjalizacja zakończona pomyślnie")
-        logger.warning("Uwaga: Używana wersja testowa")
-        logger.error("Błąd: Test obsługi błędów")
+        # logger.warning("Uwaga: Używana wersja testowa") # Usunięto
+        # logger.error("Błąd: Test obsługi błędów") # Usunięto
 
         if self._preferences.get("log_ui_to_console", False):
             logger.info("UI: Logowanie akcji interfejsu włączone")
@@ -257,9 +253,7 @@ class MainWindow(QMainWindow):
             self.file_worker.save_preferences, self.config_path, self._preferences
         )
         logging.info(f"Started preferences saving task: {task_id}")
-        self.status_bar.showMessage(
-            TranslationManager.get_translator().translate("app.status.saving")
-        )
+        self.status_bar.showMessage(TranslationManager.translate("app.status.saving"))
 
     def show_preferences_dialog(self):
         """
@@ -294,17 +288,16 @@ class MainWindow(QMainWindow):
         """
         Aktualizuje wszystkie teksty w interfejsie użytkownika.
         """
-        translator = TranslationManager.get_translator()
-        self.setWindowTitle(translator.translate("app.title"))
+        self.setWindowTitle(TranslationManager.translate("app.title"))
 
         # Aktualizacja zakładek
-        self.tabs.setTabText(0, translator.translate("app.tabs.tab1"))
-        self.tabs.setTabText(1, translator.translate("app.tabs.tab2"))
-        self.tabs.setTabText(2, translator.translate("app.tabs.tab3"))
-        self.tabs.setTabText(3, translator.translate("app.tabs.console.title"))
+        self.tabs.setTabText(0, TranslationManager.translate("app.tabs.tab1"))
+        self.tabs.setTabText(1, TranslationManager.translate("app.tabs.tab2"))
+        self.tabs.setTabText(2, TranslationManager.translate("app.tabs.tab3"))
+        self.tabs.setTabText(3, TranslationManager.translate("app.tabs.console.title"))
 
         # Aktualizacja statusu
-        self.status_bar.showMessage(translator.translate("app.status.ready"))
+        self.status_bar.showMessage(TranslationManager.translate("app.status.ready"))
 
         # Aktualizacja menu
         create_menu_bar(self)
@@ -344,11 +337,10 @@ class MainWindow(QMainWindow):
             }
             self.save_preferences_async()
 
-        translator = TranslationManager.get_translator()
         reply = QMessageBox.question(
             self,
-            translator.translate("app.dialogs.exit.title"),
-            translator.translate("app.dialogs.exit.message"),
+            TranslationManager.translate("app.dialogs.exit.title"),
+            TranslationManager.translate("app.dialogs.exit.message"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -392,7 +384,7 @@ class MainWindow(QMainWindow):
                     self.tabs.insertTab(
                         index,
                         real_widget,
-                        TranslationManager.get_translator().translate("app.tabs.tab2"),
+                        TranslationManager.translate("app.tabs.tab2"),
                     )
                 elif index == 2:  # Tab 3
                     real_widget = self._tab_widgets["tab3"]
@@ -400,7 +392,7 @@ class MainWindow(QMainWindow):
                     self.tabs.insertTab(
                         index,
                         real_widget,
-                        TranslationManager.get_translator().translate("app.tabs.tab3"),
+                        TranslationManager.translate("app.tabs.tab3"),
                     )
                 elif index == 3:  # Console
                     real_widget = self._get_console_tab()
@@ -408,9 +400,7 @@ class MainWindow(QMainWindow):
                     self.tabs.insertTab(
                         index,
                         real_widget,
-                        TranslationManager.get_translator().translate(
-                            "app.tabs.console.title"
-                        ),
+                        TranslationManager.translate("app.tabs.console.title"),
                     )
 
                 # Set the current tab back to the replaced one

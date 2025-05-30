@@ -65,16 +65,6 @@ class ConsoleWidget(QWidget):
             "CRITICAL": logging.CRITICAL,
         }
 
-        # Pobierz poziom logowania z konfiguracji
-        config = TranslationManager.get_config()
-        log_level = level_map.get(config.get("log_level", "INFO"), logging.INFO)
-        root_logger.setLevel(log_level)
-
-        # Dodaj też do specific logger
-        app_logger = logging.getLogger("AppLogger")
-        app_logger.addHandler(self.handler)
-        app_logger.setLevel(log_level)
-
         # Bezpieczniejsze przechwytywanie stdout (włączone domyślnie)
         self.stdout_redirector = None
         self.redirect_stdout = True  # Włączamy domyślnie
@@ -88,10 +78,8 @@ class ConsoleWidget(QWidget):
         self.update_translations()
 
         logging.getLogger("AppLogger").info(
-            TranslationManager.get_translator().translate(
-                "app.tabs.console.status.initialized"
-            )
-        )  # CHANGED
+            TranslationManager.translate("app.tabs.console.status.initialized")
+        )
 
     def closeEvent(self, event):
         """Przywraca oryginalne stdout przy zamknięciu"""
@@ -105,7 +93,6 @@ class ConsoleWidget(QWidget):
         super().closeEvent(event)
 
     def init_ui(self):
-        translator = TranslationManager.get_translator()
         layout = QVBoxLayout(self)
 
         # Konsola
@@ -113,17 +100,21 @@ class ConsoleWidget(QWidget):
         self.console.setReadOnly(True)
         self.console.setObjectName("ConsoleTextEdit")
         self.console.setPlaceholderText(
-            translator.translate("app.tabs.console.placeholder")
+            TranslationManager.translate("app.tabs.console.placeholder")
         )
         layout.addWidget(self.console)
 
         # Przyciski
         button_layout = QHBoxLayout()
 
-        self.clear_btn = QPushButton(translator.translate("app.tabs.console.clear"))
+        self.clear_btn = QPushButton(
+            TranslationManager.translate("app.tabs.console.clear")
+        )
         self.clear_btn.clicked.connect(self.clear_console)
 
-        self.save_btn = QPushButton(translator.translate("app.tabs.console.save_logs"))
+        self.save_btn = QPushButton(
+            TranslationManager.translate("app.tabs.console.save_logs")
+        )
         self.save_btn.clicked.connect(self.save_logs)
 
         button_layout.addWidget(self.clear_btn)
@@ -133,12 +124,13 @@ class ConsoleWidget(QWidget):
         layout.addLayout(button_layout)
 
     def update_translations(self):
-        translator = TranslationManager.get_translator()
         self.console.setPlaceholderText(
-            translator.translate("app.tabs.console.placeholder")
+            TranslationManager.translate("app.tabs.console.placeholder")
         )
-        self.clear_btn.setText(translator.translate("app.tabs.console.clear"))
-        self.save_btn.setText(translator.translate("app.tabs.console.save_logs"))
+        self.clear_btn.setText(TranslationManager.translate("app.tabs.console.clear"))
+        self.save_btn.setText(
+            TranslationManager.translate("app.tabs.console.save_logs")
+        )
 
     def append_log(self, message):
         self.console.append(message)
@@ -150,12 +142,11 @@ class ConsoleWidget(QWidget):
         self.console.clear()
 
     def save_logs(self):
-        translator = TranslationManager.get_translator()
         filename, _ = QFileDialog.getSaveFileName(
             self,
-            translator.translate("app.tabs.console.save_logs_title"),
+            TranslationManager.translate("app.tabs.console.save_logs_title"),
             "",
-            translator.translate("app.tabs.console.file_filters"),
+            TranslationManager.translate("app.tabs.console.file_filters"),
         )
         if filename:
             try:
@@ -164,8 +155,10 @@ class ConsoleWidget(QWidget):
             except Exception as e:
                 QMessageBox.critical(
                     self,
-                    translator.translate("app.tabs.console.error"),
-                    translator.translate("app.tabs.console.save_error").format(str(e)),
+                    TranslationManager.translate("app.tabs.console.error"),
+                    TranslationManager.translate("app.tabs.console.save_error").format(
+                        str(e)
+                    ),
                 )
 
 

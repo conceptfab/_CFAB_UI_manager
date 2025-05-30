@@ -7,20 +7,21 @@ class TabThreeWidget(QWidget):
     def __init__(self):
         super().__init__()
         self.setObjectName("TabThreeContent")
-        translator = TranslationManager.get_translator()
         layout = QVBoxLayout(self)
 
-        self.label = QLabel(translator.translate("app.tabs.content.tab3.content"))
+        self.label = QLabel(
+            TranslationManager.translate("app.tabs.content.tab3.content")
+        )
         self.label.setObjectName("TabThreeLabel")
 
         self.text_edit = QTextEdit()
         self.text_edit.setObjectName("TabThreeTextEdit")
         self.text_edit.setPlaceholderText(
-            translator.translate("app.tabs.content.tab3.placeholder")
+            TranslationManager.translate("app.tabs.content.tab3.placeholder")
         )
 
         self.button = QPushButton(
-            translator.translate("app.tabs.content.tab3.show_text")
+            TranslationManager.translate("app.tabs.content.tab3.show_text")
         )
         self.button.setObjectName("TabThreeButton")
         self.button.clicked.connect(self.on_button_click)
@@ -34,23 +35,25 @@ class TabThreeWidget(QWidget):
         TranslationManager.register_widget(self)
 
     def update_translations(self):
-        translator = TranslationManager.get_translator()
-        self.label.setText(translator.translate("app.tabs.content.tab3.content"))
-        self.text_edit.setPlaceholderText(
-            translator.translate("app.tabs.content.tab3.placeholder")
+        self.label.setText(
+            TranslationManager.translate("app.tabs.content.tab3.content")
         )
-        self.button.setText(translator.translate("app.tabs.content.tab3.show_text"))
+        self.text_edit.setPlaceholderText(
+            TranslationManager.translate("app.tabs.content.tab3.placeholder")
+        )
+        self.button.setText(
+            TranslationManager.translate("app.tabs.content.tab3.show_text")
+        )
 
     def on_button_click(self):
         text_content = self.text_edit.toPlainText()
-        translator = TranslationManager.get_translator()
         if text_content:
             self.label.setText(
-                translator.translate(
+                TranslationManager.translate(
                     "app.tabs.content.tab3.text_content", text_content[:100]
                 )
             )
         else:
             self.label.setText(
-                translator.translate("app.tabs.content.tab3.empty_field")
+                TranslationManager.translate("app.tabs.content.tab3.empty_field")
             )

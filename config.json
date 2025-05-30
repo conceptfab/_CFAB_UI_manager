@@ -4,11 +4,11 @@
   "log_to_file": false,
   "log_ui_to_console": false,
   "window_size": {
-    "width": 1027,
-    "height": 910
+    "width": 821,
+    "height": 720
   },
   "window_position": {
-    "x": 417,
+    "x": 83,
     "y": 40
   },
   "remember_window_size": true,
