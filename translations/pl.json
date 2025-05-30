@@ -26,7 +26,11 @@
         "save_logs_title": "Zapisz logi",
         "file_filters": "Pliki tekstowe (*.txt);;Wszystkie pliki (*.*)",
         "error": "Błąd",
-        "save_error": "Nie udało się zapisać logów: {0}"
+        "save_error": "Nie udało się zapisać logów: {0}",
+        "placeholder": "Logi aplikacji...",
+        "status": {
+          "initialized": "Widżet konsoli został zainicjalizowany."
+        }
       },
       "content": {
         "tab1": {
@@ -113,7 +117,29 @@
           "detecting_gpu": "Wykrywanie GPU...",
           "gpu_detection_error": "Błąd wykrywania GPU",
           "running_cpu_benchmark": "Uruchamianie testu CPU (pyperformance)...",
-          "running_ai_benchmark": "Uruchamianie testu AI..."
+          "running_ai_benchmark": "Uruchamianie testu AI...",
+          "numba_not_installed": "Numba nie jest zainstalowana, pomijam.",
+          "pyperformance_installed": "Pyperformance jest zainstalowane",
+          "pyperformance_not_installed": "pyperformance nie jest zainstalowane! Pomijam test CPU.",
+          "using_python_path": "Używam Pythona z: {}",
+          "running_command": "Uruchamiam komendę: {}",
+          "cpu_test_result": "Wynik testu CPU: {score} (czas: {time:.2f}s)",
+          "cpu_test_result_not_found": "Nie znaleziono wyniku testu CPU w output",
+          "pyperformance_run_error": "Błąd uruchamiania pyperformance: {e}",
+          "cpu_test_unexpected_error": "Nieoczekiwany błąd podczas testu CPU: {e}",
+          "cpu_test_result_saved": "Zapisano wynik testu CPU w profilu: {}",
+          "cpu_test_results_saved_to_file": "Zapisano wyniki testu CPU do pliku hardware.json",
+          "cpu_test_save_to_file_error": "Błąd podczas zapisywania wyników CPU do pliku: {e}",
+          "cpu_test_result_not_obtained": "Nie udało się uzyskać wyniku testu CPU",
+          "profiling_error": "Błąd podczas profilowania sprzętu: {e}",
+          "ready_status": "Gotowy.",
+          "cpu_benchmark_duration_prefix": "CPU benchmark trwał:",
+          "cpu_benchmark_duration_suffix": "sekundy",
+          "not_available": "N/A",
+          "no_details_available": "Brak szczegółów",
+          "not_available_in_formatter": "N/A (formatter)",
+          "not_available_short": "n/a",
+          "error_short": "Error"
         },
         "profile": {
           "uuid": "UUID: {}",

@@ -120,7 +120,11 @@ class HardwareProfilerThread(QThread):
 
                     python_libraries.append("numba")
                 except ImportError:
-                    logger.debug("Numba not installed, skipping.")
+                    logger.debug(
+                        translator.translate(
+                            "app.dialogs.hardware_profiler.status.numba_not_installed"
+                        )
+                    )  # CHANGED
             if "nvidia" in profile["gpu"].lower() and HAS_CUPY:
                 python_libraries.append("cupy")
             profile["python_libraries"] = sorted(list(set(python_libraries)))
@@ -135,10 +139,16 @@ class HardwareProfilerThread(QThread):
                 try:
                     import pyperformance  # sprawdzamy czy jest zainstalowane
 
-                    logger.info("Pyperformance jest zainstalowane")
+                    logger.info(
+                        translator.translate(
+                            "app.dialogs.hardware_profiler.status.pyperformance_installed"
+                        )
+                    )  # CHANGED
                 except ImportError:
                     logger.warning(
-                        "pyperformance nie jest zainstalowane! Pomijam test CPU."
+                        translator.translate(
+                            "app.dialogs.hardware_profiler.status.pyperformance_not_installed"
+                        )  # CHANGED
                     )
                     return None, 0.0
                 try:
@@ -151,7 +161,11 @@ class HardwareProfilerThread(QThread):
 
                     # Używamy pełnej ścieżki do Pythona
                     python_path = sys.executable
-                    logger.info(f"Używam Pythona z: {python_path}")
+                    logger.info(
+                        translator.translate(
+                            "app.dialogs.hardware_profiler.status.using_python_path"
+                        ).format(python_path)
+                    )  # CHANGED
 
                     # Uruchamiamy benchmark
                     cmd = [
@@ -162,7 +176,11 @@ class HardwareProfilerThread(QThread):
                         "--benchmarks",
                         "json_loads",
                     ]
-                    logger.info(f"Uruchamiam komendę: {' '.join(cmd)}")
+                    logger.info(
+                        translator.translate(
+                            "app.dialogs.hardware_profiler.status.running_command"
+                        ).format(" ".join(cmd))
+                    )  # CHANGED
 
                     stdout, stderr = secure_runner.run_command(
                         cmd,
@@ -175,20 +193,38 @@ class HardwareProfilerThread(QThread):
                         logger.warning(f"Błędy pyperformance: {stderr}")
 
                     # Szukamy wyniku w output - nowy format
-                    match = re.search(r"Mean \+-\s+std dev:\s+([0-9.]+)\s+us", stdout)
+                    match = re.search(
+                        r"Mean \\+-\\s+std dev:\\s+([0-9.]+)\\s+us", stdout
+                    )
                     if match:
                         score = float(match.group(1))
-                        logger.info(f"Wynik testu CPU: {score} (czas: {elapsed:.2f}s)")
+                        logger.info(
+                            translator.translate(
+                                "app.dialogs.hardware_profiler.status.cpu_test_result"
+                            ).format(score=score, time=elapsed)
+                        )  # CHANGED
                         return score, elapsed
                     else:
-                        logger.warning("Nie znaleziono wyniku testu CPU w output")
+                        logger.warning(
+                            translator.translate(
+                                "app.dialogs.hardware_profiler.status.cpu_test_result_not_found"
+                            )
+                        )  # CHANGED
                         return None, elapsed
 
                 except (CommandTimeoutError, CommandExecutionError) as e:
-                    logger.error(f"Błąd uruchamiania pyperformance: {e}")
+                    logger.error(
+                        translator.translate(
+                            "app.dialogs.hardware_profiler.status.pyperformance_run_error"
+                        ).format(e=e)
+                    )  # CHANGED
                     return None, 0.0
                 except Exception as e:
-                    logger.error(f"Nieoczekiwany błąd podczas testu CPU: {e}")
+                    logger.error(
+                        translator.translate(
+                            "app.dialogs.hardware_profiler.status.cpu_test_unexpected_error"
+                        ).format(e=e)
+                    )  # CHANGED
                     return None, 0.0
 
             perf_score, perf_time = run_pyperformance()
@@ -198,7 +234,11 @@ class HardwareProfilerThread(QThread):
                     "time": perf_time,
                     "benchmark": "json_loads",
                 }
-                logger.info(f"Zapisano wynik testu CPU w profilu: {perf_score}")
+                logger.info(
+                    translator.translate(
+                        "app.dialogs.hardware_profiler.status.cpu_test_result_saved"
+                    ).format(perf_score)
+                )  # CHANGED
 
                 # Bezpośrednie zapisanie do pliku hardware.json
                 try:
@@ -213,11 +253,23 @@ class HardwareProfilerThread(QThread):
 
                     with open(self.hardware_path, "w", encoding="utf-8") as f:
                         json.dump(hardware_data, f, indent=4, ensure_ascii=False)
-                    logger.info("Zapisano wyniki testu CPU do pliku hardware.json")
+                    logger.info(
+                        translator.translate(
+                            "app.dialogs.hardware_profiler.status.cpu_test_results_saved_to_file"
+                        )
+                    )  # CHANGED
                 except Exception as e:
-                    logger.error(f"Błąd podczas zapisywania wyników CPU do pliku: {e}")
+                    logger.error(
+                        translator.translate(
+                            "app.dialogs.hardware_profiler.status.cpu_test_save_to_file_error"
+                        ).format(e=e)
+                    )  # CHANGED
             else:
-                logger.warning("Nie udało się uzyskać wyniku testu CPU")
+                logger.warning(
+                    translator.translate(
+                        "app.dialogs.hardware_profiler.status.cpu_test_result_not_obtained"
+                    )
+                )  # CHANGED
 
             self.progress_update.emit(
                 translator.translate(
@@ -243,7 +295,11 @@ class HardwareProfilerThread(QThread):
             self.profile_ready.emit(profile)
         except Exception as e:
             logger.error(f"Error in hardware profiling: {e}")
-            self.progress_update.emit(f"Error: {str(e)}")
+            self.progress_update.emit(
+                translator.translate(
+                    "app.dialogs.hardware_profiler.status.profiling_error"
+                ).format(e=str(e))
+            )  # CHANGED
             self.profile_ready.emit({})
 
 
@@ -351,7 +407,11 @@ class HardwareProfilerDialog(QDialog):
         opt_layout.addWidget(self.optimization_display)
         layout.addWidget(self.optimization_group)
 
-        self.status_label = QLabel("Ready.")
+        self.status_label = QLabel(
+            TranslationManager.get_translator().translate(
+                "app.dialogs.hardware_profiler.status.ready_status"
+            )
+        )  # CHANGED
         self.status_label.setWordWrap(True)
         layout.addWidget(self.status_label)
 
@@ -437,10 +497,25 @@ class HardwareProfilerDialog(QDialog):
     def on_progress_update(self, message):
         self.status_label.setText(message)
         # Aktualizujemy licznik czasu
-        if "CPU benchmark trwał:" in message:
+        if (
+            TranslationManager.get_translator().translate(
+                "app.dialogs.hardware_profiler.status.cpu_benchmark_duration_prefix"
+            )
+            in message
+        ):  # CHANGED
             try:
                 time_str = (
-                    message.split("CPU benchmark trwał:")[1].split("sekundy")[0].strip()
+                    message.split(
+                        TranslationManager.get_translator().translate(
+                            "app.dialogs.hardware_profiler.status.cpu_benchmark_duration_prefix"
+                        )
+                    )[1]
+                    .split(
+                        TranslationManager.get_translator().translate(
+                            "app.dialogs.hardware_profiler.status.cpu_benchmark_duration_suffix"
+                        )
+                    )[0]
+                    .strip()  # CHANGED
                 )
                 self.progress_bar.setMaximum(int(float(time_str)))
             except:
@@ -501,7 +576,12 @@ class HardwareProfilerDialog(QDialog):
         # Update quick info labels first
         self.cpu_label.setText(
             translator.translate("app.dialogs.hardware_profiler.cpu").format(
-                self.profile_data.get("processor", "N/A")
+                self.profile_data.get(
+                    "processor",
+                    translator.translate(
+                        "app.dialogs.hardware_profiler.status.not_available"
+                    ),
+                )  # CHANGED
             )
         )
         ram_gb = self.profile_data.get("memory_total", 0) // (1024**3)
@@ -509,9 +589,15 @@ class HardwareProfilerDialog(QDialog):
             translator.translate("app.dialogs.hardware_profiler.ram").format(ram_gb)
         )
         self.gpu_value_label.setText(
-            translator.translate("app.dialogs.hardware_profiler.gpu").format(
-                self.profile_data.get("gpu", "N/A")
-            )
+            # translator.translate("app.dialogs.hardware_profiler.gpu").format( # Original line, seems like a bug, GPU is already in the key
+            #    self.profile_data.get("gpu", translator.translate("app.dialogs.hardware_profiler.status.not_available")) # CHANGED
+            # )
+            self.profile_data.get(
+                "gpu",
+                translator.translate(
+                    "app.dialogs.hardware_profiler.status.not_available"
+                ),
+            )  # Corrected line
         )
 
         if not self.profile_data:
@@ -529,8 +615,8 @@ class HardwareProfilerDialog(QDialog):
             )
             if "traceback" in self.profile_data:
                 error_details += (
-                    f"{translator.translate('app.dialogs.hardware_profiler.profile.traceback')}\n"
-                    f"{self.profile_data.get('traceback', 'No details available')}"
+                    f"{translator.translate('app.dialogs.hardware_profiler.profile.traceback')}\\n"
+                    f"{self.profile_data.get('traceback', translator.translate('app.dialogs.hardware_profiler.status.no_details_available'))}"  # CHANGED
                 )
             self.config_display.setText(error_details)
             self.optimization_display.setText(
@@ -574,11 +660,22 @@ class HardwareProfilerDialog(QDialog):
                     try:
                         value = formatter_and_condition[0](value)
                     except Exception:
-                        value = "N/A in formatter"
+                        value = translator.translate(
+                            "app.dialogs.hardware_profiler.status.not_available_in_formatter"
+                        )  # CHANGED
 
                 if value is not None and not (
                     isinstance(value, str)
-                    and (value.lower() == "n/a" or value == "Error")
+                    and (
+                        value.lower()
+                        == translator.translate(
+                            "app.dialogs.hardware_profiler.status.not_available_short"
+                        ).lower()
+                        or value
+                        == translator.translate(
+                            "app.dialogs.hardware_profiler.status.error_short"
+                        )
+                    )  # CHANGED
                 ):
                     try:
                         config_text_parts.append(

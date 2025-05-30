@@ -2,117 +2,278 @@
 # Strukturyzowane wyjątki dla lepszej obsługi błędów
 
 import logging
+from enum import Enum
 
 logger = logging.getLogger(__name__)
 
 
+class ErrorCode(Enum):
+    """Enum for error codes to ensure consistency."""
+
+    UNKNOWN = "CFAB_UNKNOWN"
+    CONFIG = "CFAB_CONFIG"
+    HARDWARE = "CFAB_HARDWARE"
+    THREAD = "CFAB_THREAD"
+    TRANSLATION = "CFAB_TRANSLATION"
+    FILE = "CFAB_FILE"
+    UI = "CFAB_UI"
+    PERFORMANCE = "CFAB_PERFORMANCE"
+    VALIDATION = "CFAB_VALIDATION"
+    CACHE = "CFAB_CACHE"
+    UNEXPECTED = "CFAB_UNEXPECTED"
+    # Add more specific error codes as needed, e.g.:
+    # FILE_NOT_FOUND = "CFAB_FILE_NOT_FOUND"
+    # NETWORK_ERROR = "CFAB_NETWORK_ERROR"
+
+
 class CFABError(Exception):
     """
-    Bazowa klasa dla wszystkich wyjątków w aplikacji CFAB
+    Bazowa klasa dla wszystkich wyjątków w aplikacji CFAB.
+    Umożliwia dodanie kodu błędu i dodatkowych szczegółów.
     """
 
-    def __init__(self, message: str, error_code: str = None, details: dict = None):
+    def __init__(
+        self,
+        message: str,
+        error_code: ErrorCode = ErrorCode.UNKNOWN,
+        details: dict = None,
+        original_exception: Exception = None,
+    ):
         super().__init__(message)
         self.message = message
-        self.error_code = error_code or "CFAB_UNKNOWN"
+        self.error_code = error_code
         self.details = details or {}
+        self.original_exception = original_exception
+
+        # Add original exception type and message to details if present
+        if original_exception:
+            self.details["original_exception_type"] = type(original_exception).__name__
+            self.details["original_exception_message"] = str(original_exception)
 
         # Automatyczne logowanie błędu
-        logger.error(f"[{self.error_code}] {message}", extra={"details": self.details})
+        logger.error(
+            f"[{self.error_code.value}] {message}", extra={"details": self.details}
+        )
 
 
+# --- Specific Error Classes (Simplified) ---
+# Można teraz używać CFABError bezpośrednio z odpowiednim ErrorCode,
+# lub tworzyć bardziej szczegółowe klasy, jeśli potrzebują dodatkowej logiki/pól.
+
+
+# Przykład: Jeśli ConfigurationError potrzebuje specjalnego pola config_path
 class ConfigurationError(CFABError):
-    """
-    Błędy związane z konfiguracją aplikacji
-    """
+    """Błędy związane z konfiguracją aplikacji."""
 
-    def __init__(self, message: str, config_path: str = None, **kwargs):
-        super().__init__(message, "CFAB_CONFIG", **kwargs)
+    def __init__(
+        self,
+        message: str,
+        config_path: str = None,
+        details: dict = None,
+        original_exception: Exception = None,
+    ):
+        details = details or {}
+        if config_path:
+            details["config_path"] = config_path
+        super().__init__(
+            message,
+            ErrorCode.CONFIG,
+            details=details,
+            original_exception=original_exception,
+        )
         self.config_path = config_path
 
 
-class HardwareProfilingError(CFABError):
-    """
-    Błędy związane z profilowaniem sprzętu
-    """
+# Dla pozostałych, jeśli nie ma dodatkowych pól, można używać CFABError bezpośrednio:
+# raise CFABError("Błąd profilowania sprzętu", ErrorCode.HARDWARE, details={"type": "GPU"})
 
-    def __init__(self, message: str, hardware_type: str = None, **kwargs):
-        super().__init__(message, "CFAB_HARDWARE", **kwargs)
+
+# Jeśli jednak chcemy zachować dedykowane klasy dla czytelności lub przyszłej rozbudowy:
+class HardwareProfilingError(CFABError):
+    """Błędy związane z profilowaniem sprzętu."""
+
+    def __init__(
+        self,
+        message: str,
+        hardware_type: str = None,
+        details: dict = None,
+        original_exception: Exception = None,
+    ):
+        details = details or {}
+        if hardware_type:
+            details["hardware_type"] = hardware_type
+        super().__init__(
+            message,
+            ErrorCode.HARDWARE,
+            details=details,
+            original_exception=original_exception,
+        )
         self.hardware_type = hardware_type
 
 
 class ThreadManagementError(CFABError):
-    """
-    Błędy związane z zarządzaniem wątkami
-    """
+    """Błędy związane z zarządzaniem wątkami."""
 
-    def __init__(self, message: str, thread_id: str = None, **kwargs):
-        super().__init__(message, "CFAB_THREAD", **kwargs)
+    def __init__(
+        self,
+        message: str,
+        thread_id: str = None,
+        details: dict = None,
+        original_exception: Exception = None,
+    ):
+        details = details or {}
+        if thread_id:
+            details["thread_id"] = thread_id
+        super().__init__(
+            message,
+            ErrorCode.THREAD,
+            details=details,
+            original_exception=original_exception,
+        )
         self.thread_id = thread_id
 
 
 class TranslationError(CFABError):
-    """
-    Błędy związane z tłumaczeniami
-    """
+    """Błędy związane z tłumaczeniami."""
 
-    def __init__(self, message: str, language: str = None, key: str = None, **kwargs):
-        super().__init__(message, "CFAB_TRANSLATION", **kwargs)
+    def __init__(
+        self,
+        message: str,
+        language: str = None,
+        key: str = None,
+        details: dict = None,
+        original_exception: Exception = None,
+    ):
+        details = details or {}
+        if language:
+            details["language"] = language
+        if key:
+            details["key"] = key
+        super().__init__(
+            message,
+            ErrorCode.TRANSLATION,
+            details=details,
+            original_exception=original_exception,
+        )
         self.language = language
         self.key = key
 
 
 class FileOperationError(CFABError):
-    """
-    Błędy związane z operacjami na plikach
-    """
+    """Błędy związane z operacjami na plikach."""
 
     def __init__(
-        self, message: str, file_path: str = None, operation: str = None, **kwargs
+        self,
+        message: str,
+        file_path: str = None,
+        operation: str = None,
+        details: dict = None,
+        original_exception: Exception = None,
     ):
-        super().__init__(message, "CFAB_FILE", **kwargs)
+        details = details or {}
+        if file_path:
+            details["file_path"] = file_path
+        if operation:
+            details["operation"] = operation
+        super().__init__(
+            message,
+            ErrorCode.FILE,
+            details=details,
+            original_exception=original_exception,
+        )
         self.file_path = file_path
         self.operation = operation
 
 
 class UIError(CFABError):
-    """
-    Błędy związane z interfejsem użytkownika
-    """
+    """Błędy związane z interfejsem użytkownika."""
 
-    def __init__(self, message: str, widget_name: str = None, **kwargs):
-        super().__init__(message, "CFAB_UI", **kwargs)
+    def __init__(
+        self,
+        message: str,
+        widget_name: str = None,
+        details: dict = None,
+        original_exception: Exception = None,
+    ):
+        details = details or {}
+        if widget_name:
+            details["widget_name"] = widget_name
+        super().__init__(
+            message,
+            ErrorCode.UI,
+            details=details,
+            original_exception=original_exception,
+        )
         self.widget_name = widget_name
 
 
 class PerformanceError(CFABError):
-    """
-    Błędy związane z optymalizacją wydajności
-    """
+    """Błędy związane z optymalizacją wydajności."""
 
-    def __init__(self, message: str, operation: str = None, **kwargs):
-        super().__init__(message, "CFAB_PERFORMANCE", **kwargs)
+    def __init__(
+        self,
+        message: str,
+        operation: str = None,
+        details: dict = None,
+        original_exception: Exception = None,
+    ):
+        details = details or {}
+        if operation:
+            details["operation"] = operation
+        super().__init__(
+            message,
+            ErrorCode.PERFORMANCE,
+            details=details,
+            original_exception=original_exception,
+        )
         self.operation = operation
 
 
 class ValidationError(CFABError):
-    """
-    Błędy związane z walidacją danych
-    """
+    """Błędy związane z walidacją danych."""
 
-    def __init__(self, message: str, field: str = None, value: str = None, **kwargs):
-        super().__init__(message, "CFAB_VALIDATION", **kwargs)
+    def __init__(
+        self,
+        message: str,
+        field: str = None,
+        value: any = None,  # Zmieniono typ na 'any' dla większej elastyczności
+        details: dict = None,
+        original_exception: Exception = None,
+    ):
+        details = details or {}
+        if field:
+            details["field"] = field
+        if value is not None:  # Sprawdzamy czy value nie jest None
+            details["value"] = value
+        super().__init__(
+            message,
+            ErrorCode.VALIDATION,
+            details=details,
+            original_exception=original_exception,
+        )
         self.field = field
         self.value = value
 
 
 class CacheError(CFABError):
-    """
-    Błędy związane z systemem cache'owania
-    """
+    """Błędy związane z systemem cache\'owania."""
 
-    def __init__(self, message: str, cache_key: str = None, **kwargs):
-        super().__init__(message, "CFAB_CACHE", **kwargs)
+    def __init__(
+        self,
+        message: str,
+        cache_key: str = None,
+        details: dict = None,
+        original_exception: Exception = None,
+    ):
+        details = details or {}
+        if cache_key:
+            details["cache_key"] = cache_key
+        super().__init__(
+            message,
+            ErrorCode.CACHE,
+            details=details,
+            original_exception=original_exception,
+        )
         self.cache_key = cache_key
 
 
@@ -121,22 +282,24 @@ class CacheError(CFABError):
 
 def handle_error_gracefully(func):
     """
-    Dekorator do graceful error handling
+    Dekorator do graceful error handling.
+    Loguje błędy CFABError i opakowuje nieoczekiwane wyjątki w CFABError.
     """
 
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except CFABError as e:
-            # CFAB errors są już zalogowane
+        except CFABError:
+            # CFAB errors są już zalogowane przez __init__ CFABError
             raise
         except Exception as e:
             # Wrap nieznane błędy w CFABError
             logger.exception(f"Unexpected error in {func.__name__}")
             raise CFABError(
                 f"Unexpected error in {func.__name__}: {str(e)}",
-                "CFAB_UNEXPECTED",
-                {"original_error": str(e), "function": func.__name__},
+                ErrorCode.UNEXPECTED,
+                details={"function_name": func.__name__},
+                original_exception=e,
             )
 
     return wrapper
@@ -144,15 +307,22 @@ def handle_error_gracefully(func):
 
 def log_error_with_context(error: Exception, context: dict = None):
     """
-    Loguje błąd z dodatkowym kontekstem
+    Loguje błąd z dodatkowym kontekstem.
+    Jeśli błąd nie jest instancją CFABError, jest logowany jako nieobsłużony.
     """
     context = context or {}
     if isinstance(error, CFABError):
+        # CFABError loguje się sam przy inicjalizacji,
+        # ale możemy dodać dodatkowy kontekst, jeśli jest potrzebny.
+        # Tworzymy kopię details, aby nie modyfikować oryginalnego obiektu błędu.
+        log_details = {**error.details, "additional_context": context}
         logger.error(
-            f"[{error.error_code}] {error.message}",
-            extra={"details": error.details, "context": context},
+            f"[{error.error_code.value}] {error.message} (Contextual Log)",
+            extra={"details": log_details},
         )
     else:
         logger.error(
-            f"Unhandled error: {str(error)}", extra={"context": context}, exc_info=True
+            f"Unhandled error: {str(error)} (Contextual Log)",
+            extra={"context": context, "original_exception_type": type(error).__name__},
+            exc_info=True,  # Dołącza traceback dla nie-CFAB błędów
         )

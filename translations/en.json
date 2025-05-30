@@ -26,7 +26,11 @@
         "save_logs_title": "Save logs",
         "file_filters": "Text files (*.txt);;All files (*.*)",
         "error": "Error",
-        "save_error": "Failed to save logs: {0}"
+        "save_error": "Failed to save logs: {0}",
+        "placeholder": "Application logs...",
+        "status": {
+          "initialized": "Console widget initialized."
+        }
       },
       "content": {
         "tab1": {
@@ -113,7 +117,29 @@
           "detecting_gpu": "Detecting GPU...",
           "gpu_detection_error": "Error detecting GPU",
           "running_cpu_benchmark": "Running CPU benchmark (pyperformance)...",
-          "running_ai_benchmark": "Running AI benchmark..."
+          "running_ai_benchmark": "Running AI benchmark...",
+          "numba_not_installed": "Numba not installed, skipping.",
+          "pyperformance_installed": "Pyperformance is installed",
+          "pyperformance_not_installed": "pyperformance not installed! Skipping CPU test.",
+          "using_python_path": "Using Python from: {}",
+          "running_command": "Running command: {}",
+          "cpu_test_result": "CPU test result: {score} (time: {time:.2f}s)",
+          "cpu_test_result_not_found": "CPU test result not found in output",
+          "pyperformance_run_error": "Error running pyperformance: {e}",
+          "cpu_test_unexpected_error": "Unexpected error during CPU test: {e}",
+          "cpu_test_result_saved": "Saved CPU test result in profile: {}",
+          "cpu_test_results_saved_to_file": "Saved CPU test results to hardware.json",
+          "cpu_test_save_to_file_error": "Error saving CPU results to file: {e}",
+          "cpu_test_result_not_obtained": "Failed to obtain CPU test result",
+          "profiling_error": "Error during hardware profiling: {e}",
+          "ready_status": "Ready.",
+          "cpu_benchmark_duration_prefix": "CPU benchmark lasted:",
+          "cpu_benchmark_duration_suffix": "seconds",
+          "not_available": "N/A",
+          "no_details_available": "No details available",
+          "not_available_in_formatter": "N/A (formatter)",
+          "not_available_short": "n/a",
+          "error_short": "Error"
         },
         "profile": {
           "uuid": "UUID: {}",

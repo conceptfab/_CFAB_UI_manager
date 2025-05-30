@@ -87,7 +87,11 @@ class ConsoleWidget(QWidget):
         TranslationManager.register_widget(self)
         self.update_translations()
 
-        logging.getLogger("AppLogger").info("Console widget initialized")
+        logging.getLogger("AppLogger").info(
+            TranslationManager.get_translator().translate(
+                "app.tabs.console.status.initialized"
+            )
+        )  # CHANGED
 
     def closeEvent(self, event):
         """Przywraca oryginalne stdout przy zamknięciu"""
@@ -168,8 +172,13 @@ class ConsoleWidget(QWidget):
 class ConsoleHandler(logging.Handler):
     def __init__(self, console_widget):
         super().__init__()
-        self.console_widget = console_widget
+        # Use a weak reference to avoid circular dependencies and memory leaks
+        self.console_widget_ref = weakref.ref(console_widget)
 
     def emit(self, record):
-        msg = self.format(record)
-        self.console_widget.append_log(msg)
+        console_widget = self.console_widget_ref()
+        if console_widget:  # Check if the widget still exists
+            msg = self.format(record)
+            console_widget.append_log(msg)
+        # else: # Optionally log to a fallback if the widget is gone
+        # logging.getLogger(__name__).warning("Console widget no longer available for logging.")
