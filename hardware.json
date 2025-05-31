@@ -1,33 +1,12 @@
 {
-    "uuid": "3915dbc5-3f60-5f22-a06a-fd48556b8dd1",
-    "system": "Windows",
-    "release": "11",
-    "version": "10.0.26100",
-    "machine": "AMD64",
-    "processor": "AMD64 Family 25 Model 97 Stepping 2, AuthenticAMD",
-    "cpu_count_logical": 32,
-    "cpu_count_physical": 16,
-    "memory_total": 136525344768,
-    "timestamp": "2025-05-31T15:57:33",
-    "gpu": "Parsec Virtual Display Adapter, NVIDIA GeForce RTX 4070, AMD Radeon(TM) Graphics",
-    "optimizations_flags": {
-        "multithreading": true,
-        "advanced_multithreading": true,
-        "high_memory_buffering": true,
-        "standard_memory_buffering": true
-    },
-    "python_libraries": [
-        "PyQt6",
-        "cupy",
-        "numba",
-        "numpy",
-        "psutil"
-    ],
-    "cpu_benchmark": {
-        "score": 14.051200032518809,
-        "time_s": 20.224621057510376
-    },
-    "ai_benchmark_cupy": {
-        "time_s": 0.09600019454956055
+    "uuid": "fab96a08-e641-55b3-95c9-1a19d51695fb",
+    "created_at": "2025-05-31 20:57:27",
+    "system_info": {
+        "system": "Windows",
+        "node": "micz_",
+        "release": "11",
+        "version": "10.0.26120",
+        "machine": "AMD64",
+        "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel"
     }
 }

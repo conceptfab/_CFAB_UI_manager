@@ -1,51 +1,164 @@
-# Prompt do analizy i korekcji projektu
+## 🔄 ETAP 1: WSTĘPNA ANALIZA I MAPOWANIE PROJEKTU
 
-Przeanalizuj WSZYSTKIE PLIKI zawierające kod w projekcie pod kątem błędów, poprawek, optymalizacji, usunięcia nadmiarowego kodu i duplikujących się funkcjonalności, hardkodowanych elementów tekstowych które powinny być przetłumaczone.
+### Cel pierwszego etapu:
 
-## Wymagania wstępne:
+Utworzenie kompletnej mapy projektu z wstępną analizą każdego pliku kodu i przygotowanie planu dla szczegółowej analizy. Mapa ma uwzględnia pliki z kodem i ustawieniami (JSON), bez plików cache i log.
 
-**KLUCZOWE:** Na początku przygotuj DOKŁADNĄ mapę projektu w formacie tekstowym/ASCII z zaznaczeniem, które pliki w tej rewizji będą wymagały poprawek. Mapa projektu musi być kompletna i precyzyjna - na jej podstawie będzie analizowany każdy pojedynczy plik w projekcie.
+### Wymagania etapu 1:
 
-**BARDZO WAŻNE:** Dokument `corrections.md` MUSI być uzupełniany na bieżąco podczas całego procesu analizy! W razie przerwy czy awarii nie może zmarnować się już wykonana praca. Po każdym przeanalizowanym pliku natychmiast aktualizuj dokument wynikowy.
+#### 1.1 Stworzenie mapy projektu
 
-## Format wyniku:
+**KLUCZOWE:** Przygotuj DOKŁADNĄ mapę projektu w formacie tekstowym/ASCII ze strukturą folderów i plików.
 
-Wzorzec formatowania znajduje się w pliku `_template_corrections.md` - użyj go jako szablon dla pliku `corrections.md`.
+**Format mapy projektu:**
+NazwaProjektu/
+├── plik1.py 🔴 WYSOKI PRIORYTET - Opis problemu/potrzeby
+├── folder1/
+│ ├── plik2.py 🟡 ŚREDNI PRIORYTET - Opis problemu/potrzeby
+│ └── plik3.py 🟢 NISKI PRIORYTET - Opis problemu/potrzeby
+└── folder2/
+└── plik4.py 🟢 NISKI PRIORYTET - Opis problemu/potrzeby
 
-## Wymagania dotyczące poprawek:
+#### 1.2 Klasyfikacja priorytetów
 
-- Wszystkie opisy poprawek w języku polskim
-- Każda poprawka musi zawierać precyzyjne informacje o fragmentach kodu wymagających zmiany
-- Każda poprawka musi prezentować finalne rozwiązanie z sformatowanym kodem
-- Poprawki mają być podzielone na etapy
+- 🔴 **WYSOKI PRIORYTET** - Krytyczne błędy, główne pliki wymagające natychmiastowej refaktoryzacji - analizowane w drugim etapie w pierwszej kolejności
+- 🟡 **ŚREDNI PRIORYTET** - Ważne optymalizacje, integracje, ulepszenia - analizowane w drugim etapie w drugiej kolejności
+- 🟢 **NISKI PRIORYTET** - Drobne poprawki, pliki oczekujące na analizę - - analizowane w drugim etapie w trzeciej kolejności kolejności
+
+#### 1.3 Wstępna analiza każdego pliku
+
+Dla każdego pliku określ:
+
+- **Funkcjonalność** - Co robi plik
+- **Stan obecny** - Główne problemy/potrzeby
+- **Zależności** - Z jakimi plikami jest powiązany
+- **Priorytet poprawek** - Pilność zmian
+
+#### 1.4 Plan etapu 2
+
+Na podstawie mapy przygotuj:
+
+- **Kolejność analizy** - W jakiej kolejności analizować pliki
+- **Grupowanie plików** - Które pliki analizować razem
+- **Szacowany zakres zmian** - Przewidywane typy poprawek
+
+---
+
+## 🔍 ETAP 2: SZCZEGÓŁOWA ANALIZA I KOREKCJE
+
+### Cel drugiego etapu:
+
+Szczegółowa analiza każdego pliku zgodnie z **mapą kodu (`code_map.md`)** i planem z etapu 1, z progressywnym zapisywaniem wyników.
+
+### Wymagania etapu 2:
+
+#### 2.1 Zakres analizy
+
+Przeanalizuj WSZYSTKIE PLIKI z mapy projektu pod kątem:
+
+- ❌ **Błędów** - Błędy logiczne, składniowe, runtime
+- 🔧 **Optymalizacji** - Wydajność, czytelność kodu
+- 🗑️ **Nadmiarowego kodu** - Nieużywane funkcje, duplikaty
+- 🌐 **Hardkodowanych tekstów** - Elementy do tłumaczenia
+- 🔗 **Zależności** - Problemy z importami, cykliczne zależności
+
+#### 2.2 Wymagania dotyczące poprawek
+
+- **Język opisu:** Wszystkie opisy poprawek w języku polskim
+- **Precyzja:** Każda poprawka z dokładnymi informacjami o fragmentach kodu
+- **Kompletność:** Każda poprawka ma zawierać kompletny fragment kodu dotyczący poprawki
+- **Etapowość:** Poprawki podzielone na logiczne etapy
 - **Jeden etap = jeden główny plik + wszystkie jego zależności**
-- **Każdy plik z mapy projektu musi być przeanalizowany i udokumentowany**
 
-## Struktura każdego etapu:
+#### 2.3 Struktura każdego etapu analizy
 
-1. **Identyfikacja pliku:** Który plik jest głównym obiektem poprawek
-2. **Opis zmian:** Co zostanie poprawione i dlaczego
-3. **Kod finalny:** Kompletny, sformatowany kod po zmianach
-4. **Checklista zależności:** Lista wszystkich plików wymagających aktualizacji
-5. **Plan testów:** Jakie testy przeprowadzić dla potwierdzenia poprawności
-6. **Status tracking:** Miejsce na aktualizację statusów po wykonaniu testów
+## ETAP [NUMER]: [NAZWA_PLIKU]
 
-## Proces wykonania:
+### 📋 Identyfikacja
 
-1. **Krok 1:** Przygotuj kompletną mapę projektu
-2. **Krok 2:** Rozpocznij analizę od pierwszego pliku z mapy
-3. **Krok 3:** Po każdym przeanalizowanym pliku NATYCHMIAST aktualizuj `corrections.md`
-4. **Krok 4:** Kontynuuj zgodnie z kolejnością w mapie projektu
-5. **Krok 5:** Każdy etap zapisuj progressywnie - nie czekaj do końca
+- **Plik główny:** `ścieżka/do/pliku.py`
+- **Priorytet:** 🔴/🟡/🟢
+- **Zależności:** Lista powiązanych plików
 
-## Uwagi dodatkowe:
+### 🔍 Analiza problemów
 
-- Poprawki muszą uwzględniać istniejącą strukturę projektu
-- Jeśli zakres poprawek wymaga zmian w innych plikach - wyraźnie to zaznacz
-- Po wykonaniu testów checklista ma być aktualizowana o odpowiednie statusy
-- **Mapa projektu jest fundamentem - każdy widoczny plik kodu musi być uwzględniony**
-- **Ciągłe zapisywanie postępów jest priorytetem - nie można stracić pracy**
+1. **Błędy krytyczne:**
 
-## Plik wynikowy:
+   - Opis błędu 1
+   - Opis błędu 2
 
-Zapisz cały plan w pliku `corrections.md` w głównym folderze projektu. Plik musi być aktualizowany na bieżąco podczas całego procesu analizy. Jeśli plik już istnieje, rozwijaj jego zawartość progresywnie.
+2. **Optymalizacje:**
+
+   - Opis optymalizacji 1
+   - Opis optymalizacji 2
+
+3. **Refaktoryzacja:**
+   - Opis potrzebnej refaktoryzacji
+
+🧪 Plan testów
+
+Test funkcjonalności podstawowej:
+
+Opis testu 1
+Opis testu 2
+
+Test integracji:
+
+Opis testu integracji
+
+Test wydajności:
+
+Opis testu wydajności
+
+📊 Status tracking
+
+Kod zaimplementowany
+Testy podstawowe przeprowadzone
+Testy integracji przeprowadzone
+Dokumentacja zaktualizowana
+Gotowe do wdrożenia
+
+#### 2.4 Proces wykonania etapu 2
+
+1. **Krok 1:** Użyj **mapy kodu (`code_map.md`)** z etapu 1 jako przewodnika
+2. **Krok 2:** Rozpocznij analizę zgodnie z priorytetami (🔴 → 🟡 → 🟢)
+3. **Krok 3:** **KRYTYCZNE:** Po każdym przeanalizowanym pliku NATYCHMIAST aktualizuj `corrections.md` dopisują do schematu informację ze analiza danego pliku została zakończona
+4. **Krok 4:** Kontynuuj zgodnie z kolejnością z planu
+5. **Krok 5:** Każdy etap zapisuj progressywnie - nie czekaj do końca całej analizy
+
+#### 2.5 Wymagania dodatkowe
+
+- **Ciągłość pracy:** Dokument `corrections.md` MUSI być uzupełniany na bieżąco
+- **Odporność na awarie:** W razie przerwy nie może zmarnować się wykonana praca
+- **Kompletność:** Każdy plik z mapy projektu musi być przeanalizowany
+- **Spójność:** Poprawki muszą uwzględniać istniejącą strukturę projektu
+- **Przejrzystość:** Jeśli poprawka wymaga zmian w innych plikach - wyraźnie zaznacz
+- **Aktualizacja mapy kodu:** Mapa kodu (`code_map.md`) powinna być aktualizowana, aby odzwierciedlić wprowadzone zmiany i status przetworzenia plików.
+
+---
+
+## 📁 PLIKI WYNIKOWE
+
+### `code_map.md` (z etapu 1)
+
+Kompletna mapa projektu z priorytetami i wstępną analizą
+
+### `corrections.md` (z etapu 2)
+
+Szczegółowy plan poprawek aktualizowany progressywnie podczas analizy
+
+**UWAGA:** Jeśli plik `corrections.md` już istnieje, rozwijaj jego zawartość progresywnie, nie nadpisuj.
+
+---
+
+## 🎯 KLUCZOWE ZASADY
+
+1. **Dwuetapowość:** Nie przechodź do etapu 2 bez ukończenia etapu 1
+2. **Mapa jest fundamentem:** Każdy widoczny plik kodu musi być w mapie
+3. **Progressywne zapisywanie:** Priorytet nad dokładnością - nie trać pracy
+4. **Jeden plik = jedna aktualizacja:** Po każdym pliku zapisuj postęp
+5. **Kompletność:** Wszystkie pliki z mapy muszą być przeanalizowane
+
+```
+
+```
