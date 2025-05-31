@@ -2,7 +2,7 @@
 
 from .config_management import ConfigManager
 from .dependency_injection import (
-    DependencyContainer,
+    ServiceContainer,
     configure_dependencies,
     get_container,
     inject,

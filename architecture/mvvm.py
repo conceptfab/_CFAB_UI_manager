@@ -3,7 +3,7 @@
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
@@ -77,7 +77,7 @@ class BaseViewModel(QObject):
     def __init__(self, model: Optional[BaseModel] = None):
         super().__init__()
         self._model = model
-        self._commands: Dict[str, Any] = {}
+        self._commands: Dict[str, Callable[..., Any]] = {}
 
         if self._model:
             self._model.data_changed.connect(self._on_model_changed)
@@ -158,7 +158,7 @@ class BaseViewModel(QObject):
             logger.warning(f"Command '{command_name}' not found")
             return False
 
-    def register_command(self, name: str, command: Any) -> None:
+    def register_command(self, name: str, command: Callable[..., Any]) -> None:
         """
         Register a command
 

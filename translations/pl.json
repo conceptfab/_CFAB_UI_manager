@@ -136,11 +136,14 @@
           "using_python_path": "Używam ścieżki Python: {path}",
           "running_command": "Uruchamianie polecenia: {command}",
           "cpu_benchmark_error": "Błąd testu CPU: {error}",
-          "cpu_test_unexpected_error": "Nieoczekiwany błąd podczas testu CPU: {e}",
+          "cpu_test_unexpected_error": "Nieoczekiwany błąd podczas testu CPU: {error}",
           "pyperformance_not_installed": "PyPerformance nie jest zainstalowany. Test CPU pominięty.",
-          "pyperformance_run_error": "Błąd uruchamiania PyPerformance: {e}",
-          "cpu_test_result": "Wynik testu CPU: {score}, czas: {time}s",
-          "cpu_test_result_not_found_json": "Nie znaleziono wyników testu CPU w pliku JSON."
+          "pyperformance_run_error": "Błąd uruchamiania PyPerformance: {error}",
+          "cpu_test_result": "Wynik testu CPU: {score} (czas: {time:.2f}s)",
+          "cpu_test_result_not_found_json": "Nie znaleziono wyników testu CPU w pliku JSON.",
+          "cpu_test_results_saved_to_file": "Zapisano wyniki testu CPU do pliku hardware.json",
+          "cpu_test_save_to_file_error": "Błąd zapisywania wyników CPU do pliku: {error}",
+          "cpu_test_result_not_obtained": "Nie udało się uzyskać wyniku testu CPU"
         },
         "profile": {
           "uuid": "UUID: {}",

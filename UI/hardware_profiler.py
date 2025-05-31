@@ -419,7 +419,7 @@ class HardwareProfilerThread(QThread):
                     logger.error(
                         TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.pyperformance_run_error"
-                        ).format(e=str(e))
+                        ).format(error=str(e))
                     )
                     if hasattr(e, "stdout") and e.stdout:
                         logger.error(f"pyperformance stdout on error: {e.stdout}")
@@ -431,7 +431,7 @@ class HardwareProfilerThread(QThread):
                         TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.cpu_test_unexpected_error"
                         ).format(
-                            e=str(e)
+                            error=str(e)
                         )  # CHANGED
                     )
                     return None, 0.0
