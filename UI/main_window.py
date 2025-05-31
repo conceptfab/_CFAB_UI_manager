@@ -20,17 +20,13 @@ from UI.components.tab_three_widget import TabThreeWidget
 from UI.components.tab_two_widget import TabTwoWidget
 from UI.hardware_profiler import HardwareProfilerDialog
 from UI.preferences_dialog import PreferencesDialog
-from utils.improved_thread_manager import (
-    ThreadManager,
-)  # Zmieniono ImprovedThreadManager na ThreadManager
+from utils.improved_thread_manager import ThreadManager
 from utils.performance_optimizer import (
     defer_until_after_startup,
     lazy_property,
     performance_monitor,
 )
 from utils.translation_manager import TranslationManager
-
-# from UI.components.status_bar_manager import StatusBarManager # Jeśli używasz
 
 
 class FileWorker(QObject):
@@ -76,19 +72,16 @@ class MainWindow(QMainWindow):
     Główne okno aplikacji.
     """
 
-    def __init__(self, *args, app_logger=None, **kwargs):  # Dodano app_logger
+    def __init__(self, *args, app_logger=None, **kwargs):
         try:
-            # Użyj przekazanego loggera lub globalnego, jeśli nie przekazano
-            self.logger = (
-                app_logger if app_logger else logging.getLogger("AppLogger")
-            )  # Użyj przekazanego loggera
+            self.logger = app_logger if app_logger else logging.getLogger("AppLogger")
 
             self.logger.info("MainWindow: start __init__")
             super().__init__(*args, **kwargs)
             self.setWindowTitle(TranslationManager.translate("app.title"))
             self.thread_manager = ThreadManager()
             self.file_worker = FileWorker()
-            self.app_logger = app_logger  # Zapisz instancję loggera
+            self.app_logger = app_logger
 
             # Domyślne preferencje
             self._preferences = {

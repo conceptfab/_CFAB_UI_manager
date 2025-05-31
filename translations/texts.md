@@ -78,36 +78,29 @@ Wszystkie teksty w plikach tłumaczeń są obsługiwane przez system tłumaczeń
 
 ## UI/hardware_profiler.py
 
-❌ Większość tekstów jest hardkodowana:
-
-- "Hardware Profiler"
-- "CPU: Intel Core i7-9700K"
-- "RAM: 32GB DDR4"
-- "GPU: NVIDIA GeForce RTX 2080"
-- "Aktualna konfiguracja sprzętowa"
-- "Dostępne optymalizacje"
-- "Skanuj sprzęt"
-
-✅ Tylko niektóre teksty są obsługiwane przez tłumaczenia:
+✓ Wszystkie teksty są obsługiwane przez system tłumaczeń:
 
 - app.dialogs.hardware_profiler.title
+- app.dialogs.hardware_profiler.current_config
+- app.dialogs.hardware_profiler.available_optimizations
+- app.dialogs.hardware_profiler.scan_hardware
+- app.dialogs.hardware_profiler.scanning
+- app.dialogs.hardware_profiler.save_profile
+- app.dialogs.hardware_profiler.close
 - app.dialogs.hardware_profiler.cpu
 - app.dialogs.hardware_profiler.ram
 - app.dialogs.hardware_profiler.gpu
 
 ## UI/components/console_widget.py
 
-❌ Większość tekstów jest hardkodowana:
+✓ Wszystkie teksty są obsługiwane przez system tłumaczeń:
 
-- "Wyczyść" (przycisk)
-- "Zapisz logi" (przycisk)
-- "Zapisz logi" (tytuł okna dialogowego)
-- "Pliki tekstowe (_.txt);;Wszystkie pliki (_.\*)" (filtry plików)
-- "Błąd" (tytuł okna błędu)
-- "Nie udało się zapisać logów: {e}" (treść błędu)
-
-✅ Tylko placeholder konsoli jest obsługiwany przez tłumaczenia:
-
+- app.tabs.console.clear (przycisk "Wyczyść")
+- app.tabs.console.save_logs (przycisk "Zapisz logi")
+- app.tabs.console.save_logs_title (tytuł okna dialogowego)
+- app.tabs.console.file_filters (filtry plików)
+- app.tabs.console.error (tytuł okna błędu)
+- app.tabs.console.save_error (treść błędu)
 - app.tabs.console.placeholder
 
 ## UI/components/tab_one_widget.py
@@ -154,4 +147,3 @@ Wszystkie teksty w plikach tłumaczeń są obsługiwane przez system tłumaczeń
 - app.dialogs.preferences.log_ui
 - app.dialogs.preferences.save
 - app.dialogs.preferences.cancel
-

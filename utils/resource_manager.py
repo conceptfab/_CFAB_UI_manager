@@ -42,9 +42,7 @@ class ResourceManager(QObject):
         """
         super().__init__()
         self.base_dir = base_dir
-        self.logger = (
-            app_logger if app_logger else logger
-        )  # Użyj przekazanego loggera lub globalnego
+        self.logger = app_logger if app_logger else logger
         self.css_loader = None
         self.translation_loader = None
         self.async_loader = AsyncResourceLoader(max_workers=2)

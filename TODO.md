@@ -1,0 +1,1 @@
+Poprawa tłumaczeń w About

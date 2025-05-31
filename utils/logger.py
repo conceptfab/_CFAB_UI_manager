@@ -18,7 +18,7 @@ class AsyncLogger:
         self.queue = Queue()
         self.thread = Thread(
             target=self._process_logs, daemon=True, name="AsyncLoggerThread"
-        )  # Nadanie nazwy wątkowi
+        )
         self.logger = logging.getLogger("AppLogger")
         self._console_widget_handler = None
         self._formatter = logging.Formatter(
@@ -39,7 +39,7 @@ class AsyncLogger:
 
                 if isinstance(message_or_record, logging.LogRecord):
                     record = message_or_record
-                else:  # Starsza wersja przekazywała (level, message)
+                else:
                     record = self.logger.makeRecord(
                         self.logger.name,
                         level,
@@ -52,8 +52,6 @@ class AsyncLogger:
 
                 self.logger.handle(record)  # Logowanie do standardowych handlerów
 
-                # Debug log przed próbą wysłania do UI
-                # Używamy self.logger.log, aby uniknąć rekurencji, jeśli coś pójdzie nie tak z print
                 self.logger.log(
                     logging.DEBUG,
                     f"AsyncLogger: Próba przetworzenia logu dla UI. Handler: {self._console_widget_handler}",
@@ -64,18 +62,16 @@ class AsyncLogger:
                         formatted_message = self._formatter.format(record)
                         self.logger.log(
                             logging.DEBUG,
-                            f"AsyncLogger: Wysyłanie sformatowanego logu do UI: {formatted_message[:100]}...",  # Loguj tylko fragment
+                            f"AsyncLogger: Wysyłanie sformatowanego logu do UI: {formatted_message[:100]}...",
                         )
                         # Próba wywołania handlera konsoli UI
                         self._console_widget_handler(formatted_message)
                     except Exception as e:
-                        # Zmieniono poziom logowania na CRITICAL dla większej widoczności
                         self.logger.log(
                             logging.CRITICAL,
                             f"AsyncLogger: Błąd w handlerze konsoli UI: {e}",
-                            exc_info=True,  # Dodano exc_info dla lepszego śledzenia
+                            exc_info=True,
                         )
-                        # Dodatkowa informacja diagnostyczna
                         self.logger.log(
                             logging.DEBUG,
                             f"AsyncLogger: Typ handlera: {type(self._console_widget_handler)}, Handler: {self._console_widget_handler}",
@@ -87,11 +83,10 @@ class AsyncLogger:
 
                 self.queue.task_done()
             except Exception as e:
-                # Pozostawiono logowanie błędów krytycznych, ale bez print
                 self.logger.log(
-                    logging.CRITICAL,  # Zmieniono na CRITICAL dla większej wagi
+                    logging.CRITICAL,
                     f"AsyncLogger: Krytyczny błąd w pętli przetwarzania logów: {e}",
-                    exc_info=True,  # Dodano exc_info dla pełniejszego śledzenia
+                    exc_info=True,
                 )
                 time.sleep(0.1)
 

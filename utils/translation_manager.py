@@ -5,20 +5,17 @@ from typing import Dict, List, Optional
 
 from PyQt6.QtWidgets import QWidget
 
-from utils.config_cache import (
-    config_cache,
-)  # Zmieniono z .config_cache; Zachowujemy, jeśli ConfigCache jest nadal używany do innych celów
+from utils.config_cache import config_cache
 
 logger = logging.getLogger(__name__)
 
 
 class TranslationManager:
     _instance = None
-    # Usunięto _translator, funkcjonalność Translatora zostanie wchłonięta
     _translatable_widgets: List[QWidget] = []
-    _config_path: Optional[str] = None  # Zapewnienie, że _config_path może być None
-    _translations: Dict[str, Dict] = {}  # Przeniesione z Translatora
-    _current_language: str = "pl"  # Domyślny język, przeniesione z Translatora
+    _config_path: Optional[str] = None
+    _translations: Dict[str, Dict] = {}
+    _current_language: str = "pl"
     _translation_cache: Dict[str, Dict[str, str]] = (
         {}
     )  # Cache dla przetłumaczonych kluczy
@@ -26,16 +23,12 @@ class TranslationManager:
         None  # Cache dla dostępnych języków
     )
 
-    def __new__(cls, *args, **kwargs):  # Dodano *args, **kwargs dla elastyczności
+    def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super(TranslationManager, cls).__new__(cls)
-            # Inicjalizacja atrybutów instancji tutaj, jeśli są specyficzne dla instancji
-            # Jednak większość logiki inicjalizacyjnej jest w initialize()
             cls._translatable_widgets = []
             cls._translations = {}
-            cls._current_language = (
-                "pl"  # Ustawienie domyślnego języka przy tworzeniu instancji
-            )
+            cls._current_language = "pl"
             cls._translation_cache = {}
             cls._available_languages_cache = None
         return cls._instance
@@ -51,10 +44,10 @@ class TranslationManager:
         Inicjalizuje menedżer tłumaczeń.
         Ładuje język z konfiguracji i wczytuje odpowiednie tłumaczenia.
         """
-        if not cls._instance:  # Upewnienie się, że instancja istnieje
-            cls.__new__(cls)  # Tworzenie instancji, jeśli nie istnieje
+        if not cls._instance:
+            cls.__new__(cls)
 
-        inst = cls.get_instance()  # Praca na instancji
+        inst = cls.get_instance()
 
         # Użyj przekazanego loggera lub globalnego, jeśli nie został dostarczony
         effective_logger = app_logger if app_logger else logger
@@ -255,32 +248,25 @@ class TranslationManager:
         )  # Usuń duplikaty i posortuj
         return self._available_languages_cache
 
-    def translate_internal(
-        self, key: str, *args, **kwargs
-    ) -> str:  # Dodano kwargs dla default
+    def translate_internal(self, key: str, *args, **kwargs) -> str:
         """
         Tłumaczy podany klucz na aktualny język. (Metoda instancji)
-        Używa cache dla tłumaczeń.
+        Użycie zoptymalizowanego cache dla tłumaczeń.
         """
-        default_value = kwargs.get("default", key)  # Pobranie wartości domyślnej
+        default_value = kwargs.get("default", key)
 
-        # Sprawdzenie cache
-        if (
-            self._current_language in self._translation_cache
-            and key in self._translation_cache[self._current_language]
-        ):
-            cached_translation = self._translation_cache[self._current_language][key]
+        # Optymalizacja: szybkie sprawdzenie cache bez zagnieżdżonych if-ów
+        cache_dict = self._translation_cache.get(self._current_language, {})
+        cached_translation = cache_dict.get(key)
+
+        if cached_translation:
             if args and isinstance(cached_translation, str):
                 try:
                     return cached_translation.format(*args)
-                except (IndexError, KeyError) as e:
-                    logger.warning(
-                        f"TranslationManager: Błąd formatowania skeszowanego tłumaczenia dla klucza '{key}' z argumentami {args}: {e}"
-                    )
-                    # W przypadku błędu formatowania, spróbuj przetłumaczyć ponownie bez cache
+                except Exception:
+                    pass  # W przypadku błędu formatowania, kontynuuj bez cache
             elif not args and isinstance(cached_translation, str):
                 return cached_translation
-            # Jeśli skeszowana wartość nie jest stringiem lub args nie pasują, idź dalej
 
         # Jeśli nie ma w cache lub formatowanie zawiodło, normalne tłumaczenie
         try:

@@ -1,4 +1,5 @@
-Instrukcja AI dla Automatycznego Wprowadzania Poprawek
+#### Instrukcja AI dla Automatycznego Wprowadzania Poprawek
+
 Jesteś zaawansowanym modelem AI, Twoim zadaniem jest automatyczne wprowadzanie poprawek do aplikacji. Działasz w oparciu o plik corrections.md, który zawiera listę poprawek podzielonych na etapy.
 Twój cel: Przetworzenie każdej poprawki z pliku corrections.md etapami, zaimplementowanie jej w kodzie aplikacji, stworzenie niezbędnych testów (jeśli nie istnieją), przeprowadzenie kompleksowych testów (w tym testów UI), analiza wyników z konsoli oraz automatyczne korygowanie błędów aż do pomyślnego zakończenia etapu. Po pomyślnym wprowadzeniu poprawki, oznacz ją jako wykonaną w pliku corrections.md.
 Procedura dla każdego etapu z pliku corrections.md:

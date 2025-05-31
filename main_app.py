@@ -1,48 +1,30 @@
 import warnings
 
-# Ignoruj konkretne ostrzeżenie UserWarning od CuPy dotyczące wielu pakietów
-# To powinno być na samym początku, aby zadziałało zanim CuPy zostanie gdziekolwiek zaimportowane
 warnings.filterwarnings(
     "ignore",
-    # message="CuPy may not function correctly because multiple CuPy packages are installed", # Usunięto message dla szerszego dopasowania
     category=UserWarning,
     module="cupy._environment",
 )
 
-import datetime
 import json
-import logging
 import os
-import platform
 import sys
-import time
 
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
 
 from UI.main_window import MainWindow
-from UI.splash_screen import SplashScreen
 from utils.application_startup import ApplicationStartup
-from utils.enhanced_splash import StartupProgressTracker, create_optimized_splash
+from utils.enhanced_splash import create_optimized_splash
 from utils.exceptions import (
     ConfigurationError,
     FileOperationError,
     ValidationError,
     handle_error_gracefully,
 )
-from utils.improved_thread_manager import ThreadManager
 from utils.logger import AppLogger
-from utils.performance_optimizer import (
-    AsyncResourceLoader,
-    create_css_loader,
-    defer_until_after_startup,
-    lazy_loader,
-    performance_monitor,
-)
-from utils.resource_manager import ResourceManager
-from utils.system_info import get_stable_uuid
-from utils.translation_manager import TranslationManager
+from utils.performance_optimizer import performance_monitor
 from utils.validators import ConfigValidator
 
 
@@ -103,7 +85,7 @@ class Application(QApplication):
         self._config = {
             "show_splash": True,
             "log_to_file": False,
-            "log_ui_to_console": False,  # To powinno kontrolować logowanie do konsoli systemowej przez AppLogger
+            "log_ui_to_console": False,
             "log_level": "INFO",
         }
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -182,12 +164,9 @@ if __name__ == "__main__":
 
     # Take initial memory snapshot
     initial_memory = performance_monitor.take_memory_snapshot("application_start")
-    # app.app_logger.info(f"Initial memory usage: {initial_memory.get('rss_mb', 0):.1f}MB") # Użyj app.app_logger
 
     # Uruchom scentralizowaną inicjalizację
     if not app.initialize():
-        # if app.app_logger: app.app_logger.error("Nie udało się zainicjalizować aplikacji")
-        # else: print("KRYTYCZNY BŁĄD: Nie udało się zainicjalizować aplikacji (logger niedostępny)")
         sys.exit(1)  # ApplicationStartup już loguje błąd
 
     # Konfiguracja interfejsu
@@ -263,20 +242,6 @@ if __name__ == "__main__":
     final_memory = performance_monitor.take_memory_snapshot("application_ready")
     memory_trend = performance_monitor.get_memory_usage_trend()
     performance_stats = performance_monitor.get_performance_stats()
-
-    # if app.app_logger: app.app_logger.info("=== Performance Summary ===")
-    # if app.app_logger: app.app_logger.info(f"Final memory usage: {final_memory.get('rss_mb', 0):.1f}MB")
-    # if app.app_logger: app.app_logger.info(f"Memory trend: {memory_trend.get('trend', 'unknown')}")
-
-    if performance_stats:
-        # if app.app_logger: app.app_logger.info("Execution time stats:")
-        for operation, stats in performance_stats.items():
-            pass
-            # if app.app_logger: app.app_logger.info(
-            #     f"  {operation}: {stats['avg_time']:.3f}s avg ({stats['count']} calls)"
-            # )
-
-    # if app.app_logger: app.app_logger.info("=== Aplikacja gotowa ===")
 
     # Schedule periodic memory monitoring
     memory_timer = QTimer()

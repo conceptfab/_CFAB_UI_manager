@@ -31,9 +31,7 @@ class ApplicationStartup(QObject):
     Klasa odpowiedzialna za scentralizowane uruchomienie aplikacji.
     """
 
-    startup_completed = pyqtSignal(
-        object
-    )  # Zmieniono sygnał, aby przekazywał instancję AppLogger
+    startup_completed = pyqtSignal(object)
     startup_failed = pyqtSignal(Exception)
     config_loaded = pyqtSignal(dict)
 
@@ -50,7 +48,7 @@ class ApplicationStartup(QObject):
         self.thread_manager = ThreadManager()
         self.resource_manager = None
         self.logger = None
-        self._hardware_verification_attempted = False  # Dodana flaga
+        self._hardware_verification_attempted = False
 
     @performance_monitor.measure_execution_time("app_startup")
     def initialize(self):
@@ -59,20 +57,18 @@ class ApplicationStartup(QObject):
         """
         try:
             # 1. Setup logging
-            self.setup_logging()  # self.logger jest tworzony tutaj
+            self.setup_logging()
 
             # 2. Load config
             self.load_config()
 
             # Initialize TranslationManager with the loaded config path
             config_path = os.path.join(self.base_dir, "config.json")
-            from utils.translation_manager import (
-                TranslationManager,
-            )  # Import w tym miejscu, aby uniknąć problemów z cyklicznym importem
+            from utils.translation_manager import TranslationManager
 
             TranslationManager.initialize(
                 config_path=config_path, app_logger=self.logger
-            )  # Przekaż logger
+            )
 
             # 3. Initialize resource manager
             self.setup_resource_manager()
@@ -81,12 +77,11 @@ class ApplicationStartup(QObject):
             self.thread_manager.run_in_thread(self.verify_hardware)
 
             # 5. Emituj sygnał ukończenia startupu z instancją loggera
-            self.startup_completed.emit(self.logger)  # Przekaż instancję AppLogger
-            # self.logger.info("Aplikacja uruchomiona pomyślnie")
+            self.startup_completed.emit(self.logger)
 
             return True
         except Exception as e:
-            if self.logger:  # Sprawdź czy logger istnieje
+            if self.logger:
                 self.logger.error(f"Błąd podczas inicjalizacji aplikacji: {e}")
             else:
                 print(

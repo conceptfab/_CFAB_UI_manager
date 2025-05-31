@@ -1,6 +1,3 @@
-# Improved Thread Manager
-# Ulepszony menedżer wątków z proper cleanup i limitami
-
 import logging
 import queue
 import threading
@@ -66,7 +63,7 @@ class ImprovedWorkerTask(QRunnable):
         self._is_cancelled = True
 
 
-class LogQueue:  # Zmieniono nazwę z ImprovedLogQueue
+class LogQueue:
     """
     Ulepszona kolejka logów z lepszym zarządzaniem zasobami
     """
@@ -198,7 +195,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
             # self._remove_task(task_id) # Usunięto, WeakSet sam zarządza
             with self._lock:
                 self._tasks_completed += 1
-            if self.enable_logging:
+            if self.enable_logging and self._log_rate_limiter():
                 self.log_queue.add_log(
                     logging.DEBUG, f"Task {task_id} finished with result: {result}"
                 )
@@ -271,6 +268,20 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
             "active_tasks": len(self.active_tasks),  # Długość WeakSet
             "pool_size": self.thread_pool.maxThreadCount(),
         }
+
+    def _log_rate_limiter(self) -> bool:
+        """
+        Ogranicza częstotliwość logowania przy wysokim obciążeniu
+
+        Returns:
+            bool: True jeśli logowanie powinno zostać wykonane, False w przeciwnym wypadku
+        """
+        active_count = self.get_active_task_count()
+        # Ograniczenie logowania przy dużej liczbie zadań (powyżej 20)
+        if active_count > 20:
+            # Logowanie co 5-te zadanie przy dużym obciążeniu
+            return self.task_counter % 5 == 0
+        return True
 
     def get_thread_health_status(self) -> Dict[str, Any]:
         """Monitor thread pool health and performance"""
