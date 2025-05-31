@@ -1,3 +1,14 @@
+import warnings
+
+# Ignoruj konkretne ostrzeżenie UserWarning od CuPy dotyczące wielu pakietów
+# To powinno być na samym początku, aby zadziałało zanim CuPy zostanie gdziekolwiek zaimportowane
+warnings.filterwarnings(
+    "ignore",
+    # message="CuPy may not function correctly because multiple CuPy packages are installed", # Usunięto message dla szerszego dopasowania
+    category=UserWarning,
+    module="cupy._environment",
+)
+
 import datetime
 import json
 import logging

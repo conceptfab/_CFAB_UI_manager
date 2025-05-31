@@ -35,12 +35,26 @@ from utils.translation_manager import TranslationManager
 
 logger = logging.getLogger(__name__)
 
+# Domyślnie ustawiamy HAS_CUPY na False i cp na None
+HAS_CUPY = False
+cp = None
+
 try:
+    # Globalny filtr ostrzeżeń ustawiony w main_app.py powinien obsłużyć
+    # ostrzeżenie UserWarning z cupy._environment dotyczące wielu pakietów.
+    # Usuwamy lokalne `import warnings` i `with warnings.catch_warnings()`
+    # oraz lokalne `warnings.filterwarnings` dla tego importu.
     import cupy as cp
 
     HAS_CUPY = True
+    logger.info("CuPy imported successfully.")
 except ImportError:
-    HAS_CUPY = False
+    logger.info("CuPy not found or import failed. HAS_CUPY set to False.")
+    # HAS_CUPY jest już False, cp jest już None z inicjalizacji powyżej.
+except Exception as e:
+    # Złap inne nieoczekiwane błędy podczas próby importu CuPy
+    logger.error(f"An unexpected error occurred while trying to import cupy: {e}")
+    # HAS_CUPY jest już False, cp jest już None z inicjalizacji powyżej.
 
 # --- Constants for Benchmarks ---
 AI_BENCHMARK_MATRIX_SIZE = 2048
