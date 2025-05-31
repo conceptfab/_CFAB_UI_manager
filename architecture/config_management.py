@@ -20,6 +20,8 @@ class ConfigManager:
         # self.validator = ConfigValidator()
         # self.backup_manager = ConfigBackup(...) # Jeśli potrzebne
 
+    # Zintegruj funkcje z ConfigLoader, ConfigValidator, itp.
+
     def load_config(self, file_path: str = None, use_cache: bool = True):
         """
         Ładuje konfigurację z pliku.
@@ -66,8 +68,6 @@ class ConfigManager:
         """Ustawia język w konfiguracji."""
         # self.set_config_value("language.default", language_code)
         pass
-
-    # Zintegruj funkcje z ConfigLoader, ConfigValidator, itp.
 
 
 # Usuń lub zrefaktoryzuj istniejące klasy ConfigTransaction, ConfigBackup, AdvancedConfigManager
