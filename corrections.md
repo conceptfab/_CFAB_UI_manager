@@ -1,433 +1,353 @@
-# CFAB_UI_manager Project Corrections Plan
+# Plan Poprawek Projektu CFAB_UI_Manager
 
-## Executive Summary
+## Streszczenie
 
-This document outlines a comprehensive staged correction plan for the CFAB_UI_manager project based on detailed code analysis. The plan addresses code redundancy, optimization opportunities, error fixes, and structural improvements while maintaining existing functionality.
+Dokument przedstawia etapowy plan poprawek dla projektu CFAB_UI_Manager, oparty na szczegółowej analizie kodu. Plan obejmuje usunięcie duplikacji kodu, nieużywanych importów, zakomentowanych fragmentów logowania, optymalizację istniejącego kodu oraz poprawę spójności. Zmiany zostały zaprojektowane w sposób pozwalający na etapowe wdrażanie, z uwzględnieniem zależności między komponentami.
 
-## Project Tree Schema - Files Requiring Fixes
+## Struktura Projektu - Pliki Wymagające Poprawek
 
 ```
-f:\_CFAB_UI_manager/
-├── main_app.py                           🔴 HIGH PRIORITY - Commented logging, import cleanup
+_CFAB_UI_manager/
+├── main_app.py                        🔴 WYSOKI PRIORYTET - Nieużywane importy, zakomentowane logi
 ├── utils/
-│   ├── improved_thread_manager.py        🟡 MEDIUM - Primary thread manager (keep)
-│   ├── thread_manager.py                 🔴 HIGH - REMOVE (duplicate functionality)
-│   ├── translation_manager.py            🟡 MEDIUM - Primary translation system (keep)
-│   ├── translator.py                     🔴 HIGH - REMOVE (duplicate functionality)
-│   ├── application_startup.py            🟢 LOW - Minor optimizations
-│   ├── resource_manager.py               🟢 LOW - Performance optimizations
-│   ├── performance_optimizer.py          🟢 LOW - Code consistency
-│   └── exceptions.py                     🟢 LOW - Documentation improvements
+│   ├── improved_thread_manager.py     🟡 ŚREDNI - Drobne optymalizacje
+│   └── translation_manager.py         🟡 ŚREDNI - Drobne optymalizacje
 ├── UI/
-│   ├── hardware_profiler.py              🟡 MEDIUM - Warning handling optimization
-│   ├── main_window.py                    🟢 LOW - Import cleanup
+│   ├── hardware_profiler.py           🟢 NISKI - Hardkodowane teksty do tłumaczeń
 │   └── components/
-│       ├── console_widget.py             🟢 LOW - Minor optimizations
-│       └── tab_*_widget.py               🟢 LOW - Code consistency
-├── architecture/
-│   ├── mvvm.py                           🟢 LOW - Documentation improvements
-│   ├── dependency_injection.py           🟢 LOW - Type hints
-│   └── state_management.py               🟢 LOW - Performance optimizations
-└── scripts/
-    └── cleanup.py                        🟡 MEDIUM - Enhance functionality
+│       └── console_widget.py          🟢 NISKI - Hardkodowane teksty do tłumaczeń
+└── translations/
+    └── texts.md                       🟡 ŚREDNI - Mapowanie tłumaczeń do konsoli i profilu sprzętowego
 ```
 
-## Stage-by-Stage Correction Plan
+## Plan Etapowy Poprawek
 
-### Stage 1: Remove Duplicate Files and Clean Main Application [WPROWADZONA]
+### Etap 1: Optymalizacja Głównego Pliku Aplikacji
 
-**Priority: HIGH**
-**Estimated Time: 2-3 hours**
-**Risk Level: LOW**
+**Priorytet: WYSOKI**
+**Szacowany Czas: 1-2 godziny**
+**Poziom Ryzyka: NISKI**
 
-#### Files to Modify:
+#### Pliki do Modyfikacji:
 
-- `main_app.py` - Clean up commented logging statements
-- `utils/thread_manager.py` - REMOVE (duplicate)
-- `utils/translator.py` - REMOVE (duplicate)
+- `main_app.py` - Usunięcie nieużywanych importów i zakomentowanego kodu
 
-#### Stage 1 Corrections:
+#### Poprawki Etapu 1:
 
-##### 1.1 Remove Duplicate Thread Manager [WPROWADZONA]
+##### 1.1 Usunięcie Nieużywanych Importów w Głównym Pliku
 
-**File:** `utils/thread_manager.py`
-**Action:** DELETE FILE
-**Reason:** Duplicate functionality exists in `improved_thread_manager.py` with better implementation
+**Plik:** `main_app.py`
+**Znalezione Problemy:**
 
-**Dependencies Check:**
+- 14 nieużywanych importów zidentyfikowanych przez pyflakes
+- Niepotrzebne zakomentowane fragmenty kodu dotyczące logowania
 
-- [x] Verify no imports of `thread_manager` in codebase
-- [ ] Confirm all functionality migrated to `improved_thread_manager`
-- [ ] Update any documentation references
-
-##### 1.2 Remove Duplicate Translator [WPROWADZONA]
-
-**File:** `utils/translator.py`
-**Action:** DELETE FILE
-**Reason:** Functionality consolidated in `translation_manager.py`
-
-**Dependencies Check:**
-
-- [x] Verify no imports of `translator` in codebase
-- [ ] Confirm all translation features work through `translation_manager`
-- [ ] Test translation switching functionality
-
-##### 1.3 Clean Main Application Logging [WPROWADZONA]
-
-**File:** `main_app.py`
-**Issues Found:**
-
-- 14 instances of commented-out `logger.info` statements
-- Unused import statements
-- Inconsistent logging patterns
-
-**Corrections:**
+**Poprawki:**
 
 ```python
-# REMOVE these commented lines:
-# logger.info("Starting main application...")
-# logger.info("Initializing UI components...")
-# logger.info("Application startup complete")
-# ... (11 more instances)
-
-# CLEAN UP unused imports:
-# Remove any imports not actively used
-# Consolidate similar import statements
-```
-
-**Testing Requirements:**
-
-- [ ] Application starts without errors
-- [ ] All logging functions work correctly
-- [ ] No import errors occur
-- [ ] Memory usage unchanged or improved
-
-### Stage 2: Optimize Thread and Translation Management [WPROWADZONA]
-
-**Priority: MEDIUM**
-**Estimated Time: 3-4 hours**
-**Risk Level: MEDIUM**
-
-#### Files to Modify:
-
-- `utils/improved_thread_manager.py`
-- `utils/translation_manager.py`
-- `main_app.py` (update imports)
-
-#### Stage 2 Corrections:
-
-##### 2.1 Enhance Thread Manager [WPROWADZONA]
-
-**File:** `utils/improved_thread_manager.py`
-**Optimizations:**
-
-- Improve error handling in thread pools
-- Add thread monitoring capabilities
-- Optimize resource cleanup
-- Add performance metrics
-
-**Code Improvements:**
-
-```python
-# Add thread health monitoring
-def get_thread_health_status(self):
-    """Monitor thread pool health and performance"""
-
-# Improve cleanup process
-def cleanup_finished_threads(self):
-    """Remove completed threads and free resources"""
-
-# Add performance tracking
-def get_performance_metrics(self):
-    """Return thread performance statistics"""
-```
-
-##### 2.2 Consolidate Translation System [WPROWADZONA]
-
-**File:** `utils/translation_manager.py`
-**Enhancements:**
-
-- Merge any missing features from old `translator.py`
-- Improve caching mechanism
-- Add translation validation
-- Optimize file loading
-
-**Dependencies to Update:**
-
-- [x] `main_app.py` - Update import statements (zweryfikowano, nie było potrzeby zmian nazw)
-- [ ] `UI/main_window.py` - Verify translation calls
-- [ ] All UI components using translations
-
-**Testing Requirements:**
-
-- [x] All translations load correctly
-- [x] Language switching works seamlessly
-- [x] No performance regression
-- [x] Memory usage optimized
-
-### Stage 3: UI Component Optimizations [WPROWADZONA]
-
-**Priority: MEDIUM**
-**Estimated Time: 2-3 hours**
-**Risk Level: LOW**
-
-#### Files to Modify:
-
-- `UI/hardware_profiler.py`
-- `UI/components/console_widget.py`
-- `UI/components/tab_*_widget.py`
-
-#### Stage 3 Corrections:
-
-##### 3.1 Hardware Profiler Warning Handling [WPROWADZONA]
-
-**File:** `UI/hardware_profiler.py`
-**Issues:**
-
-- CuPy import warnings not properly filtered
-- Memory usage optimization needed
-
-**Corrections:**
-
-```python
-# Improve warning filters for CuPy
+# filepath: f:\_CFAB_UI_manager\main_app.py
 import warnings
-warnings.filterwarnings('ignore', category=UserWarning, module='cupy')
 
-# Add memory optimization
-def optimize_memory_usage(self):
-    """Optimize memory usage during profiling"""
+# Ignoruj konkretne ostrzeżenie UserWarning od CuPy dotyczące wielu pakietów
+# To powinno być na samym początku, aby zadziałało zanim CuPy zostanie gdziekolwiek zaimportowane
+warnings.filterwarnings(
+    "ignore",
+    category=UserWarning,
+    module="cupy._environment",
+)
+
+import json
+import os
+import sys
+
+from PyQt6.QtCore import QObject, QTimer, pyqtSignal
+from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QApplication
+
+from UI.main_window import MainWindow
+from utils.application_startup import ApplicationStartup
+from utils.enhanced_splash import create_optimized_splash
+from utils.exceptions import (
+    ConfigurationError,
+    FileOperationError,
+    ValidationError,
+    handle_error_gracefully,
+)
+from utils.logger import AppLogger
+from utils.performance_optimizer import performance_monitor
+from utils.validators import ConfigValidator
+
+# Reszta pliku bez zmian
 ```
 
-##### 3.2 Console Widget Performance [WPROWADZONA]
+##### 1.2 Usunięcie Zakomentowanych Fragmentów Kodu Logowania
 
-**File:** `UI/components/console_widget.py`
-**Optimizations:**
+**Plik:** `main_app.py`
+**Znalezione Problemy:**
 
-- Buffer management for large outputs
-- Scrolling performance improvements
-- Memory usage optimization
+- 7 zakomentowanych linii z nieużywanym kodem logowania
+- Niepotrzebne warunki sprawdzające `if app.app_logger`
 
-**Testing Requirements:**
+**Poprawki:**
 
-- [x] Console handles large outputs smoothly
-- [x] Scrolling remains responsive
-- [x] Memory usage controlled
+Usunąć następujące zakomentowane fragmenty kodu:
 
-### Stage 3 Dependencies [WPROWADZONA]
+```python
+# Usunąć te linie
+# if app.app_logger: app.app_logger.error("Nie udało się zainicjalizować aplikacji")
+# else: print("KRYTYCZNY BŁĄD: Nie udało się zainicjalizować aplikacji (logger niedostępny)")
+```
 
-- [x] Test all UI components
-- [x] Verify hardware profiler functionality
-- [x] Check console widget performance
-- [x] Validate user experience
+```python
+# Usunąć te linie
+# if app.app_logger: app.app_logger.info("=== Performance Summary ===")
+# if app.app_logger: app.app_logger.info(f"Final memory usage: {final_memory.get('rss_mb', 0):.1f}MB")
+# if app.app_logger: app.app_logger.info(f"Memory trend: {memory_trend.get('trend', 'unknown')}")
+```
 
-### Stage 4: Architecture and Performance Enhancements
+```python
+# Usunąć te linie
+# if app.app_logger: app.app_logger.info("Execution time stats:")
+# if app.app_logger: app.app_logger.info(f"  {operation}: {stats['avg_time']:.3f}s avg ({stats['count']} calls)")
+# if app.app_logger: app.app_logger.info("=== Aplikacja gotowa ===")
+```
 
-**Priority: LOW**
-**Estimated Time: 2-3 hours**
-**Risk Level: LOW**
+**Sprawdzenie Zależności:**
 
-#### Files to Modify:
+- [ ] Weryfikacja działania aplikacji po usunięciu nieużywanych importów
+- [ ] Sprawdzenie, czy wszystkie faktyczne wywołania logowania działają poprawnie
+- [ ] Nie mogą pojawić się błędy importu
 
-- `architecture/mvvm.py`
-- `architecture/dependency_injection.py`
-- `utils/performance_optimizer.py`
-- `utils/resource_manager.py`
+**Wymagania Testowe:**
 
-#### Stage 4 Corrections:
+- [ ] Aplikacja uruchamia się bez błędów
+- [ ] Wszystkie funkcje logowania działają poprawnie
+- [ ] Nie występują błędy importu
+- [ ] Zużycie pamięci bez zmian lub poprawione
 
-##### 4.1 Architecture Documentation
+### Etap 2: Optymalizacje w Menedżerze Wątków i Tłumaczeń
 
-**Files:** `architecture/*.py`
-**Improvements:**
+**Priorytet: ŚREDNI**
+**Szacowany Czas: 2-3 godziny**
+**Poziom Ryzyka: ŚREDNI**
 
-- Add comprehensive docstrings
-- Include usage examples
-- Add type hints throughout
-- Improve error handling
+#### Pliki do Modyfikacji:
 
-##### 4.2 Performance Optimizer Enhancements
+- `utils/improved_thread_manager.py` - Drobne optymalizacje
+- `utils/translation_manager.py` - Drobne optymalizacje
 
-**File:** `utils/performance_optimizer.py`
-**Optimizations:**
+#### Poprawki Etapu 2:
 
-- Memory usage monitoring
-- CPU usage optimization
-- I/O operation improvements
-- Caching strategies
+##### 2.1 Optymalizacja Menedżera Wątków
 
-##### 4.3 Resource Manager Improvements
+**Plik:** `utils/improved_thread_manager.py`
+**Znalezione Problemy:**
 
-**File:** `utils/resource_manager.py`
-**Enhancements:**
+- Długie komentarze w kodzie źródłowym
+- Nadmiarowe logowanie w niektórych miejscach
+- Brakująca obsługa wyjątków w niektórych metodach
 
-- Lazy loading for resources
-- Memory-efficient resource caching
-- Resource cleanup automation
-- Error recovery mechanisms
+**Poprawki:**
 
-### Stage 5: Code Consistency and Standards
+Usprawnienie metody `submit_task` poprzez usunięcie nadmiarowego logowania:
 
-**Priority: LOW**
-**Estimated Time: 1-2 hours**
-**Risk Level: VERY LOW**
+```python
+def submit_task(self, func: Callable, *args, **kwargs) -> str:
+    """
+    Dodaje zadanie do pool'a
 
-#### Files to Modify:
+    Args:
+        func: Funkcja do wykonania
+        *args, **kwargs: Argumenty dla funkcji
 
-- All Python files for consistency
-- `scripts/cleanup.py` enhancement
+    Returns:
+        str: ID zadania
+    """
+    # Istniejący kod z optymalizacją logowania przy wysokim obciążeniu
+    if self.enable_logging and self._log_rate_limiter():
+        self.log_queue.add_log(
+            logging.DEBUG, f"Submitted task {task_id}: {func.__name__}"
+        )
+    return task_id
+```
 
-#### Stage 5 Corrections:
+Dodanie nowej metody kontrolującej częstotliwość logowania:
 
-##### 5.1 Code Style Consistency
+```python
+def _log_rate_limiter(self) -> bool:
+    """
+    Ogranicza częstotliwość logowania przy wysokim obciążeniu
 
-**Standards to Apply:**
+    Returns:
+        bool: True jeśli logowanie powinno zostać wykonane, False w przeciwnym wypadku
+    """
+    active_count = self.get_active_task_count()
+    # Ograniczenie logowania przy dużej liczbie zadań (powyżej 20)
+    if active_count > 20:
+        # Logowanie co 5-te zadanie przy dużym obciążeniu
+        return self.task_counter % 5 == 0
+    return True
+```
 
-- Consistent naming conventions
-- Uniform import ordering
-- Standardized docstring format
-- Type hint consistency
+##### 2.2 Optymalizacja Menedżera Tłumaczeń
 
-##### 5.2 Enhanced Cleanup Script
+**Plik:** `utils/translation_manager.py`
+**Znalezione Problemy:**
 
-**File:** `scripts/cleanup.py`
-**Enhancements:**
+- Nadmiarowe komentarze w kodzie
+- Nieefektywna obsługa cache'owania tłumaczeń
 
-- Automated code formatting
-- Import optimization
-- Unused code detection
-- Performance analysis
+**Poprawki:**
 
-## Testing Strategy
+Usprawnienie metody `translate_internal`:
 
-### Pre-Stage Testing
+```python
+def translate_internal(self, key: str, *args, **kwargs) -> str:
+    """
+    Tłumaczy podany klucz na aktualny język. (Metoda instancji)
+    Użycie zoptymalizowanego cache dla tłumaczeń.
+    """
+    default_value = kwargs.get("default", key)
 
-- [ ] Create backup of current working state
-- [ ] Document current functionality
-- [ ] Establish performance baselines
+    # Optymalizacja: szybkie sprawdzenie cache bez zagnieżdżonych if-ów
+    cache_dict = self._translation_cache.get(self._current_language, {})
+    cached_translation = cache_dict.get(key)
 
-### Per-Stage Testing
+    if cached_translation:
+        if args and isinstance(cached_translation, str):
+            try:
+                return cached_translation.format(*args)
+            except Exception:
+                pass  # W przypadku błędu formatowania, kontynuuj bez cache
+        elif not args and isinstance(cached_translation, str):
+            return cached_translation
 
-1. **Unit Tests:** Individual component functionality
-2. **Integration Tests:** Component interaction verification
-3. **Performance Tests:** Memory and CPU usage validation
-4. **UI Tests:** User interface responsiveness
-5. **Regression Tests:** Ensure no functionality loss
+    # Reszta funkcji bez zmian, regularny proces tłumaczenia
+```
 
-### Post-Stage Validation
+**Sprawdzenie Zależności:**
 
-- [ ] Complete application startup test
-- [ ] All features functional test
-- [ ] Performance improvement verification
-- [ ] Memory usage optimization confirmation
+- [ ] Upewnienie się, że wszystkie testy wątków i tłumaczeń działają poprawnie
+- [ ] Weryfikacja działania aplikacji po optymalizacji
+- [ ] Sprawdzenie czy nie występują błędy logowania
 
-## Implementation Checklist
+**Wymagania Testowe:**
 
-### Stage 1 Dependencies [WPROWADZONA]
+- [ ] Wszystkie testy przechodzą pomyślnie
+- [ ] Brak negatywnego wpływu na wydajność
+- [ ] Poprawność działania tłumaczeń
+- [ ] Weryfikacja logów pod kątem braku błędów
 
-- [ ] Backup current state
-- [x] Verify no external dependencies on files to be removed
-- [ ] Test application without removed files
-- [ ] Update documentation
+### Etap 3: Optymalizacja UI komponentów
 
-### Stage 2 Dependencies [WPROWADZONA]
+**Priorytet: NISKI**
+**Szacowany Czas: 2-3 godziny**
+**Poziom Ryzyka: NISKI**
 
-- [x] Update all import statements (zweryfikowano, nie było potrzeby zmian nazw)
-- [x] Test thread management functionality
-- [x] Verify translation system works
-- [x] Check performance metrics
+#### Pliki do Modyfikacji:
 
-### Stage 3 Dependencies
+- `UI/hardware_profiler.py` - Hardkodowane teksty
+- `UI/components/console_widget.py` - Hardkodowane teksty
+- `translations/texts.md` - Aktualizacja dokumentacji tłumaczeń
 
-- [ ] Test all UI components
-- [ ] Verify hardware profiler functionality
-- [ ] Check console widget performance
-- [ ] Validate user experience
+#### Poprawki Etapu 3:
 
-### Stage 4 Dependencies
+##### 3.1 Poprawa tłumaczeń w Hardware Profiler
 
-- [ ] Test architecture components
-- [ ] Verify dependency injection
-- [ ] Check performance optimizations
-- [ ] Validate resource management
+**Plik:** `UI/hardware_profiler.py`
+**Znalezione Problemy:**
 
-### Stage 5 Dependencies
+- Hardkodowane teksty zamiast używania systemu tłumaczeń
 
-- [ ] Run code quality checks
-- [ ] Verify style consistency
-- [ ] Test enhanced cleanup script
-- [ ] Final integration testing
+**Poprawki:**
 
-## Risk Mitigation
+Należy zamienić hardkodowane teksty na wywołania TranslationManager:
 
-### High Risk Items
+```python
+# Przykład zastąpienia hardkodowanych tekstów:
+self.setWindowTitle(TranslationManager.translate("app.dialogs.hardware_profiler.title"))
+self.current_config_label.setText(TranslationManager.translate("app.dialogs.hardware_profiler.current_config"))
+self.available_optimizations_label.setText(TranslationManager.translate("app.dialogs.hardware_profiler.available_optimizations"))
+```
 
-1. **File Removal:** Extensive testing required before deletion
-2. **Import Changes:** Systematic verification of all references
-3. **Thread Manager Changes:** Critical for application stability
+##### 3.2 Poprawa tłumaczeń w Console Widget
 
-### Medium Risk Items
+**Plik:** `UI/components/console_widget.py`
+**Znalezione Problemy:**
 
-1. **Translation System:** Language functionality must remain intact
-2. **UI Components:** User experience cannot be degraded
-3. **Performance Changes:** No regression in application speed
+- Hardkodowane teksty zamiast używania systemu tłumaczeń
 
-### Low Risk Items
+**Poprawki:**
 
-1. **Documentation Updates:** No functional impact
-2. **Code Style Changes:** Minimal risk to functionality
-3. **Architecture Enhancements:** Well-isolated improvements
+```python
+# Przykład zastąpienia hardkodowanych tekstów:
+self.clear_button.setText(TranslationManager.translate("app.tabs.console.clear"))
+self.save_logs_button.setText(TranslationManager.translate("app.tabs.console.save_logs"))
 
-## Expected Outcomes
+# Dla okna dialogowego zapisu:
+file_dialog.setWindowTitle(TranslationManager.translate("app.tabs.console.save_logs_title"))
+file_dialog.setNameFilter(TranslationManager.translate("app.tabs.console.file_filters"))
+```
 
-### Performance Improvements
+##### 3.3 Aktualizacja dokumentacji tłumaczeń
 
-- 15-20% reduction in memory usage
-- 10-15% improvement in startup time
-- Better resource management
-- Improved thread efficiency
+**Plik:** `translations/texts.md`
+**Znalezione Problemy:**
 
-### Code Quality Improvements
+- Niekompletna dokumentacja dla tłumaczeń w hardkodowanych komponentach
 
-- Elimination of duplicate code
-- Better maintainability
-- Improved documentation
-- Consistent coding standards
+**Poprawki:**
 
-### Maintenance Benefits
+Aktualizacja sekcji console_widget i hardware_profiler:
 
-- Simplified codebase
-- Reduced complexity
-- Better error handling
-- Enhanced debugging capabilities
+```markdown
+## UI/components/console_widget.py
 
-## Final Validation Criteria
+✓ Wszystkie teksty są obsługiwane przez system tłumaczeń:
 
-### Functional Requirements
+- app.tabs.console.clear (przycisk "Wyczyść")
+- app.tabs.console.save_logs (przycisk "Zapisz logi")
+- app.tabs.console.save_logs_title (tytuł okna dialogowego)
+- app.tabs.console.file_filters (filtry plików)
+- app.tabs.console.error (tytuł okna błędu)
+- app.tabs.console.save_error (treść błędu)
+- app.tabs.console.placeholder
 
-- [ ] All original features work correctly
-- [ ] No new bugs introduced
-- [ ] Performance maintained or improved
-- [ ] User experience unchanged or better
+## UI/hardware_profiler.py
 
-### Technical Requirements
+✓ Wszystkie teksty są obsługiwane przez system tłumaczeń:
 
-- [ ] Code quality improved
-- [ ] Redundancy eliminated
-- [ ] Documentation enhanced
-- [ ] Testing coverage adequate
+- app.dialogs.hardware_profiler.title
+- app.dialogs.hardware_profiler.current_config
+- app.dialogs.hardware_profiler.available_optimizations
+- app.dialogs.hardware_profiler.scan_hardware
+- app.dialogs.hardware_profiler.scanning
+- app.dialogs.hardware_profiler.save_profile
+- app.dialogs.hardware_profiler.close
+- app.dialogs.hardware_profiler.cpu
+- app.dialogs.hardware_profiler.ram
+- app.dialogs.hardware_profiler.gpu
+```
 
-### Success Metrics
+**Sprawdzenie Zależności:**
 
-- [ ] Reduced lines of code (by ~10-15%)
-- [ ] Improved performance metrics
-- [ ] Zero regression bugs
-- [ ] Enhanced maintainability score
+- [ ] Weryfikacja, czy wszystkie klucze tłumaczeń istnieją w plikach pl.json i en.json
+- [ ] Testowanie interfejsu użytkownika z różnymi językami
+- [ ] Sprawdzenie czy nie ma literówek w kluczach
 
----
+**Wymagania Testowe:**
 
-**Document Version:** 1.0  
-**Created:** May 31, 2025  
-**Status:** Ready for Implementation  
-**Estimated Total Time:** 10-15 hours  
-**Risk Assessment:** LOW to MEDIUM
+- [ ] Weryfikacja poprawności wyświetlania wszystkich tekstów po zmianie
+- [ ] Test przełączania języków w aplikacji
+- [ ] Sprawdzenie czy konsola i profiler sprzętowy wyświetlają się poprawnie
+
+## Uwagi końcowe
+
+Po zakończeniu wszystkich poprawek należy dokładnie przetestować całą aplikację, aby upewnić się, że wszystkie zmiany zostały poprawnie zaimplementowane i nie wprowadzono nowych błędów. Szczególną uwagę należy zwrócić na:
+
+1. Działanie logowania po usunięciu nieużywanych importów
+2. Wydajność systemu tłumaczeń po optymalizacjach cache
+3. Poprawność wyświetlania wszystkich przetłumaczonych tekstów
+4. Wydajność menedżera wątków po optymalizacjach
+
+Wszystkie poprawki powinny zostać zaimplementowane zgodnie z istniejącym stylem kodowania i konwencjami nazewnictwa używanymi w projekcie.
