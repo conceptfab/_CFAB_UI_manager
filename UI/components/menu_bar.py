@@ -67,7 +67,7 @@ def create_menu_bar(main_window):
     preferences_action.setStatusTip(
         TranslationManager.translate("app.menu.preferences")
     )
-    preferences_action.triggered.connect(main_window.show_preferences_dialog)
+    preferences_action.triggered.connect(lambda: main_window.show_preferences_dialog())
     edit_menu.addAction(preferences_action)
 
     # Menu Pomoc

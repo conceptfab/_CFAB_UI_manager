@@ -1,6 +1,7 @@
 # Custom Exception Classes
 # Strukturyzowane wyjątki dla lepszej obsługi błędów
 
+import functools  # Dodany import
 import logging
 from enum import Enum
 
@@ -29,31 +30,16 @@ class ErrorCode(Enum):
 class CFABError(Exception):
     """
     Bazowa klasa dla wszystkich wyjątków w aplikacji CFAB.
-    Umożliwia dodanie kodu błędu i dodatkowych szczegółów.
     """
 
-    def __init__(
-        self,
-        message: str,
-        error_code: ErrorCode = ErrorCode.UNKNOWN,
-        details: dict = None,
-        original_exception: Exception = None,
-    ):
-        super().__init__(message)
+    def __init__(self, message, error_code=None, **context):
         self.message = message
-        self.error_code = error_code
-        self.details = details or {}
-        self.original_exception = original_exception
+        self.error_code = error_code or ErrorCode.UNKNOWN
+        self.context = context
+        super().__init__(message)
 
-        # Add original exception type and message to details if present
-        if original_exception:
-            self.details["original_exception_type"] = type(original_exception).__name__
-            self.details["original_exception_message"] = str(original_exception)
-
-        # Automatyczne logowanie błędu
-        logger.error(
-            f"[{self.error_code.value}] {message}", extra={"details": self.details}
-        )
+        # Automatyczne logowanie błędów
+        logger.error(f"{self.error_code.value}: {message}", extra={"context": context})
 
 
 # --- Specific Error Classes (Simplified) ---
@@ -286,6 +272,7 @@ def handle_error_gracefully(func):
     Loguje błędy CFABError i opakowuje nieoczekiwane wyjątki w CFABError.
     """
 
+    @functools.wraps(func)  # Dodanie @functools.wraps
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
@@ -294,11 +281,13 @@ def handle_error_gracefully(func):
             raise
         except Exception as e:
             # Wrap nieznane błędy w CFABError
-            logger.exception(f"Unexpected error in {func.__name__}")
+            logger.exception(
+                f"Unexpected error in {func.__name__}"
+            )  # Użycie logger.exception
             raise CFABError(
                 f"Unexpected error in {func.__name__}: {str(e)}",
                 ErrorCode.UNEXPECTED,
-                details={"function_name": func.__name__},
+                context={"function_name": func.__name__},  # Zmiana details na context
                 original_exception=e,
             )
 

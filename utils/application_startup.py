@@ -51,6 +51,7 @@ class ApplicationStartup(QObject):
         self._hardware_verification_attempted = False  # Dodana flaga
 
     @performance_monitor.measure_execution_time("app_startup")
+    @handle_error_gracefully
     def initialize(self):
         """
         Uruchamia scentralizowaną sekwencję startową aplikacji.
@@ -86,6 +87,7 @@ class ApplicationStartup(QObject):
             self.startup_failed.emit(e)
             return False
 
+    @handle_error_gracefully
     def setup_logging(self):
         """
         Konfiguracja loggera aplikacji.
@@ -174,6 +176,7 @@ class ApplicationStartup(QObject):
                 operation="read",
             )
 
+    @handle_error_gracefully
     def setup_resource_manager(self):
         """
         Inicjalizuje i konfiguruje ResourceManager.
@@ -309,9 +312,10 @@ class ApplicationStartup(QObject):
             # Fallback, jeśli logger nie jest jeszcze w pełni skonfigurowany
             print(f"[DEBUG FALLBACK] UUID DEBUG: {uuid_value}")
 
+    @handle_error_gracefully
     def _check_system_changes(self, profile):
         """
-        Sprawdza, czy podstawowe informacje o systemie uległy zmianie.
+        Sprawdza, czy kluczowe parametry systemu uległy zmianie.
         Loguje zmiany używając self.logger.
 
         Args:
@@ -338,9 +342,10 @@ class ApplicationStartup(QObject):
             )
         return system_changed
 
+    @handle_error_gracefully
     def _create_new_hardware_profile(self):
         """
-        Tworzy nowy profil sprzętowy z aktualnym UUID.
+        Tworzy nowy profil sprzętowy.
 
         Returns:
             dict: Nowy profil sprzętowy
@@ -362,6 +367,7 @@ class ApplicationStartup(QObject):
         }
         return profile
 
+    @handle_error_gracefully
     def cleanup(self):
         """
         Sprzątanie zasobów przed zamknięciem aplikacji.

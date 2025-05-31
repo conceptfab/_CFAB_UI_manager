@@ -20,6 +20,7 @@ from UI.components.tab_three_widget import TabThreeWidget
 from UI.components.tab_two_widget import TabTwoWidget
 from UI.hardware_profiler import HardwareProfilerDialog
 from UI.preferences_dialog import PreferencesDialog
+from utils.exceptions import handle_error_gracefully  # Dodany import
 from utils.improved_thread_manager import (
     ThreadManager,
 )  # Zmieniono ImprovedThreadManager na ThreadManager
@@ -41,6 +42,7 @@ class FileWorker(QObject):
     finished = pyqtSignal(dict)
     error = pyqtSignal(Exception)
 
+    @handle_error_gracefully
     def load_preferences(self, config_path):
         """
         Wczytuje preferencje z pliku konfiguracyjnego.
@@ -55,6 +57,7 @@ class FileWorker(QObject):
         except Exception as e:
             self.error.emit(e)
 
+    @handle_error_gracefully
     def save_preferences(self, config_path, preferences):
         """
         Zapisuje preferencje do pliku konfiguracyjnego.
@@ -76,6 +79,7 @@ class MainWindow(QMainWindow):
     Główne okno aplikacji.
     """
 
+    @handle_error_gracefully
     def __init__(self, *args, **kwargs):
         try:
             logging.info("MainWindow: start __init__")
@@ -115,6 +119,7 @@ class MainWindow(QMainWindow):
             raise
 
     @performance_monitor.measure_execution_time("main_window_init")
+    @handle_error_gracefully
     def _init_ui(self):
         """
         Inicjalizuje elementy interfejsu użytkownika z optymalizacjami wydajności.
@@ -170,6 +175,7 @@ class MainWindow(QMainWindow):
         # self.status_manager = StatusBarManager(self.status_bar)
         # self.status_manager.set_message("Gotowy przez managera.")
 
+    @handle_error_gracefully
     def _init_tab1(self):
         """Inicjalizacja pierwszej zakładki."""
         logging.debug("Inicjalizacja TabOneWidget...")
@@ -177,6 +183,7 @@ class MainWindow(QMainWindow):
         TranslationManager.register_widget(widget)
         self._tab_widgets["tab1"] = widget
 
+    @handle_error_gracefully
     def _init_tab2(self):
         """Inicjalizacja drugiej zakładki."""
         logging.debug("Inicjalizacja TabTwoWidget...")
@@ -184,6 +191,7 @@ class MainWindow(QMainWindow):
         TranslationManager.register_widget(widget)
         self._tab_widgets["tab2"] = widget
 
+    @handle_error_gracefully
     def _init_tab3(self):
         """Inicjalizacja trzeciej zakładki."""
         logging.debug("Inicjalizacja TabThreeWidget...")
@@ -191,6 +199,7 @@ class MainWindow(QMainWindow):
         TranslationManager.register_widget(widget)
         self._tab_widgets["tab3"] = widget
 
+    @handle_error_gracefully
     def _init_console(self):
         """Inicjalizacja zakładki konsoli."""
         logging.debug("Inicjalizacja ConsoleWidget...")
@@ -211,6 +220,7 @@ class MainWindow(QMainWindow):
         if self._preferences.get("log_ui_to_console", False):
             logger.info("UI: Logowanie akcji interfejsu włączone")
 
+    @handle_error_gracefully
     def configure_logging(self):
         """
         Konfiguruje system logowania na podstawie preferencji.
@@ -234,6 +244,7 @@ class MainWindow(QMainWindow):
             file_handler.setFormatter(file_formatter)
             logger.addHandler(file_handler)
 
+    @handle_error_gracefully
     def load_preferences_async(self):
         """
         Wczytuje preferencje asynchronicznie.
@@ -245,6 +256,7 @@ class MainWindow(QMainWindow):
         # To zostanie poprawione w następnej iteracji
         logging.info(f"Started preferences loading task: {task_id}")
 
+    @handle_error_gracefully
     def save_preferences_async(self):
         """
         Zapisuje preferencje asynchronicznie.
@@ -255,6 +267,7 @@ class MainWindow(QMainWindow):
         logging.info(f"Started preferences saving task: {task_id}")
         self.status_bar.showMessage(TranslationManager.translate("app.status.saving"))
 
+    @handle_error_gracefully
     def show_preferences_dialog(self):
         """
         Wyświetla okno dialogowe preferencji.
@@ -268,6 +281,7 @@ class MainWindow(QMainWindow):
             if "language" in new_preferences:
                 TranslationManager.set_language(new_preferences["language"])
 
+    @handle_error_gracefully
     def show_hardware_profiler(self):
         """
         Wyświetla okno dialogowe profilera sprzętowego.
@@ -275,6 +289,7 @@ class MainWindow(QMainWindow):
         dialog = HardwareProfilerDialog(self)
         dialog.exec()
 
+    @handle_error_gracefully
     def update_status(self, message):
         """
         Aktualizuje komunikat na pasku statusu.
@@ -284,6 +299,7 @@ class MainWindow(QMainWindow):
         """
         self.status_bar.showMessage(message)
 
+    @handle_error_gracefully
     def update_translations(self):
         """
         Aktualizuje wszystkie teksty w interfejsie użytkownika.
@@ -319,6 +335,7 @@ class MainWindow(QMainWindow):
             if hasattr(console_widget, "update_translations"):
                 console_widget.update_translations()
 
+    @handle_error_gracefully
     def closeEvent(self, event):
         """
         Obsługuje zdarzenie zamknięcia okna.
@@ -352,6 +369,7 @@ class MainWindow(QMainWindow):
         else:
             event.ignore()
 
+    @handle_error_gracefully
     def _get_console_tab(self):
         """Get or create console tab widget."""
         if "console" not in self._tab_widgets:
@@ -359,6 +377,7 @@ class MainWindow(QMainWindow):
             self._tab_widgets["console"] = ConsoleWidget()
         return self._tab_widgets["console"]
 
+    @handle_error_gracefully
     def _create_placeholder_widget(self, tab_name):
         """Create a lightweight placeholder widget."""
         placeholder = QWidget()
@@ -368,6 +387,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(label)
         return placeholder
 
+    @handle_error_gracefully
     def _on_tab_changed(self, index):
         """Handle tab change to implement lazy loading."""
         # Get current tab widget
@@ -416,6 +436,7 @@ class MainWindow(QMainWindow):
         self._preferences = value
         self._apply_window_settings()
 
+    @handle_error_gracefully
     def _apply_window_settings(self):
         """
         Stosuje ustawienia okna na podstawie preferencji.
