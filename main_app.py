@@ -158,16 +158,13 @@ class Application(QApplication):
     def on_config_loaded(self, config):
         """Handler dla załadowanej konfiguracji"""
         self._config = config
-        # logger.info("Zaktualizowano konfigurację aplikacji") # Logowanie przez AppLogger w ApplicationStartup
 
     def on_css_loaded(self, css):
         """Handler dla załadowanych stylów CSS"""
         self.setStyleSheet(css)
-        # logger.info(f"Zastosowano {len(css)} znaków styli CSS") # Logowanie przez AppLogger w ApplicationStartup
 
     def on_startup_failed(self, error):
         """Handler dla błędów podczas uruchamiania"""
-        # logger.error(f"Błąd inicjalizacji aplikacji: {error}") # Logowanie przez AppLogger w ApplicationStartup
         # Można tu dodać np. wyświetlenie krytycznego błędu użytkownikowi
         print(f"CRITICAL STARTUP ERROR: {error}")  # Tymczasowy print dla widoczności
 
@@ -179,7 +176,6 @@ class Application(QApplication):
 
 if __name__ == "__main__":
     # Inicjalizacja aplikacji
-    # logger.info("=== Sekwencja startowa ===") # Logowanie przez AppLogger w ApplicationStartup
 
     # Utwórz aplikację
     app = Application(sys.argv)
@@ -200,8 +196,6 @@ if __name__ == "__main__":
     app.setWindowIcon(QIcon(icon_path))
 
     # Inicjalizacja głównego okna
-    # if app.app_logger: app.app_logger.info("Inicjalizacja głównego okna")
-
     # Take memory snapshot before main window creation
     performance_monitor.take_memory_snapshot("before_main_window")
 
@@ -219,7 +213,6 @@ if __name__ == "__main__":
     splash = None
     progress_tracker = None
     if app.config.get("show_splash", True):
-        # logger.info("Wyświetlanie enhanced splash screen") # Logowanie przez AppLogger
         splash_path = os.path.join(base_dir, "resources", "img", "splash.jpg")
 
         # Define startup tasks for progress tracking
@@ -265,8 +258,6 @@ if __name__ == "__main__":
         )
     else:
         main_win.show()
-
-    # if app.app_logger: app.app_logger.info("Główne okno wyświetlone")
 
     # Final performance and memory summary
     final_memory = performance_monitor.take_memory_snapshot("application_ready")

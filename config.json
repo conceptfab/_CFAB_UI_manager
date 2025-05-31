@@ -4,12 +4,12 @@
   "log_to_file": false,
   "log_ui_to_console": false,
   "window_size": {
-    "width": 1698,
+    "width": 1722,
     "height": 835
   },
   "window_position": {
     "x": 830,
-    "y": 64
+    "y": 48
   },
   "remember_window_size": true,
   "log_level": "INFO"
