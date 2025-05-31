@@ -10,7 +10,7 @@ import json
 import os
 import sys
 
-from PyQt6.QtCore import QObject, QTimer, pyqtSignal
+from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
 
@@ -26,53 +26,6 @@ from utils.exceptions import (
 from utils.logger import AppLogger
 from utils.performance_optimizer import performance_monitor
 from utils.validators import ConfigValidator
-
-
-class ConfigLoader(QObject):
-    """
-    Klasa odpowiedzialna za asynchroniczne wczytywanie konfiguracji.
-    """
-
-    config_loaded = pyqtSignal(dict)
-    error = pyqtSignal(Exception)
-
-    @handle_error_gracefully
-    def load_config(self):
-        """
-        Wczytuje konfigurację z pliku config.json.
-        Emituje sygnał config_loaded z konfiguracją lub error w przypadku błędu.
-        """
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(base_dir, "config.json")
-
-        AppLogger.debug(f"Loading configuration from: {config_path}")
-
-        if not os.path.exists(config_path):
-            raise FileOperationError(
-                f"Configuration file not found: {config_path}",
-                file_path=config_path,
-                operation="read",
-            )
-
-        try:
-            # Use ConfigValidator for comprehensive validation
-            config = ConfigValidator.validate_config_file(config_path)
-
-            AppLogger.info("Configuration loaded and validated successfully")
-            self.config_loaded.emit(config)
-        except (ConfigurationError, ValidationError) as e:
-            # Re-raise configuration-specific errors
-            raise e
-        except json.JSONDecodeError as e:
-            raise ConfigurationError(
-                f"Invalid JSON in configuration file: {e}", config_path=config_path
-            )
-        except Exception as e:
-            raise FileOperationError(
-                f"Failed to read configuration file: {e}",
-                file_path=config_path,
-                operation="read",
-            )
 
 
 class Application(QApplication):
@@ -92,6 +45,7 @@ class Application(QApplication):
         self.startup = None
         self.resource_manager = None
         self.app_logger = None  # Dodano do przechowywania instancji AppLogger
+        self.main_window = None  # Dodano do przechowywania instancji MainWindow
 
     @property
     def config(self):
@@ -148,109 +102,116 @@ class Application(QApplication):
     def on_startup_failed(self, error):
         """Handler dla błędów podczas uruchamiania"""
         # Można tu dodać np. wyświetlenie krytycznego błędu użytkownikowi
-        print(f"CRITICAL STARTUP ERROR: {error}")  # Tymczasowy print dla widoczności
+        if self.app_logger:
+            self.app_logger.critical(f"CRITICAL STARTUP ERROR: {error}")
+        else:
+            print(f"CRITICAL STARTUP ERROR: {error}")  # Fallback if logger not ready
 
     def cleanup(self):
         """Sprzątanie zasobów przed zamknięciem aplikacji"""
         if self.startup:
             self.startup.cleanup()
 
+    def setup_ui(self):
+        """Konfiguruje i wyświetla główne okno aplikacji."""
+        icon_path = os.path.join(self.base_dir, "resources", "img", "icon.png")
+        self.setWindowIcon(QIcon(icon_path))
+
+        performance_monitor.take_memory_snapshot("before_main_window")
+        self.main_window = MainWindow(
+            app_logger=self.app_logger if hasattr(self, "app_logger") else None
+        )
+        self.main_window.setWindowIcon(QIcon(icon_path))
+
+        # Przekazywanie tylko niezbędnych części konfiguracji lub przez dedykowany serwis
+        # Na razie zostawiamy przekazanie całego config dla zachowania funkcjonalności
+        # W przyszłości można to zrefaktoryzować, np. main_window.load_preferences(self.config.get("window_settings"))
+        self.main_window.preferences = self.config
+
+        performance_monitor.take_memory_snapshot("after_main_window")
+
+        if not self.config.get("show_splash", True):
+            self.main_window.show()
+
+        return self.main_window
+
+    def show_splash_screen_if_enabled(self, main_window_instance):
+        """Pokazuje splash screen, jeśli jest włączony w konfiguracji."""
+        if self.config.get("show_splash", True):
+            splash_path = os.path.join(self.base_dir, "resources", "img", "splash.jpg")
+            startup_tasks = [
+                "Loading configuration",
+                "Initializing UI components",
+                "Loading translations",
+                "Loading CSS styles",
+                "Initializing hardware detection",
+                "Finalizing startup",
+            ]
+            splash, progress_tracker = create_optimized_splash(
+                image_path=splash_path,
+                startup_tasks=startup_tasks,
+                window_size=(642, 250),
+            )
+
+            # Symulacja postępu dla zadań, które mogły już zostać wykonane
+            # lub są szybko wykonywane przez ApplicationStartup
+            tasks_to_simulate = [
+                "Loading configuration",
+                "Initializing UI components",  # Częściowo, reszta w MainWindow
+                "Loading translations",  # Zakładając, że TranslationManager jest szybki
+                "Loading CSS styles",  # Obsługiwane przez ResourceManager
+            ]
+            for task_name in tasks_to_simulate:
+                if task_name in startup_tasks:
+                    progress_tracker.start_task(task_name)
+                    progress_tracker.complete_task(task_name)
+
+            # Pozostałe zadania będą aktualizowane w miarę postępu
+            # np. "Initializing hardware detection" może być dłuższe
+
+            main_window_instance.splash_progress_tracker = (
+                progress_tracker  # Przekazanie trackera do MainWindow
+            )
+
+            splash.startup_completed.connect(main_window_instance.show)
+
+            # Symulacja dla "Finalizing startup" - można to zintegrować z faktycznym końcem inicjalizacji MainWindow
+            QTimer.singleShot(
+                1000,  # Krótkie opóźnienie dla demonstracji
+                lambda: (
+                    progress_tracker.start_task(
+                        "Initializing hardware detection"
+                    ),  # Przykładowe miejsce
+                    progress_tracker.complete_task("Initializing hardware detection"),
+                    progress_tracker.start_task("Finalizing startup"),
+                    progress_tracker.complete_task("Finalizing startup"),
+                ),
+            )
+            return splash
+        return None
+
 
 if __name__ == "__main__":
-    # Inicjalizacja aplikacji
-
-    # Utwórz aplikację
     app = Application(sys.argv)
 
-    # Take initial memory snapshot
     initial_memory = performance_monitor.take_memory_snapshot("application_start")
 
-    # Uruchom scentralizowaną inicjalizację
     if not app.initialize():
-        sys.exit(1)  # ApplicationStartup już loguje błąd
+        sys.exit(1)
 
-    # Konfiguracja interfejsu
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    icon_path = os.path.join(base_dir, "resources", "img", "icon.png")
-    app.setWindowIcon(QIcon(icon_path))
+    main_win = app.setup_ui()
+    splash = app.show_splash_screen_if_enabled(main_win)
 
-    # Inicjalizacja głównego okna
-    # Take memory snapshot before main window creation
-    performance_monitor.take_memory_snapshot("before_main_window")
-
-    # Przekaż app_logger do MainWindow, jeśli jest dostępne
-    main_win = MainWindow(
-        app_logger=app.app_logger if hasattr(app, "app_logger") else None
-    )
-    main_win.setWindowIcon(QIcon(icon_path))
-    main_win.preferences = app.config  # Przekazanie konfiguracji
-
-    # Take memory snapshot after main window creation
-    performance_monitor.take_memory_snapshot("after_main_window")
-
-    # Enhanced splash screen with progress tracking
-    splash = None
-    progress_tracker = None
-    if app.config.get("show_splash", True):
-        splash_path = os.path.join(base_dir, "resources", "img", "splash.jpg")
-
-        # Define startup tasks for progress tracking
-        startup_tasks = [
-            "Loading configuration",
-            "Initializing UI components",
-            "Loading translations",
-            "Loading CSS styles",
-            "Initializing hardware detection",
-            "Finalizing startup",
-        ]
-
-        splash, progress_tracker = create_optimized_splash(
-            image_path=splash_path, startup_tasks=startup_tasks, window_size=(642, 250)
-        )
-
-        # Simulate progress for completed tasks
-        progress_tracker.start_task("Loading configuration")
-        progress_tracker.complete_task("Loading configuration")
-
-        progress_tracker.start_task("Initializing UI components")
-        progress_tracker.complete_task("Initializing UI components")
-
-        progress_tracker.start_task("Loading translations")
-        progress_tracker.complete_task("Loading translations")
-
-        progress_tracker.start_task("Loading CSS styles")
-        progress_tracker.complete_task("Loading CSS styles")
-
-        progress_tracker.start_task("Initializing hardware detection")
-        progress_tracker.complete_task("Initializing hardware detection")
-
-        # Show main window when splash completes
-        splash.startup_completed.connect(main_win.show)
-
-        # Complete remaining tasks after a short delay
-        QTimer.singleShot(
-            1000,
-            lambda: [
-                progress_tracker.start_task("Finalizing startup"),
-                progress_tracker.complete_task("Finalizing startup"),
-            ],
-        )
-    else:
-        main_win.show()
-
-    # Final performance and memory summary
     final_memory = performance_monitor.take_memory_snapshot("application_ready")
     memory_trend = performance_monitor.get_memory_usage_trend()
     performance_stats = performance_monitor.get_performance_stats()
 
-    # Schedule periodic memory monitoring
     memory_timer = QTimer()
     memory_timer.timeout.connect(
         lambda: performance_monitor.take_memory_snapshot("periodic_check")
     )
-    memory_timer.start(30000)  # Every 30 seconds
+    memory_timer.start(30000)
 
-    # Czyszczenie zasobów przy zamknięciu
     app.aboutToQuit.connect(app.cleanup)
 
     sys.exit(app.exec())

@@ -240,7 +240,9 @@ class HardwareProfilerThread(QThread):
                 logger.info(
                     TranslationManager.translate(
                         "app.dialogs.hardware_profiler.status.using_python_path"
-                    ).format(python_path)
+                    ).format(
+                        path=python_path
+                    )  # CHANGED
                 )
 
                 temp_json_path = None
@@ -280,7 +282,7 @@ class HardwareProfilerThread(QThread):
                     logger.info(
                         TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.running_command"
-                        ).format(" ".join(cmd))
+                        ).format(command=" ".join(cmd))
                     )
 
                     stdout, stderr = secure_runner.run_command(cmd, timeout=180)
@@ -428,7 +430,9 @@ class HardwareProfilerThread(QThread):
                     logger.error(
                         TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.cpu_test_unexpected_error"
-                        ).format(e=e)
+                        ).format(
+                            e=str(e)
+                        )  # CHANGED
                     )
                     return None, 0.0
                 finally:
@@ -472,7 +476,9 @@ class HardwareProfilerThread(QThread):
                 self.progress_update.emit(
                     TranslationManager.translate(
                         "app.dialogs.hardware_profiler.status.cpu_benchmark_error"
-                    )
+                    ).format(
+                        error=str(e_cpu_bench)
+                    )  # CHANGED
                 )
 
             # AI/GPU Benchmark (CuPy)

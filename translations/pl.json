@@ -130,7 +130,17 @@
           "no_details_available": "Brak szczegółów",
           "not_available_in_formatter": "N/A (formatter)",
           "not_available_short": "n/a",
-          "error_short": "Error"
+          "error_short": "Error",
+          "numba_not_installed": "Numba nie jest zainstalowana. Niektóre optymalizacje mogą być niedostępne.",
+          "pyperformance_installed": "PyPerformance jest zainstalowany.",
+          "using_python_path": "Używam ścieżki Python: {path}",
+          "running_command": "Uruchamianie polecenia: {command}",
+          "cpu_benchmark_error": "Błąd testu CPU: {error}",
+          "cpu_test_unexpected_error": "Nieoczekiwany błąd podczas testu CPU: {e}",
+          "pyperformance_not_installed": "PyPerformance nie jest zainstalowany. Test CPU pominięty.",
+          "pyperformance_run_error": "Błąd uruchamiania PyPerformance: {e}",
+          "cpu_test_result": "Wynik testu CPU: {score}, czas: {time}s",
+          "cpu_test_result_not_found_json": "Nie znaleziono wyników testu CPU w pliku JSON."
         },
         "profile": {
           "uuid": "UUID: {}",

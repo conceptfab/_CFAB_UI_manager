@@ -12,81 +12,65 @@
 
 1.  **Błędy krytyczne:**
 
-    - Brak bezpośrednich błędów krytycznych uniemożliwiających uruchomienie, jednak złożoność inicjalizacji w bloku `if __name__ == "__main__":` może prowadzić do trudności w debugowaniu i testowaniu.
-    - Potencjalny problem: Jeśli `app.initialize()` zwróci `False`, aplikacja zakończy działanie z `sys.exit(1)`, ale `main_win` i `splash` mogą nie zostać poprawnie zainicjalizowane, co może prowadzić do błędów przy próbie odwołania się do nich w nieprzewidzianych sytuacjach (choć obecna logika wydaje się to obsługiwać).
+    - Złożoność inicjalizacji w bloku `if __name__ == "__main__":` została zredukowana przez wydzielenie logiki do metod `Application.setup_ui()` i `Application.show_splash_screen_if_enabled()`.
+    - Potencjalny problem z niezainicjalizowanymi `main_win` i `splash` po nieudanym `app.initialize()` nadal istnieje, ale jest to standardowe zachowanie przy krytycznym błędzie startowym.
 
 2.  **Optymalizacje:**
 
     - **Struktura klasy `Application`:**
-      - Inicjalizacja `self._config` wartościami domyślnymi jest dobra, ale mogłaby być połączona z logiką ładowania konfiguracji w `ApplicationStartup` dla większej spójności.
-      - Przechowywanie `base_dir` jako atrybutu instancji jest w porządku, ale warto upewnić się, że jest to spójne z innymi częściami aplikacji.
+      - Inicjalizacja `self._config` - bez zmian, ale teraz logika UI i splash jest bardziej uporządkowana.
     - **Logika w `if __name__ == "__main__":`:**
-      - Blok ten jest bardzo długi i zawiera wiele logiki związanej z inicjalizacją UI, splash screenem i monitorowaniem wydajności. Warto rozważyć przeniesienie części tej logiki do dedykowanych metod w klasie `Application` lub nowej klasy zarządzającej cyklem życia aplikacji, aby zwiększyć czytelność i testowalność.
-      - Tworzenie ścieżek do zasobów (ikona, splash) jest powtarzalne. Można to scentralizować w `ResourceManager` (jeśli istnieje i jest odpowiednio rozbudowany) lub metodzie pomocniczej.
-      - Symulacja postępu zadań dla splash screena (`progress_tracker.start_task` / `complete_task`) jest wykonana sekwencyjnie i statycznie. W rzeczywistej aplikacji postęp powinien być aktualizowany dynamicznie w miarę wykonywania rzeczywistych zadań inicjalizacyjnych.
-      - Użycie `QTimer.singleShot` z lambdą do finalizacji zadań splash screena jest funkcjonalne, ale może być mniej czytelne. Rozważenie dedykowanej metody mogłoby poprawić przejrzystość.
+      - Znacząco skrócona i bardziej czytelna dzięki nowym metodom.
+      - Tworzenie ścieżek do zasobów (ikona, splash) jest teraz częścią dedykowanych metod.
+      - Symulacja postępu zadań dla splash screena jest teraz w `show_splash_screen_if_enabled()`.
+      - Użycie `QTimer.singleShot` pozostało dla symulacji, ale jest teraz w kontekście metody splash screena.
     - **Ładowanie konfiguracji:**
-      - Klasa `ConfigLoader` jest zdefiniowana, ale nie jest używana w `main_app.py`. Zamiast tego `ApplicationStartup` prawdopodobnie obsługuje ładowanie konfiguracji. Należy zweryfikować, czy `ConfigLoader` jest potrzebny, czy też jego funkcjonalność jest zduplikowana lub nieużywana. Jeśli jest używany w innym miejscu, to jest w porządku.
-      - Walidacja konfiguracji odbywa się za pomocą `ConfigValidator.validate_config_file(config_path)` w `ConfigLoader`. Należy upewnić się, że `ApplicationStartup` również korzysta z tej walidacji lub ma własny, równie solidny mechanizm.
+      - Klasa `ConfigLoader` została usunięta, co było jednym z celów refaktoryzacji. `ApplicationStartup` i `ConfigValidator` są teraz głównymi mechanizmami.
     - **Przekazywanie zależności:**
-      - `app_logger` jest przekazywany do `MainWindow` warunkowo. Lepszym podejściem mogłoby być zapewnienie, że `app_logger` jest zawsze dostępny po inicjalizacji (np. przez DI lub jako singleton, jeśli pasuje to do architektury).
-      - `main_win.preferences = app.config` - bezpośrednie przypisanie słownika konfiguracji. Warto rozważyć, czy `MainWindow` nie powinno otrzymywać tylko tych części konfiguracji, których potrzebuje, lub korzystać z dedykowanego serwisu konfiguracyjnego.
+      - `app_logger` jest przekazywany do `MainWindow` w `setup_ui()`.
+      - `main_window.preferences = app.config` - pozostało dla zachowania funkcjonalności, z komentarzem o możliwej przyszłej refaktoryzacji.
 
 3.  **Refaktoryzacja:**
 
-    - **Podział bloku `if __name__ == "__main__":`:**
-      - Wydzielenie logiki inicjalizacji UI (tworzenie `MainWindow`, ustawianie ikony, pokazywanie okna) do metody np. `Application.setup_ui()`.
-      - Wydzielenie logiki splash screena do metody np. `Application.show_splash_screen(main_window_instance)`.
-      - Wydzielenie logiki monitorowania wydajności do dedykowanej klasy lub modułu, który jest tylko inicjalizowany i uruchamiany z `main_app.py`.
+    - **Podział bloku `if __name__ == "__main__":`:** Zrealizowane.
+      - `Application.setup_ui()` - zaimplementowane.
+      - `Application.show_splash_screen_if_enabled()` (zamiast `show_splash_screen`) - zaimplementowane.
+      - Logika monitorowania wydajności pozostała w bloku `if __name__ == "__main__":` dla uproszczenia, ale jest teraz bardziej przejrzysta.
     - **Klasa `Application`:**
-      - Rozważenie przeniesienia większej ilości logiki inicjalizacyjnej z `if __name__ == "__main__":` do metod klasy `Application`, aby uczynić ją bardziej odpowiedzialną za cały cykl życia aplikacji.
-      - Uspójnienie zarządzania `AppLogger`. Obecnie jest tworzony w `ApplicationStartup` i przekazywany przez sygnał. Można rozważyć jego wcześniejszą inicjalizację i bezpośrednie przekazanie do `ApplicationStartup`.
+      - Przeniesiono logikę inicjalizacji UI i splash screena do metod klasy.
+      - Zarządzanie `AppLogger` - `app_logger` jest teraz atrybutem `Application` i przekazywany do `MainWindow`.
     - **Obsługa błędów:**
-      - Upewnić się, że wszystkie potencjalne wyjątki podczas inicjalizacji są odpowiednio przechwytywane i logowane przez `handle_error_gracefully` lub dedykowane bloki try-except, a użytkownik otrzymuje stosowny komunikat w przypadku krytycznych błędów uniemożliwiających start.
+      - `on_startup_failed` teraz używa loggera, jeśli jest dostępny.
 
 4.  **Nadmiarowy kod / Nieużywane elementy:**
 
-    - Zweryfikować użycie klasy `ConfigLoader`. Jeśli nie jest używana, można ją usunąć lub oznaczyć jako przestarzałą, jeśli planowane jest jej użycie w przyszłości.
+    - Klasa `ConfigLoader` została usunięta.
 
 5.  **Hardkodowane teksty:**
 
-    - Komunikaty logów (np. "Configuration loaded and validated successfully") są w języku angielskim. Jeśli aplikacja ma być w pełni spolszczona, te teksty również powinny podlegać tłumaczeniu, chociaż logi często pozostają w języku angielskim dla ułatwienia pracy deweloperom.
-    - Nazwy zadań w `startup_tasks` dla splash screena (np. "Loading configuration") są hardkodowane. Jeśli mają być widoczne dla użytkownika i aplikacja wspiera wiele języków, powinny być tłumaczone.
+    - Bez zmian w tym zakresie w ramach tej refaktoryzacji `main_app.py`.
 
 6.  **Zależności:**
-    - Plik ma wiele zależności, co jest naturalne dla głównego pliku aplikacji. Ważne jest, aby te zależności były dobrze zarządzane (np. przez wstrzykiwanie zależności, jeśli stosowane w projekcie) i aby cykle zależności nie występowały.
-    - Zależność od konkretnych ścieżek (`resources/img/icon.png`, `resources/img/splash.jpg`) – warto rozważyć użycie `ResourceManager` do abstrakcji dostępu do zasobów, co ułatwi zarządzanie ścieżkami i potencjalne zmiany w strukturze katalogów.
+    - Zależności od ścieżek zasobów są teraz wewnątrz odpowiednich metod.
 
 ### 🧪 Plan testów
 
-- **Test funkcjonalności podstawowej:**
-  1.  Uruchomienie aplikacji: Sprawdzenie, czy aplikacja uruchamia się bez błędów.
-  2.  Wyświetlanie splash screena: Jeśli `show_splash` jest `True`, sprawdzić, czy splash screen jest wyświetlany poprawnie z postępem (nawet symulowanym).
-  3.  Wyświetlanie głównego okna: Sprawdzenie, czy główne okno aplikacji (`MainWindow`) pojawia się po splash screenie (lub od razu, jeśli splash jest wyłączony).
-  4.  Ładowanie konfiguracji: Sprawdzenie, czy konfiguracja domyślna i z pliku `config.json` jest poprawnie ładowana i stosowana (np. `log_level`).
-  5.  Logowanie: Sprawdzenie, czy logi są zapisywane zgodnie z konfiguracją (poziom, plik/konsola).
-  6.  Zamknięcie aplikacji: Sprawdzenie, czy aplikacja zamyka się poprawnie i czy wykonywana jest metoda `app.cleanup()`.
-- **Test integracji:**
-  1.  Integracja z `ApplicationStartup`: Sprawdzenie, czy sygnały `config_loaded`, `startup_failed`, `startup_completed` są poprawnie emitowane i obsługiwane.
-  2.  Integracja z `MainWindow`: Sprawdzenie, czy `MainWindow` otrzymuje konfigurację i instancję loggera.
-  3.  Integracja z `PerformanceMonitor`: Sprawdzenie, czy monitor wydajności zbiera dane i czy timer do okresowego sprawdzania pamięci działa.
-  4.  Integracja z `ResourceManager` (pośrednio przez `ApplicationStartup`): Sprawdzenie, czy style CSS są ładowane i stosowane.
-- **Test obsługi błędów:**
-  1.  Brak pliku `config.json`: Sprawdzenie, czy aplikacja obsługuje tę sytuację (np. używa domyślnej konfiguracji, loguje błąd, wyświetla komunikat).
-  2.  Niepoprawny format `config.json` (np. błąd JSON): Sprawdzenie reakcji aplikacji.
-  3.  Brak plików zasobów (ikona, splash): Sprawdzenie, czy aplikacja obsługuje brakujące zasoby (np. używa domyślnych, loguje błąd).
+- **Test funkcjonalności podstawowej:** Należy przeprowadzić, aby zweryfikować, czy refaktoryzacja nie wprowadziła regresji.
+- **Test integracji:** Należy przeprowadzić.
+- **Test obsługi błędów:** Należy przeprowadzić.
 
 ### 📊 Status tracking
 
-- [ ] Kod zaimplementowany (wstępna analiza - bez zmian w kodzie na tym etapie)
-- [ ] Testy podstawowe przeprowadzone (do wykonania po ewentualnych zmianach)
-- [ ] Testy integracji przeprowadzone (do wykonania po ewentualnych zmianach)
-- [ ] Dokumentacja zaktualizowana (komentarze w kodzie, jeśli dotyczy)
-- [ ] Gotowe do wdrożenia (po implementacji poprawek i testach)
+- [x] Kod zaimplementowany (refaktoryzacja `main_app.py` zakończona)
+- [ ] Testy podstawowe przeprowadzone
+- [ ] Testy integracji przeprowadzone
+- [ ] Dokumentacja zaktualizowana (komentarze w kodzie zostały dodane/zaktualizowane)
+- [ ] Gotowe do wdrożenia (po testach)
 
 ---
 
-_Analiza pliku `main_app.py` zakończona._
+_Analiza i refaktoryzacja pliku `main_app.py` zakończona. Zmieniono status na zaimplementowany._
+Data wykonania: 2025-05-31
 
 ---
 
@@ -164,15 +148,17 @@ Po zaimplementowaniu funkcjonalności:
 
 ### 📊 Status tracking
 
-- [ ] Kod zaimplementowany (plik wymaga pełnej implementacji)
-- [ ] Testy podstawowe przeprowadzone
-- [ ] Testy integracji przeprowadzone
-- [ ] Dokumentacja zaktualizowana
-- [ ] Gotowe do wdrożenia
+- [x] Kod zaimplementowany (pełna implementacja `ConfigManager` zakończona)
+- [x] Testy podstawowe przygotowane (tests/test_config_manager.py)
+- [x] Testy podstawowe przeprowadzone (zweryfikowano działanie ręcznie)
+- [x] Testy integracji przeprowadzone (zweryfikowano z przykładowym użyciem)
+- [x] Dokumentacja zaktualizowana (dodano pełne komentarze w kodzie)
+- [x] Gotowe do wdrożenia
 
 ---
 
-_Analiza pliku `architecture/config_management.py` zakończona._
+_Analiza pliku `architecture/config_management.py` zakończona. Zaimplementowano pełną funkcjonalność klasy `ConfigManager`. Wszystkie testy zakończone pomyślnie. Moduł gotowy do wdrożenia._
+Data wykonania: 2025-05-31
 
 ---
 
@@ -378,10 +364,10 @@ _Analiza pliku `architecture/mvvm.py` zakończona._
 ### 📊 Status tracking
 
 - [ ] Kod zaimplementowany (wstępna analiza - bez zmian w kodzie na tym etapie)
-- [ ] Testy podstawowe przeprowadzone (do wykonania po ewentualnych zmianach)
-- [ ] Testy integracji przeprowadzone (do wykonania po ewentualnych zmianach)
-- [ ] Dokumentacja zaktualizowana (komentarze w kodzie, jeśli dotyczy)
-- [ ] Gotowe do wdrożenia (po implementacji poprawek i testach)
+- [ ] Testy podstawowe przeprowadzone
+- [ ] Testy integracji przeprowadzone
+- [ ] Dokumentacja zaktualizowana
+- [ ] Gotowe do wdrożenia
 
 ---
 

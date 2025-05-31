@@ -1,11 +1,6 @@
 # Architecture module for MVVM pattern and dependency injection
 
-from .config_management import (
-    AdvancedConfigManager,
-    ConfigBackup,
-    ConfigTransaction,
-    create_config_manager,
-)
+from .config_management import ConfigManager
 from .dependency_injection import (
     DependencyContainer,
     configure_dependencies,
