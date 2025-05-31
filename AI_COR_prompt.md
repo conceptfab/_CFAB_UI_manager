@@ -1,4 +1,4 @@
-Przeanalizuj WSZYTSTKIE PLIKI zawierające kod w projekcie pod kątem błędów, poprawek, optymalizacji, usunięcia nadmiarowego kodu i duplikujących się funkcjonalności.
+Przeanalizuj WSZYTSTKIE PLIKI zawierające kod w projekcie pod kątem błędów, poprawek, optymalizacji, usunięcia nadmiarowego kodu i duplikujących się funkcjonalności, hardkodowanych elemenentów tekstowych które powinny być przetłumaczone.
 
 ## Wymagania wstępne:
 
