@@ -815,13 +815,35 @@ class HardwareProfilerDialog(QDialog):
 
         # Dodajemy wyniki testu CPU jeśli są dostępne
         if "cpu_benchmark" in self.profile_data:
-            cpu_benchmark = self.profile_data["cpu_benchmark"]
-            config_items.append(
-                (
-                    "cpu_benchmark",
-                    "app.dialogs.hardware_profiler.profile.cpu_benchmark",
-                    lambda x: f"Score: {x['score']:.2f} (Time: {x['time']:.2f}s)",
-                )
+            config_items.extend(
+                [
+                    (
+                        "cpu_benchmark_score",
+                        "app.dialogs.hardware_profiler.profile.cpu_benchmark_score",
+                        lambda x: round(x, 2),
+                    ),
+                    (
+                        "cpu_benchmark_time",
+                        "app.dialogs.hardware_profiler.profile.cpu_benchmark_time",
+                        lambda x: f"{round(x, 2)}s",
+                    ),
+                ]
+            )
+
+        # Dodajemy wyniki testu AI jeśli są dostępne
+        if "ai_benchmark_score" in self.profile_data:
+            config_items.extend(
+                [
+                    (
+                        "ai_benchmark_score",
+                        "app.dialogs.hardware_profiler.profile.ai_benchmark_score",
+                    ),
+                    (
+                        "ai_benchmark_time",
+                        "app.dialogs.hardware_profiler.profile.ai_benchmark_time",
+                        lambda x: f"{round(x, 4)}s",
+                    ),
+                ]
             )
 
         config_text_parts = []
@@ -877,38 +899,44 @@ class HardwareProfilerDialog(QDialog):
 
         if opt_flags.get("advanced_multithreading"):
             opt_texts.append(
-                TranslationManager.translate(
+                "• "
+                + TranslationManager.translate(
                     "app.dialogs.hardware_profiler.profile.optimizations.multithreading_high"
                 )
             )
         elif opt_flags.get("multithreading"):
             opt_texts.append(
-                TranslationManager.translate(
+                "• "
+                + TranslationManager.translate(
                     "app.dialogs.hardware_profiler.profile.optimizations.multithreading_medium"
                 )
             )
         else:
             opt_texts.append(
-                TranslationManager.translate(
+                "• "
+                + TranslationManager.translate(
                     "app.dialogs.hardware_profiler.profile.optimizations.multithreading_low"
                 )
             )
 
         if opt_flags.get("high_memory_buffering"):
             opt_texts.append(
-                TranslationManager.translate(
+                "• "
+                + TranslationManager.translate(
                     "app.dialogs.hardware_profiler.profile.optimizations.buffering_high"
                 )
             )
         elif opt_flags.get("standard_memory_buffering"):
             opt_texts.append(
-                TranslationManager.translate(
+                "• "
+                + TranslationManager.translate(
                     "app.dialogs.hardware_profiler.profile.optimizations.buffering_medium"
                 )
             )
         else:
             opt_texts.append(
-                TranslationManager.translate(
+                "• "
+                + TranslationManager.translate(
                     "app.dialogs.hardware_profiler.profile.optimizations.buffering_low"
                 )
             )
@@ -917,7 +945,7 @@ class HardwareProfilerDialog(QDialog):
             return TranslationManager.translate(
                 "app.dialogs.hardware_profiler.profile.no_optimizations"
             )
-        return "\\n".join(opt_texts)
+        return "\n".join(opt_texts)
 
     def load_existing_profile(self):
         if os.path.exists(self.hardware_path):

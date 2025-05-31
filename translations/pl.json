@@ -153,14 +153,18 @@
           "traceback": "Szczegóły błędu:",
           "no_optimizations_due_to_error": "Nie można określić optymalizacji z powodu błędu",
           "cpu_benchmark": "Test CPU: {}",
+          "cpu_benchmark_score": "Wynik testu CPU: {}",
+          "cpu_benchmark_time": "Czas testu CPU: {}",
+          "ai_benchmark_score": "Wynik testu AI: {}",
+          "ai_benchmark_time": "Czas testu AI: {}",
           "no_optimizations": "Brak dostępnych optymalizacji.",
           "optimizations": {
-            "multithreading_high": "• Włącz wielowątkowe przetwarzanie (8+ rdzeni)",
-            "multithreading_medium": "• Częściowa wielowątkowość (4-7 rdzeni)",
-            "multithreading_low": "• Tryb pojedynczego wątku (mniej niż 4 rdzenie)",
-            "buffering_high": "• Włącz zaawansowane buforowanie (16+ GB RAM)",
-            "buffering_medium": "• Standardowe buforowanie (8-15 GB RAM)",
-            "buffering_low": "• Ograniczone buforowanie (mniej niż 8 GB RAM)"
+            "multithreading_high": "Włącz wielowątkowe przetwarzanie (8+ rdzeni)",
+            "multithreading_medium": "Częściowa wielowątkowość (4-7 rdzeni)",
+            "multithreading_low": "Tryb pojedynczego wątku (mniej niż 4 rdzenie)",
+            "buffering_high": "Włącz zaawansowane buforowanie (16+ GB RAM)",
+            "buffering_medium": "Standardowe buforowanie (8-15 GB RAM)",
+            "buffering_low": "Ograniczone buforowanie (mniej niż 8 GB RAM)"
           }
         }
       }

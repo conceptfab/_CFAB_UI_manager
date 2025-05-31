@@ -153,10 +153,19 @@
           "error_display": "Error during profiling:",
           "traceback": "Error details:",
           "no_optimizations_due_to_error": "Cannot determine optimizations due to error",
+          "no_optimizations": "No optimizations available",
           "cpu_benchmark": "CPU Test: {}",
+          "cpu_benchmark_score": "CPU Benchmark Score: {}",
+          "cpu_benchmark_time": "CPU Benchmark Time: {}",
+          "ai_benchmark_score": "AI Benchmark Score: {}",
+          "ai_benchmark_time": "AI Benchmark Time: {}",
           "optimizations": {
-            "multithreading_high": "Multithreading (High)",
-            "buffering_medium": "Buffering (Medium)"
+            "multithreading_high": "Enable multithreading (8+ cores)",
+            "multithreading_medium": "Partial multithreading (4-7 cores)",
+            "multithreading_low": "Single thread mode (less than 4 cores)",
+            "buffering_high": "Enable advanced buffering (16+ GB RAM)",
+            "buffering_medium": "Standard buffering (8-15 GB RAM)",
+            "buffering_low": "Limited buffering (less than 8 GB RAM)"
           }
         }
       }
