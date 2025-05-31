@@ -1,13 +1,13 @@
-from PyQt6.QtWidgets import QCheckBox, QLabel, QSpinBox, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QCheckBox, QLabel, QSpinBox
 
 from utils.translation_manager import TranslationManager
 
+from .base_tab_widget import BaseTabWidget
 
-class TabTwoWidget(QWidget):
+
+class TabTwoWidget(BaseTabWidget):
     def __init__(self):
-        super().__init__()
-        self.setObjectName("TabTwoContent")
-        layout = QVBoxLayout(self)
+        super().__init__(object_name="TabTwoContent")
 
         self.label = QLabel(
             TranslationManager.translate("app.tabs.content.tab2.content")
@@ -28,16 +28,13 @@ class TabTwoWidget(QWidget):
         self.spinbox.setRange(1, 10)
         self.spinbox.valueChanged.connect(self.on_spinbox_change)
 
-        layout.addWidget(self.label)
-        layout.addWidget(self.checkbox)
-        layout.addWidget(self.spinbox_label)
-        layout.addWidget(self.spinbox)
-        layout.addStretch()
-
-        self.setLayout(layout)
-        TranslationManager.register_widget(self)
+        # Use the layout from BaseTabWidget
+        self._add_widgets_to_layout(
+            [self.label, self.checkbox, self.spinbox_label, self.spinbox]
+        )
 
     def update_translations(self):
+        super().update_translations()  # Call base method if it has common logic
         self.label.setText(
             TranslationManager.translate("app.tabs.content.tab2.content")
         )

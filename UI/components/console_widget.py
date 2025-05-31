@@ -3,6 +3,7 @@ import sys
 import weakref
 from io import StringIO
 
+from PyQt6.QtGui import QTextCursor
 from PyQt6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
@@ -42,28 +43,20 @@ class SafeStdoutRedirector:
 
 
 class ConsoleWidget(QWidget):
-    def __init__(self, parent=None):
+    MAX_BLOCK_COUNT = 1000  # Maksymalna liczba bloków tekstu
+    MAX_LINE_COUNT_PER_BLOCK = 50  # Maksymalna liczba linii w bloku
+
+    def __init__(self, parent=None, app_logger=None):  # Dodano app_logger
         super().__init__(parent)
         self.setObjectName("ConsoleWidget")
+        self._buffer = []  # Bufor na logi
+        self._current_block_line_count = 0
+        self.app_logger = app_logger  # Zapisz referencję do AppLogger
         self.init_ui()
 
-        # Konfiguracja loggera - bezpieczniej
-        self.handler = ConsoleHandler(self)
-        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-        self.handler.setFormatter(formatter)
-
-        # Dodaj handler do root loggera
-        root_logger = logging.getLogger()
-        root_logger.addHandler(self.handler)
-
-        # Ustaw poziom logowania z konfiguracji
-        level_map = {
-            "DEBUG": logging.DEBUG,
-            "INFO": logging.INFO,
-            "WARNING": logging.WARNING,
-            "ERROR": logging.ERROR,
-            "CRITICAL": logging.CRITICAL,
-        }
+        # Konfiguracja loggera - użyj przekazanego app_logger lub globalnego
+        # Usunięto tworzenie własnego ConsoleHandler i dodawanie go do root loggera
+        # Logi będą teraz przekazywane przez AppLogger
 
         # Bezpieczniejsze przechwytywanie stdout (włączone domyślnie)
         self.stdout_redirector = None
@@ -77,6 +70,13 @@ class ConsoleWidget(QWidget):
         TranslationManager.register_widget(self)
         self.update_translations()
 
+        # Timer do regularnego flush bufora (co 2 sekundy)
+        from PyQt6.QtCore import QTimer
+
+        self._flush_timer = QTimer(self)
+        self._flush_timer.timeout.connect(self._flush_buffer_to_console)
+        self._flush_timer.start(2000)  # 2000 ms = 2 sekundy
+
         logging.getLogger("AppLogger").info(
             TranslationManager.translate("app.tabs.console.status.initialized")
         )
@@ -86,9 +86,9 @@ class ConsoleWidget(QWidget):
         if self.stdout_redirector:
             self.stdout_redirector.restore()
 
-        # Usuń handler z loggera
-        app_logger = logging.getLogger("AppLogger")
-        app_logger.removeHandler(self.handler)
+        # Zatrzymaj timer flush bufora
+        if hasattr(self, "_flush_timer") and self._flush_timer:
+            self._flush_timer.stop()
 
         super().closeEvent(event)
 
@@ -133,15 +133,65 @@ class ConsoleWidget(QWidget):
         )
 
     def append_log(self, message):
-        self.console.append(message)
-        self.console.verticalScrollBar().setValue(
-            self.console.verticalScrollBar().maximum()
-        )
+        # Optymalizacja: Dodawaj do bufora, aktualizuj QTextEdit rzadziej
+        self._buffer.append(message)
+        self._current_block_line_count += message.count("\n") + 1
+
+        # Jeśli bufor przekroczył limit lub zawiera logilany blok tekstu, opróżnij go
+        if (
+            self._current_block_line_count >= self.MAX_LINE_COUNT_PER_BLOCK
+            or len(self._buffer)
+            > 5  # Zmniejszono próg z 20 na 5, aby częściej odświeżać
+        ):
+            self._flush_buffer_to_console()
+        # Dla ważnych logów (np. zawierających ERROR lub WARNING), flush natychmiast
+        elif any(
+            important in message.upper() for important in ["ERROR", "WARN", "CRITICAL"]
+        ):
+            self._flush_buffer_to_console()
+
+    def _flush_buffer_to_console(self):
+        if not self._buffer:
+            return
+
+        full_text = "\n".join(self._buffer)
+        self._buffer.clear()
+        self._current_block_line_count = 0
+
+        # Zarządzanie rozmiarem konsoli
+        doc = self.console.document()
+        if doc.blockCount() > self.MAX_BLOCK_COUNT:
+            # Usuń najstarsze bloki, aby nie przekroczyć limitu
+            cursor = self.console.textCursor()  # Użyj self.console.textCursor()
+            cursor.movePosition(QTextCursor.MoveOperation.Start)
+            # Usuń około 10% najstarszych bloków
+            blocks_to_remove = doc.blockCount() - int(self.MAX_BLOCK_COUNT * 0.9)
+            for _ in range(blocks_to_remove):
+                cursor.select(QTextCursor.SelectionType.BlockUnderCursor)
+                cursor.removeSelectedText()
+                if cursor.atEnd():  # Dodatkowe zabezpieczenie
+                    break
+            # Upewnij się, że kursor jest na końcu po usunięciu
+            cursor.movePosition(QTextCursor.MoveOperation.End)
+            self.console.setTextCursor(cursor)
+
+        self.console.append(full_text)  # Dodaj nowy tekst
+
+        # Optymalizacja przewijania: Przewijaj tylko jeśli użytkownik nie przewinął ręcznie
+        scrollbar = self.console.verticalScrollBar()
+        # Sprawdź, czy scrollbar jest blisko końca lub na końcu
+        is_at_bottom = scrollbar.value() >= (scrollbar.maximum() - 10)  # Mały margines
+        if is_at_bottom or scrollbar.maximum() == 0:
+            scrollbar.setValue(scrollbar.maximum())
 
     def clear_console(self):
         self.console.clear()
+        self._buffer.clear()
+        self._current_block_line_count = 0
 
     def save_logs(self):
+        # Najpierw opróżnij bufor, aby zapisać wszystkie logi
+        self._flush_buffer_to_console()
         filename, _ = QFileDialog.getSaveFileName(
             self,
             TranslationManager.translate("app.tabs.console.save_logs_title"),
@@ -160,18 +210,3 @@ class ConsoleWidget(QWidget):
                         str(e)
                     ),
                 )
-
-
-class ConsoleHandler(logging.Handler):
-    def __init__(self, console_widget):
-        super().__init__()
-        # Use a weak reference to avoid circular dependencies and memory leaks
-        self.console_widget_ref = weakref.ref(console_widget)
-
-    def emit(self, record):
-        console_widget = self.console_widget_ref()
-        if console_widget:  # Check if the widget still exists
-            msg = self.format(record)
-            console_widget.append_log(msg)
-        # else: # Optionally log to a fallback if the widget is gone
-        # logging.getLogger(__name__).warning("Console widget no longer available for logging.")

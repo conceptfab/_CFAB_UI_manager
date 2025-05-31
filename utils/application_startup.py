@@ -31,7 +31,9 @@ class ApplicationStartup(QObject):
     Klasa odpowiedzialna za scentralizowane uruchomienie aplikacji.
     """
 
-    startup_completed = pyqtSignal()
+    startup_completed = pyqtSignal(
+        object
+    )  # Zmieniono sygnał, aby przekazywał instancję AppLogger
     startup_failed = pyqtSignal(Exception)
     config_loaded = pyqtSignal(dict)
 
@@ -51,14 +53,13 @@ class ApplicationStartup(QObject):
         self._hardware_verification_attempted = False  # Dodana flaga
 
     @performance_monitor.measure_execution_time("app_startup")
-    @handle_error_gracefully
     def initialize(self):
         """
         Uruchamia scentralizowaną sekwencję startową aplikacji.
         """
         try:
             # 1. Setup logging
-            self.setup_logging()
+            self.setup_logging()  # self.logger jest tworzony tutaj
 
             # 2. Load config
             self.load_config()
@@ -69,7 +70,9 @@ class ApplicationStartup(QObject):
                 TranslationManager,
             )  # Import w tym miejscu, aby uniknąć problemów z cyklicznym importem
 
-            TranslationManager.initialize(config_path=config_path)
+            TranslationManager.initialize(
+                config_path=config_path, app_logger=self.logger
+            )  # Przekaż logger
 
             # 3. Initialize resource manager
             self.setup_resource_manager()
@@ -77,17 +80,21 @@ class ApplicationStartup(QObject):
             # 4. Verify hardware
             self.thread_manager.run_in_thread(self.verify_hardware)
 
-            # 5. Emituj sygnał ukończenia startupu
-            self.startup_completed.emit()
-            # self.logger.info("Aplikacja uruchomiona pomyślnie") # Usunięto ten log, AppLogger w main_app może to obsłużyć bardziej ogólnie
+            # 5. Emituj sygnał ukończenia startupu z instancją loggera
+            self.startup_completed.emit(self.logger)  # Przekaż instancję AppLogger
+            # self.logger.info("Aplikacja uruchomiona pomyślnie")
 
             return True
         except Exception as e:
-            self.logger.error(f"Błąd podczas inicjalizacji aplikacji: {e}")
+            if self.logger:  # Sprawdź czy logger istnieje
+                self.logger.error(f"Błąd podczas inicjalizacji aplikacji: {e}")
+            else:
+                print(
+                    f"KRYTYCZNY BŁĄD (logger niedostępny): Błąd podczas inicjalizacji aplikacji: {e}"
+                )
             self.startup_failed.emit(e)
             return False
 
-    @handle_error_gracefully
     def setup_logging(self):
         """
         Konfiguracja loggera aplikacji.
@@ -176,57 +183,19 @@ class ApplicationStartup(QObject):
                 operation="read",
             )
 
-    @handle_error_gracefully
     def setup_resource_manager(self):
         """
         Inicjalizuje i konfiguruje ResourceManager.
         """
-        print(
-            "[DEBUG] ApplicationStartup.setup_resource_manager() started."
-        )  # Dodano print
-        if not self.logger:
-            print(
-                "[ERROR] ApplicationStartup.setup_resource_manager(): self.logger is None. Cannot initialize ResourceManager."
-            )  # Dodano print
-            # Emituj błąd lub podnieś wyjątek, jeśli logger jest krytyczny
-            self.startup_failed.emit(
-                "Logger not initialized before ResourceManager setup."
-            )
-            return None  # Lub False, w zależności od logiki obsługi błędów
+        self.resource_manager = ResourceManager(
+            self.base_dir, self.logger
+        )  # Przekaż logger
 
-        try:
-            self.resource_manager = ResourceManager(
-                base_dir=self.base_dir, logger_instance=self.logger
-            )
-            print(
-                "[DEBUG] ApplicationStartup.setup_resource_manager(): ResourceManager initialized."
-            )  # Dodano print
-
-            # Załaduj zasoby asynchronicznie
-            self.resource_manager.load_all_resources()
-            print(
-                "[DEBUG] ApplicationStartup.setup_resource_manager(): load_all_resources called."
-            )  # Dodano print
-
-            if self.logger:  # Sprawdź ponownie, czy logger istnieje
-                self.logger.info("ResourceManager skonfigurowany")
-            else:
-                print(
-                    "[ERROR] ApplicationStartup.setup_resource_manager(): self.logger became None after ResourceManager init."
-                )  # Dodano print
-            return self.resource_manager
-        except Exception as e:
-            if self.logger:
-                self.logger.error(
-                    f"Failed to setup ResourceManager: {e}", exc_info=True
-                )
-            else:
-                # Jeśli logger nie jest dostępny, użyj print do logowania krytycznego błędu
-                print(
-                    f"[CRITICAL] Failed to setup ResourceManager (logger unavailable): {e}"
-                )
-            self.startup_failed.emit(f"ResourceManager setup error: {e}")
-            return None  # Lub False
+        # Załaduj zasoby asynchronicznie
+        self.resource_manager.load_all_resources()
+        if self.logger:
+            self.logger.info("ResourceManager skonfigurowany")
+        return self.resource_manager
 
     @handle_error_gracefully
     def verify_hardware(self):
@@ -351,10 +320,9 @@ class ApplicationStartup(QObject):
             # Fallback, jeśli logger nie jest jeszcze w pełni skonfigurowany
             print(f"[DEBUG FALLBACK] UUID DEBUG: {uuid_value}")
 
-    @handle_error_gracefully
     def _check_system_changes(self, profile):
         """
-        Sprawdza, czy kluczowe parametry systemu uległy zmianie.
+        Sprawdza, czy podstawowe informacje o systemie uległy zmianie.
         Loguje zmiany używając self.logger.
 
         Args:
@@ -381,10 +349,9 @@ class ApplicationStartup(QObject):
             )
         return system_changed
 
-    @handle_error_gracefully
     def _create_new_hardware_profile(self):
         """
-        Tworzy nowy profil sprzętowy.
+        Tworzy nowy profil sprzętowy z aktualnym UUID.
 
         Returns:
             dict: Nowy profil sprzętowy
@@ -406,7 +373,6 @@ class ApplicationStartup(QObject):
         }
         return profile
 
-    @handle_error_gracefully
     def cleanup(self):
         """
         Sprzątanie zasobów przed zamknięciem aplikacji.

@@ -8,7 +8,7 @@
     "cpu_count_logical": 32,
     "cpu_count_physical": 16,
     "memory_total": 136525344768,
-    "timestamp": "2025-05-31T10:49:48",
+    "timestamp": "2025-05-31T15:57:33",
     "gpu": "Parsec Virtual Display Adapter, NVIDIA GeForce RTX 4070, AMD Radeon(TM) Graphics",
     "optimizations_flags": {
         "multithreading": true,
@@ -23,13 +23,11 @@
         "numpy",
         "psutil"
     ],
-    "cpu_benchmark_score": 13.953876627602982,
-    "cpu_benchmark_time": 20.10452437400818,
     "cpu_benchmark": {
-        "score": 13.953876627602982,
-        "time": 20.10452437400818,
-        "benchmark": "json_loads"
+        "score": 14.051200032518809,
+        "time_s": 20.224621057510376
     },
-    "ai_benchmark_time": 0.06449294090270996,
-    "ai_benchmark_score": 9
+    "ai_benchmark_cupy": {
+        "time_s": 0.09600019454956055
+    }
 }

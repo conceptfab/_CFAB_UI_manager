@@ -19,6 +19,12 @@ class TranslationManager:
     _config_path: Optional[str] = None  # Zapewnienie, że _config_path może być None
     _translations: Dict[str, Dict] = {}  # Przeniesione z Translatora
     _current_language: str = "pl"  # Domyślny język, przeniesione z Translatora
+    _translation_cache: Dict[str, Dict[str, str]] = (
+        {}
+    )  # Cache dla przetłumaczonych kluczy
+    _available_languages_cache: Optional[List[str]] = (
+        None  # Cache dla dostępnych języków
+    )
 
     def __new__(cls, *args, **kwargs):  # Dodano *args, **kwargs dla elastyczności
         if cls._instance is None:
@@ -30,11 +36,16 @@ class TranslationManager:
             cls._current_language = (
                 "pl"  # Ustawienie domyślnego języka przy tworzeniu instancji
             )
+            cls._translation_cache = {}
+            cls._available_languages_cache = None
         return cls._instance
 
     @classmethod
     def initialize(
-        cls, config_path: Optional[str] = None, default_language: str = "pl"
+        cls,
+        config_path: Optional[str] = None,
+        default_language: str = "pl",
+        app_logger: Optional[logging.Logger] = None,
     ) -> None:
         """
         Inicjalizuje menedżer tłumaczeń.
@@ -44,6 +55,9 @@ class TranslationManager:
             cls.__new__(cls)  # Tworzenie instancji, jeśli nie istnieje
 
         inst = cls.get_instance()  # Praca na instancji
+
+        # Użyj przekazanego loggera lub globalnego, jeśli nie został dostarczony
+        effective_logger = app_logger if app_logger else logger
 
         inst._config_path = config_path
 
@@ -61,7 +75,8 @@ class TranslationManager:
                 initial_language = lang_from_config
 
         inst._current_language = initial_language
-        logger.info(  # Zmieniono z debug na info
+        inst._clear_caches()  # Wyczyszczenie cache przy inicjalizacji
+        effective_logger.info(  # Zmieniono z debug na info i używamy effective_logger
             f"TranslationManager: zainicjalizowano. Język ustawiony na: {inst._current_language}"
         )
         inst._load_translation_internal(
@@ -72,7 +87,14 @@ class TranslationManager:
     def _load_translation_internal(self, language_code: str) -> None:
         """
         Wczytuje tłumaczenia dla określonego języka. (Metoda instancji)
+        Ulepszone cachowanie i walidacja.
         """
+        if language_code in self._translations and self._translations[language_code]:
+            logger.debug(
+                f"TranslationManager: Tłumaczenia dla {language_code} już załadowane i niepuste."
+            )
+            return
+
         translations_dir = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "translations"
         )
@@ -81,10 +103,20 @@ class TranslationManager:
         try:
             if os.path.exists(file_path):
                 with open(file_path, "r", encoding="utf-8") as f:
-                    self._translations[language_code] = json.load(f)
-                logger.debug(
-                    f"TranslationManager: załadowano tłumaczenia dla języka {language_code} z {file_path}"
-                )
+                    loaded_data = json.load(f)
+                    if not isinstance(loaded_data, dict):
+                        logger.error(
+                            f"TranslationManager: Plik tłumaczeń dla {language_code} nie zawiera obiektu JSON na najwyższym poziomie: {file_path}"
+                        )
+                        self._translations[language_code] = {}
+                    else:
+                        self._translations[language_code] = loaded_data
+                        self._translation_cache[language_code] = (
+                            {}
+                        )  # Inicjalizacja cache dla tego języka
+                        logger.debug(
+                            f"TranslationManager: załadowano tłumaczenia dla języka {language_code} z {file_path}"
+                        )
             else:
                 logger.warning(
                     f"TranslationManager: Plik tłumaczeń nie istnieje: {file_path}"
@@ -92,13 +124,16 @@ class TranslationManager:
                 self._translations[language_code] = (
                     {}
                 )  # Puste tłumaczenia, jeśli plik nie istnieje
+        except json.JSONDecodeError as e:
+            logger.error(
+                f"TranslationManager: błąd dekodowania JSON dla {language_code} z {file_path}: {e}"
+            )
+            self._translations[language_code] = {}
         except Exception as e:
             logger.error(
                 f"TranslationManager: błąd ładowania tłumaczeń dla {language_code} z {file_path}: {e}"
             )
-            self._translations[language_code] = (
-                {}
-            )  # Puste tłumaczenia w przypadku błędu
+            self._translations[language_code] = {}
 
     @classmethod
     def load_translations(
@@ -144,20 +179,38 @@ class TranslationManager:
         """
         Ustawia aktualny język. (Metoda instancji)
         """
-        if language_code not in self._translations:
-            self._load_translation_internal(language_code)
-
-        if self._translations.get(
+        if self._current_language == language_code and self._translations.get(
             language_code
-        ):  # Sprawdzenie, czy tłumaczenia istnieją i nie są puste
+        ):
+            logger.debug(
+                f"TranslationManager: Język {language_code} jest już ustawiony i załadowany."
+            )
+            return True
+
+        # self._load_translation_internal(language_code) # Ładowanie jest teraz bardziej leniwe, jeśli potrzeba
+        # Sprawdzenie, czy plik tłumaczeń istnieje, zanim spróbujemy go załadować
+        translations_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "translations"
+        )
+        file_path = os.path.join(translations_dir, f"{language_code}.json")
+        if not os.path.exists(file_path):
+            logger.warning(
+                f"TranslationManager: Plik tłumaczeń dla języka {language_code} nie istnieje w {file_path}. Nie można zmienić języka."
+            )
+            return False
+
+        self._load_translation_internal(
+            language_code
+        )  # Upewnij się, że jest załadowany
+
+        if self._translations.get(language_code):
             logger.debug(f"TranslationManager: zmiana języka na {language_code}")
             self._current_language = language_code
-            # Zapisz nowy język do konfiguracji
-            self.save_language_to_config_internal(
-                language_code
-            )  # Zmieniono na metodę instancji
-            # Zaktualizuj wszystkie widgety
-            self.update_all_widgets_internal()  # Zmieniono na metodę instancji
+            self._clear_caches(
+                specific_language=language_code, clear_available_languages=False
+            )  # Czyścimy cache dla nowego języka
+            self.save_language_to_config_internal(language_code)
+            self.update_all_widgets_internal()
             return True
 
         logger.warning(
@@ -173,51 +226,134 @@ class TranslationManager:
 
     def get_available_languages_internal(self) -> list[str]:
         """
-        Zwraca listę dostępnych języków (na podstawie załadowanych plików). (Metoda instancji)
+        Zwraca listę dostępnych języków (na podstawie załadowanych plików).
+        Używa cache.
         """
-        # Można by dynamicznie skanować katalog translations
+        if self._available_languages_cache is not None:
+            return self._available_languages_cache
+
         translations_dir = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "translations"
         )
         available = []
         if os.path.exists(translations_dir):
             for f_name in os.listdir(translations_dir):
-                if f_name.endswith(".json"):
-                    available.append(f_name[:-5])
-        return available
-        # return list(self._translations.keys()) # Stara implementacja, zwraca tylko już załadowane
+                if f_name.endswith(".json") and os.path.isfile(
+                    os.path.join(translations_dir, f_name)
+                ):
+                    lang_code = f_name[:-5]
+                    # Prosta walidacja nazwy pliku (np. czy składa się z 2 liter)
+                    if len(lang_code) == 2 and lang_code.isalpha():
+                        available.append(lang_code)
+                    else:
+                        logger.warning(
+                            f"TranslationManager: Pomięto plik o niestandardowej nazwie: {f_name}"
+                        )
 
-    def translate_internal(self, key: str, *args) -> str:
+        self._available_languages_cache = sorted(
+            list(set(available))
+        )  # Usuń duplikaty i posortuj
+        return self._available_languages_cache
+
+    def translate_internal(
+        self, key: str, *args, **kwargs
+    ) -> str:  # Dodano kwargs dla default
         """
         Tłumaczy podany klucz na aktualny język. (Metoda instancji)
+        Używa cache dla tłumaczeń.
         """
+        default_value = kwargs.get("default", key)  # Pobranie wartości domyślnej
+
+        # Sprawdzenie cache
+        if (
+            self._current_language in self._translation_cache
+            and key in self._translation_cache[self._current_language]
+        ):
+            cached_translation = self._translation_cache[self._current_language][key]
+            if args and isinstance(cached_translation, str):
+                try:
+                    return cached_translation.format(*args)
+                except (IndexError, KeyError) as e:
+                    logger.warning(
+                        f"TranslationManager: Błąd formatowania skeszowanego tłumaczenia dla klucza '{key}' z argumentami {args}: {e}"
+                    )
+                    # W przypadku błędu formatowania, spróbuj przetłumaczyć ponownie bez cache
+            elif not args and isinstance(cached_translation, str):
+                return cached_translation
+            # Jeśli skeszowana wartość nie jest stringiem lub args nie pasują, idź dalej
+
+        # Jeśli nie ma w cache lub formatowanie zawiodło, normalne tłumaczenie
         try:
             parts = key.split(".")
+            # Upewnij się, że tłumaczenia dla bieżącego języka są załadowane
+            if self._current_language not in self._translations:
+                self._load_translation_internal(self._current_language)
+
             translation_map = self._translations.get(self._current_language, {})
 
             current_level = translation_map
             for part in parts:
                 if isinstance(current_level, dict):
-                    current_level = current_level[part]
-                else:  # Jeśli ścieżka prowadzi do wartości niebędącej słownikiem przed końcem
-                    raise KeyError(f"Niepełna ścieżka klucza: {key}")
-
-            if args and isinstance(current_level, str):
-                return current_level.format(*args)
+                    current_level = current_level.get(
+                        part
+                    )  # Użyj .get() dla bezpieczeństwa
+                    if current_level is None:
+                        raise KeyError(f"Część klucza '{part}' nie znaleziona.")
+                else:
+                    raise KeyError(
+                        f"Niepełna ścieżka klucza: {key}, napotkano wartość niebędącą słownikiem."
+                    )
 
             if not isinstance(current_level, str):
                 logger.warning(
-                    f"Translation for key '{key}' is not a string: {current_level}"
+                    f"Translation for key '{key}' is not a string: {current_level}. Returning default."
                 )
-                return key  # Zwróć klucz, jeśli tłumaczenie nie jest stringiem
+                # Zapisz nie-stringową wartość do cache, aby uniknąć powtarzania logów
+                if self._current_language not in self._translation_cache:
+                    self._translation_cache[self._current_language] = {}
+                self._translation_cache[self._current_language][
+                    key
+                ] = default_value  # Lub specjalny marker
+                return default_value
 
+            # Zapisz do cache przed formatowaniem
+            if self._current_language not in self._translation_cache:
+                self._translation_cache[self._current_language] = {}
+            self._translation_cache[self._current_language][key] = current_level
+
+            if args:
+                return current_level.format(*args)
             return current_level
 
-        except (KeyError, TypeError) as e:
+        except (KeyError, TypeError, IndexError) as e:  # Dodano IndexError
             logger.warning(
-                f"TranslationManager: Nie znaleziono tłumaczenia dla klucza '{key}' w języku '{self._current_language}'. Błąd: {e}"
+                f"TranslationManager: Nie znaleziono tłumaczenia lub błąd formatowania dla klucza '{key}' w języku '{self._current_language}'. Błąd: {e}. Zwracam: {default_value}"
             )
-            return key
+            # Zapisz klucz do cache jako nieprzetłumaczony, aby uniknąć powtarzania logów
+            if self._current_language not in self._translation_cache:
+                self._translation_cache[self._current_language] = {}
+            self._translation_cache[self._current_language][key] = default_value
+            return default_value
+
+    def _clear_caches(
+        self,
+        specific_language: Optional[str] = None,
+        clear_available_languages: bool = True,
+    ) -> None:
+        """Wyczyść wewnętrzne cache tłumaczeń."""
+        if specific_language:
+            if specific_language in self._translation_cache:
+                self._translation_cache[specific_language] = {}
+                logger.debug(
+                    f"TranslationManager: Wyczyszczono cache tłumaczeń dla języka: {specific_language}"
+                )
+        else:
+            self._translation_cache = {}
+            logger.debug("TranslationManager: Wyczyszczono cały cache tłumaczeń.")
+
+        if clear_available_languages:
+            self._available_languages_cache = None
+            logger.debug("TranslationManager: Wyczyszczono cache dostępnych języków.")
 
     # Metody klasowe do zarządzania instancją (Singleton) i interfejsem publicznym
     @classmethod

@@ -1,15 +1,15 @@
 {
-  "language": "en",
+  "language": "pl",
   "show_splash": true,
   "log_to_file": false,
   "log_ui_to_console": false,
   "window_size": {
-    "width": 1227,
-    "height": 761
+    "width": 1698,
+    "height": 835
   },
   "window_position": {
-    "x": 1258,
-    "y": 197
+    "x": 830,
+    "y": 64
   },
   "remember_window_size": true,
   "log_level": "INFO"

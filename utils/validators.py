@@ -20,6 +20,15 @@ class ConfigValidator:
     Validates configuration files and user inputs.
     """
 
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        """
+        Initializes the validator with an optional configuration dictionary.
+
+        Args:
+            config: The configuration dictionary to validate.
+        """
+        self.config = config if config is not None else {}
+
     # Required configuration keys and their expected types
     REQUIRED_CONFIG_KEYS = {
         "language": str,
@@ -44,6 +53,22 @@ class ConfigValidator:
 
     # Valid language codes
     VALID_LANGUAGES = ["pl", "en"]
+
+    def validate(self) -> None:
+        """
+        Validates the loaded configuration.
+        Raises ValidationError if the configuration is invalid.
+        """
+        if not self.config:
+            # This case should ideally be handled before calling validate,
+            # but as a safeguard:
+            raise ValidationError("Configuration is empty or not loaded.")
+
+        self._check_required_keys()
+        self._check_optional_keys()
+        self._validate_specific_values()
+        # Add more validation steps as needed
+        logger.info("Configuration validated successfully.")
 
     @classmethod
     def validate_config_file(cls, config_path: str) -> Dict[str, Any]:
@@ -175,12 +200,25 @@ class ConfigValidator:
             "cpu_count_logical",
             "cpu_count_physical",
             "memory_total",
-            "gpu"
+            "gpu",
         ]
-        
+
+        # Sprawdź wszystkie wymagane pola i zapisz listę brakujących
+        missing_fields = []
         for field in required_fields:
             if field not in profile:
-                raise ValidationError(f"Missing required field in hardware profile: {field}")
+                missing_fields.append(field)
+                logger.error(f"Walidacja profilu: brakujące pole '{field}'")
+            elif field == "timestamp":
+                logger.debug(
+                    f"Walidacja profilu: pole timestamp obecne, wartość: '{profile[field]}', typ: {type(profile[field])}"
+                )
+
+        # Jeśli są brakujące pola, zgłoś wyjątek
+        if missing_fields:
+            raise ValidationError(
+                f"Missing required field(s) in hardware profile: {', '.join(missing_fields)}"
+            )
 
         # Validate field types
         if not isinstance(profile["uuid"], str):

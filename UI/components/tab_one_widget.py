@@ -1,13 +1,13 @@
-from PyQt6.QtWidgets import QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QLabel, QLineEdit, QPushButton
 
 from utils.translation_manager import TranslationManager
 
+from .base_tab_widget import BaseTabWidget
 
-class TabOneWidget(QWidget):
+
+class TabOneWidget(BaseTabWidget):
     def __init__(self):
-        super().__init__()
-        self.setObjectName("TabOneContent")
-        layout = QVBoxLayout(self)
+        super().__init__(object_name="TabOneContent")
 
         self.label = QLabel(
             TranslationManager.translate("app.tabs.content.tab1.content")
@@ -25,15 +25,11 @@ class TabOneWidget(QWidget):
 
         self.button.clicked.connect(self.on_button_click)
 
-        layout.addWidget(self.label)
-        layout.addWidget(self.line_edit)
-        layout.addWidget(self.button)
-        layout.addStretch()
-
-        self.setLayout(layout)
-        TranslationManager.register_widget(self)
+        # Use the layout from BaseTabWidget
+        self._add_widgets_to_layout([self.label, self.line_edit, self.button])
 
     def update_translations(self):
+        super().update_translations()  # Call base method if it has common logic
         self.label.setText(
             TranslationManager.translate("app.tabs.content.tab1.content")
         )

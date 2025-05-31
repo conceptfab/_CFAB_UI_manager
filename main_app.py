@@ -103,12 +103,13 @@ class Application(QApplication):
         self._config = {
             "show_splash": True,
             "log_to_file": False,
-            "log_ui_to_console": False,
+            "log_ui_to_console": False,  # To powinno kontrolować logowanie do konsoli systemowej przez AppLogger
             "log_level": "INFO",
         }
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
         self.startup = None
         self.resource_manager = None
+        self.app_logger = None  # Dodano do przechowywania instancji AppLogger
 
     @property
     def config(self):
@@ -127,6 +128,9 @@ class Application(QApplication):
         # Podłącz sygnały
         self.startup.config_loaded.connect(self.on_config_loaded)
         self.startup.startup_failed.connect(self.on_startup_failed)
+        self.startup.startup_completed.connect(
+            self.on_startup_completed
+        )  # Podłącz nowy sygnał
 
         # Uruchom inicjalizację
         success = self.startup.initialize()
@@ -140,6 +144,16 @@ class Application(QApplication):
                 self.resource_manager.css_loaded.connect(self.on_css_loaded)
 
         return success
+
+    def on_startup_completed(self, app_logger_instance):  # Odbierz instancję AppLogger
+        """Handler dla pomyślnego ukończenia startupu."""
+        self.app_logger = app_logger_instance
+        if self.app_logger:
+            self.app_logger.info(
+                "Application startup completed successfully. AppLogger instance received."
+            )
+        # Tutaj można zainicjalizować MainWindow z przekazaniem app_logger, jeśli to konieczne
+        # lub MainWindow samo pobierze logger z app.instance()
 
     def on_config_loaded(self, config):
         """Handler dla załadowanej konfiguracji"""
@@ -172,12 +186,13 @@ if __name__ == "__main__":
 
     # Take initial memory snapshot
     initial_memory = performance_monitor.take_memory_snapshot("application_start")
-    # logger.info(f"Initial memory usage: {initial_memory.get('rss_mb', 0):.1f}MB") # Logowanie przez AppLogger
+    # app.app_logger.info(f"Initial memory usage: {initial_memory.get('rss_mb', 0):.1f}MB") # Użyj app.app_logger
 
     # Uruchom scentralizowaną inicjalizację
     if not app.initialize():
-        # logger.error("Nie udało się zainicjalizować aplikacji") # Logowanie przez AppLogger
-        sys.exit(1)
+        # if app.app_logger: app.app_logger.error("Nie udało się zainicjalizować aplikacji")
+        # else: print("KRYTYCZNY BŁĄD: Nie udało się zainicjalizować aplikacji (logger niedostępny)")
+        sys.exit(1)  # ApplicationStartup już loguje błąd
 
     # Konfiguracja interfejsu
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -185,15 +200,17 @@ if __name__ == "__main__":
     app.setWindowIcon(QIcon(icon_path))
 
     # Inicjalizacja głównego okna
-    # logger.info("Inicjalizacja głównego okna") # Logowanie przez AppLogger
+    # if app.app_logger: app.app_logger.info("Inicjalizacja głównego okna")
 
     # Take memory snapshot before main window creation
     performance_monitor.take_memory_snapshot("before_main_window")
 
-    main_win = MainWindow()
+    # Przekaż app_logger do MainWindow, jeśli jest dostępne
+    main_win = MainWindow(
+        app_logger=app.app_logger if hasattr(app, "app_logger") else None
+    )
     main_win.setWindowIcon(QIcon(icon_path))
-    # main_win.logger = logger # MainWindow powinno używać własnego loggera lub dziedziczyć z AppLogger
-    main_win.preferences = app.config
+    main_win.preferences = app.config  # Przekazanie konfiguracji
 
     # Take memory snapshot after main window creation
     performance_monitor.take_memory_snapshot("after_main_window")
@@ -249,25 +266,26 @@ if __name__ == "__main__":
     else:
         main_win.show()
 
-    # logger.info("Główne okno wyświetlone") # Logowanie przez AppLogger
+    # if app.app_logger: app.app_logger.info("Główne okno wyświetlone")
 
     # Final performance and memory summary
     final_memory = performance_monitor.take_memory_snapshot("application_ready")
     memory_trend = performance_monitor.get_memory_usage_trend()
     performance_stats = performance_monitor.get_performance_stats()
 
-    # logger.info("=== Performance Summary ===") # Logowanie przez AppLogger
-    # logger.info(f"Final memory usage: {final_memory.get('rss_mb', 0):.1f}MB")
-    # logger.info(f"Memory trend: {memory_trend.get('trend', 'unknown')}")
+    # if app.app_logger: app.app_logger.info("=== Performance Summary ===")
+    # if app.app_logger: app.app_logger.info(f"Final memory usage: {final_memory.get('rss_mb', 0):.1f}MB")
+    # if app.app_logger: app.app_logger.info(f"Memory trend: {memory_trend.get('trend', 'unknown')}")
 
     if performance_stats:
-        # logger.info("Execution time stats:") # Logowanie przez AppLogger
+        # if app.app_logger: app.app_logger.info("Execution time stats:")
         for operation, stats in performance_stats.items():
-            pass  # logger.info( # Logowanie przez AppLogger
+            pass
+            # if app.app_logger: app.app_logger.info(
             #     f"  {operation}: {stats['avg_time']:.3f}s avg ({stats['count']} calls)"
             # )
 
-    # logger.info("=== Aplikacja gotowa ===") # Logowanie przez AppLogger
+    # if app.app_logger: app.app_logger.info("=== Aplikacja gotowa ===")
 
     # Schedule periodic memory monitoring
     memory_timer = QTimer()

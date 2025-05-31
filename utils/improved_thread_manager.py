@@ -161,6 +161,12 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         self.cleanup_timer.timeout.connect(self._periodic_cleanup)
         self.cleanup_timer.start(30000)  # Cleanup co 30 sekund
 
+        # Performance metrics
+        self._start_time = time.time()
+        self._tasks_completed = 0
+        self._tasks_failed = 0
+        self._lock = threading.Lock()
+
     # Metody z ImprovedThreadManager
     def submit_task(self, func: Callable, *args, **kwargs) -> str:
         """
@@ -190,6 +196,8 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         # Weak reference cleanup po zakończeniu
         def on_finished(result):
             # self._remove_task(task_id) # Usunięto, WeakSet sam zarządza
+            with self._lock:
+                self._tasks_completed += 1
             if self.enable_logging:
                 self.log_queue.add_log(
                     logging.DEBUG, f"Task {task_id} finished with result: {result}"
@@ -197,6 +205,8 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
 
         def on_error(error):
             # self._remove_task(task_id) # Usunięto
+            with self._lock:
+                self._tasks_failed += 1
             if self.enable_logging:
                 self.log_queue.add_log(
                     logging.ERROR, f"Task {task_id} failed with error: {error}"
@@ -262,6 +272,65 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
             "pool_size": self.thread_pool.maxThreadCount(),
         }
 
+    def get_thread_health_status(self) -> Dict[str, Any]:
+        """Monitor thread pool health and performance"""
+        active_threads = self.thread_pool.activeThreadCount()
+        max_threads = self.thread_pool.maxThreadCount()
+        load_percentage = (active_threads / max_threads) * 100 if max_threads > 0 else 0
+
+        status = "Healthy"
+        if load_percentage > 90:
+            status = "Overloaded"
+        elif load_percentage > 70:
+            status = "High Load"
+
+        return {
+            "active_threads": active_threads,
+            "max_threads": max_threads,
+            "load_percentage": round(load_percentage, 2),
+            "status": status,
+            "active_tasks_in_weakset": len(self.active_tasks),
+        }
+
+    def cleanup_finished_threads(self):
+        """
+        Remove completed threads and free resources.
+        QThreadPool manages its threads automatically. This method can be used
+        for custom cleanup logic if needed, or to explicitly clear the pool.
+        For now, relies on QThreadPool's internal management and _periodic_cleanup.
+        """
+        # QThreadPool handles its own thread lifecycle.
+        # If specific cleanup of QRunnable tasks is needed beyond WeakSet,
+        # it would be implemented here.
+        # For now, this method can be a placeholder or log current state.
+        if self.enable_logging:
+            self.log_queue.add_log(
+                logging.DEBUG,
+                "cleanup_finished_threads called. QThreadPool manages threads.",
+            )
+
+    def get_performance_metrics(self) -> Dict[str, Any]:
+        """Return thread performance statistics"""
+        uptime = time.time() - self._start_time
+        with self._lock:
+            tasks_completed = self._tasks_completed
+            tasks_failed = self._tasks_failed
+
+        tasks_processed = tasks_completed + tasks_failed
+        tps = tasks_processed / uptime if uptime > 0 else 0
+
+        return {
+            "uptime_seconds": round(uptime, 2),
+            "tasks_submitted_total": self.task_counter,
+            "tasks_completed_successfully": tasks_completed,
+            "tasks_failed": tasks_failed,
+            "tasks_processed_per_second": round(tps, 2),
+            "current_active_qrunnables": self.thread_pool.activeThreadCount(),
+            "tasks_in_weakset_queue": len(
+                self.active_tasks
+            ),  # Liczba zadań, które są śledzone przez WeakSet
+        }
+
     # _remove_task nie jest już potrzebne z WeakSet
 
     def _periodic_cleanup(self):
@@ -269,15 +338,22 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         Okresowe czyszczenie nieaktywnych zadań.
         WeakSet automatycznie usuwa obiekty, gdy nie ma do nich silnych referencji.
         Ta metoda może być uproszczona lub usunięta, chyba że są inne zadania cleanup.
+        Dodatkowo, loguje statystyki.
         """
-        # WeakSet handles cleanup automatically when tasks are no longer referenced.
-        # Można dodać logowanie liczby aktywnych zadań, jeśli potrzebne.
         if self.enable_logging:
             active_count = len(self.active_tasks)
+            health_status = self.get_thread_health_status()
+            perf_metrics = self.get_performance_metrics()
+
             self.log_queue.add_log(
                 logging.DEBUG,
-                f"Periodic cleanup: {active_count} active tasks in WeakSet.",
+                f"Periodic cleanup: {active_count} active tasks in WeakSet. "
+                f"Health: {health_status['status']} ({health_status['active_threads']}/{health_status['max_threads']}). "
+                f"Perf: TPS={perf_metrics['tasks_processed_per_second']:.2f}, Completed={perf_metrics['tasks_completed_successfully']}",
             )
+            # Można dodać logikę czyszczenia, jeśli WeakSet nie wystarcza
+            # np. sprawdzanie "wiszących" zadań, które nie zostały poprawnie usunięte
+            # przez WeakSet z jakiegoś powodu (np. cykliczne referencje)
 
     def wait_for_completion(self, timeout: int = 30) -> bool:
         """

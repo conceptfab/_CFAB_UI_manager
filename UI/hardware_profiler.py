@@ -4,9 +4,17 @@ import os
 import platform
 import re
 import subprocess
+import sys
 import tempfile  # For pyperformance JSON output
 import time
+import traceback  # Dodano import traceback
 import uuid
+import warnings
+
+try:
+    import cupy
+except ImportError:
+    cupy = None  # Define cupy as None if it's not installed
 
 import numpy as np
 import psutil
@@ -34,6 +42,8 @@ from utils.system_info import get_stable_uuid
 from utils.translation_manager import TranslationManager
 
 logger = logging.getLogger(__name__)
+
+warnings.filterwarnings("ignore", category=UserWarning, module="cupy")
 
 # Domyślnie ustawiamy HAS_CUPY na False i cp na None
 HAS_CUPY = False
@@ -75,6 +85,58 @@ class HardwareProfilerThread(QThread):
         self.hardware_detector = HardwareDetector()
         self.hardware_path = hardware_path
 
+    def run_ai_benchmark(self):
+        """Runs a simple matrix multiplication benchmark using CuPy.
+
+        Returns:
+            float: Time in seconds, or None if benchmark couldn't run.
+        """
+        global cp, HAS_CUPY  # Zapewniamy dostęp do tych zmiennych
+
+        if not HAS_CUPY or cp is None:
+            logger.warning("CuPy is not available for AI benchmark")
+            return None
+
+        try:
+            # Użyj mniejszej macierzy dla bezpieczeństwa
+            size = AI_BENCHMARK_MATRIX_SIZE
+            logger.info(f"Creating {size}x{size} random matrices for GPU benchmark...")
+
+            # Tworzenie macierzy na GPU
+            a_cpu = np.random.rand(size, size).astype(np.float32)
+            b_cpu = np.random.rand(size, size).astype(np.float32)
+
+            # Przenieś dane na GPU
+            a_gpu = cp.asarray(a_cpu)
+            b_gpu = cp.asarray(b_cpu)
+
+            # Synchronizacja przed pomiarem czasu
+            cp.cuda.Stream.null.synchronize()
+
+            # Właściwy pomiar
+            logger.info("Starting GPU benchmark timing...")
+            start_time = time.time()
+
+            # Wykonaj mnożenie macierzy
+            c_gpu = cp.dot(a_gpu, b_gpu)
+
+            # Upewnij się, że wszystkie operacje GPU się zakończyły
+            cp.cuda.Stream.null.synchronize()
+
+            duration = time.time() - start_time
+
+            # Zwolnij pamięć GPU
+            del a_gpu, b_gpu, c_gpu
+            mempool = cp.get_default_memory_pool()
+            mempool.free_all_blocks()
+
+            logger.info(f"GPU benchmark completed in {duration:.4f} seconds")
+            return duration
+
+        except Exception as e:
+            logger.error(f"Error during GPU benchmark: {e}", exc_info=True)
+            return None
+
     def run(self):
         logger.info("Starting hardware profiling thread")
         try:
@@ -83,6 +145,11 @@ class HardwareProfilerThread(QThread):
                     "app.dialogs.hardware_profiler.status.collecting_info"
                 )
             )
+            # Tworzenie znacznika czasu w formacie ISO
+            current_time = QDateTime.currentDateTime()
+            iso_time_str = current_time.toString(Qt.DateFormat.ISODate)
+
+            # Utwórz profil sprzętowy
             profile = {
                 "uuid": get_stable_uuid(),
                 "system": platform.system(),
@@ -93,10 +160,13 @@ class HardwareProfilerThread(QThread):
                 "cpu_count_logical": psutil.cpu_count(logical=True),
                 "cpu_count_physical": psutil.cpu_count(logical=False),
                 "memory_total": psutil.virtual_memory().total,
-                "timestamp": str(
-                    QDateTime.currentDateTime().toString(Qt.DateFormat.ISODate)
-                ),
+                "timestamp": iso_time_str,  # Upraszczamy przypisanie bez zbędnego rzutowania na string
             }
+
+            # Dodatkowe logowanie timestamp dla debugowania
+            logger.debug(
+                f"Timestamp utworzony: '{iso_time_str}', typ: {type(iso_time_str)}"
+            )
 
             self.progress_update.emit(
                 TranslationManager.translate(
@@ -142,12 +212,7 @@ class HardwareProfilerThread(QThread):
                 python_libraries.append("cupy")
             profile["python_libraries"] = sorted(list(set(python_libraries)))
 
-            self.progress_update.emit(
-                TranslationManager.translate(
-                    "app.dialogs.hardware_profiler.status.running_cpu_benchmark"
-                )
-            )
-
+            # Definicja run_pyperformance musi być tutaj, aby była w zasięgu
             def run_pyperformance():
                 try:
                     import pyperformance  # sprawdzamy czy jest zainstalowane
@@ -168,10 +233,6 @@ class HardwareProfilerThread(QThread):
                 import sys
                 import time
 
-                # import uuid # uuid is already imported at the top of the file
-                # import tempfile # tempfile is already imported at the top of the file
-                # import os # os is already imported at the top of the file
-
                 secure_runner = SecureCommandRunner()
                 start_time_perf = time.time()
 
@@ -182,16 +243,12 @@ class HardwareProfilerThread(QThread):
                     ).format(python_path)
                 )
 
-                temp_json_path = None  # Initialize for the finally block
+                temp_json_path = None
                 try:
-                    # Generate a unique name for the temporary JSON file.
-                    # pyperformance will create this file.
                     temp_dir = tempfile.gettempdir()
                     temp_filename = f"pyperformance_output_{uuid.uuid4().hex}.json"
                     temp_json_path = os.path.join(temp_dir, temp_filename)
 
-                    # Safeguard: Ensure this path does not exist.
-                    # pyperformance will fail if it does. uuid.uuid4() makes collisions highly unlikely.
                     if os.path.exists(temp_json_path):
                         logger.warning(
                             f"Generated temporary path {temp_json_path} already exists. Attempting to remove."
@@ -205,7 +262,6 @@ class HardwareProfilerThread(QThread):
                             logger.error(
                                 f"Failed to remove pre-existing temp file {temp_json_path}: {e_remove}. Pyperformance will likely fail."
                             )
-                            # Let pyperformance handle the error if removal fails.
 
                     logger.info(
                         f"Pyperformance will output to temporary file: {temp_json_path}"
@@ -217,10 +273,9 @@ class HardwareProfilerThread(QThread):
                         "pyperformance",
                         "run",
                         "--benchmarks",
-                        "json_loads",  # Using a single, quick benchmark for now
-                        # PYPERFORMANCE_BENCHMARKS, # Consider using the constant for more benchmarks later
+                        "json_loads",
                         "-o",
-                        temp_json_path,  # This path should not exist when pyperformance is called
+                        temp_json_path,
                     ]
                     logger.info(
                         TranslationManager.translate(
@@ -231,23 +286,17 @@ class HardwareProfilerThread(QThread):
                     stdout, stderr = secure_runner.run_command(cmd, timeout=180)
                     elapsed_perf = time.time() - start_time_perf
 
-                    if (
-                        stdout
-                    ):  # pyperformance run command usually doesn't output much to stdout if -o is used
+                    if stdout:
                         logger.info(f"Output pyperformance (stdout): {stdout.strip()}")
-                    if (
-                        stderr
-                    ):  # pyperformance might output progress or warnings to stderr
+                    if stderr:
                         logger.info(f"Output pyperformance (stderr): {stderr.strip()}")
 
                     score = None
                     try:
-                        # Check if the file was created by pyperformance
                         if not os.path.exists(temp_json_path):
                             logger.error(
                                 f"Pyperformance output file {temp_json_path} was not created."
                             )
-                            # Log stdout/stderr again if the file is missing, as it might contain the error
                             if stdout:
                                 logger.error(
                                     f"pyperformance stdout (file not created): {stdout.strip()}"
@@ -263,7 +312,6 @@ class HardwareProfilerThread(QThread):
                         with open(temp_json_path, "r", encoding="utf-8") as f:
                             perf_data = json.load(f)
 
-                        # Check the main metadata for the benchmark name first
                         if perf_data.get("metadata", {}).get("name") == "json_loads":
                             logger.info("Found json_loads benchmark in main metadata.")
                             all_run_values = []
@@ -283,9 +331,7 @@ class HardwareProfilerThread(QThread):
                                 mean_time_seconds = sum(all_run_values) / len(
                                     all_run_values
                                 )
-                                score = (
-                                    mean_time_seconds * 1_000_000
-                                )  # Convert to microseconds
+                                score = mean_time_seconds * 1_000_000
                                 logger.info(
                                     TranslationManager.translate(
                                         "app.dialogs.hardware_profiler.status.cpu_test_result"
@@ -297,8 +343,6 @@ class HardwareProfilerThread(QThread):
                                     + f" Data: {json.dumps(perf_data, indent=2)}"
                                 )
 
-                        # Fallback to iterating through benchmarks array if not found in main metadata
-                        # (This part might be redundant if the above always works for json_loads)
                         elif perf_data.get("benchmarks"):
                             logger.info("Checking 'benchmarks' array for json_loads.")
                             for bench_result in perf_data["benchmarks"]:
@@ -326,15 +370,13 @@ class HardwareProfilerThread(QThread):
                                         mean_time_seconds = sum(
                                             all_run_values_item
                                         ) / len(all_run_values_item)
-                                        score = (
-                                            mean_time_seconds * 1_000_000
-                                        )  # Convert to microseconds
+                                        score = mean_time_seconds * 1_000_000
                                         logger.info(
                                             TranslationManager.translate(
                                                 "app.dialogs.hardware_profiler.status.cpu_test_result"
                                             ).format(score=score, time=elapsed_perf)
                                         )
-                                        break  # Found and processed, exit loop
+                                        break
                                     else:
                                         logger.warning(
                                             f"json_loads benchmark found in array (name: {bench_result.get('metadata', {}).get('name')}), but no 'values' in runs."
@@ -344,7 +386,7 @@ class HardwareProfilerThread(QThread):
                                         f"Skipping benchmark item, not json_loads: {bench_result.get('metadata', {}).get('name')}"
                                     )
 
-                        if score is None:  # Moved the warning outside the loops
+                        if score is None:
                             logger.warning(
                                 TranslationManager.translate(
                                     "app.dialogs.hardware_profiler.status.cpu_test_result_not_found_json"
@@ -375,11 +417,8 @@ class HardwareProfilerThread(QThread):
                     logger.error(
                         TranslationManager.translate(
                             "app.dialogs.hardware_profiler.status.pyperformance_run_error"
-                        ).format(
-                            e=str(e)
-                        )  # Explicitly use string representation of e
+                        ).format(e=str(e))
                     )
-                    # Attempt to log stdout/stderr from the exception if available
                     if hasattr(e, "stdout") and e.stdout:
                         logger.error(f"pyperformance stdout on error: {e.stdout}")
                     if hasattr(e, "stderr") and e.stderr:
@@ -396,94 +435,127 @@ class HardwareProfilerThread(QThread):
                     if temp_json_path and os.path.exists(temp_json_path):
                         try:
                             os.remove(temp_json_path)
-                            logger.info(f"Temporary file {temp_json_path} deleted.")
-                        except OSError as e_remove:
-                            logger.error(
-                                f"Error deleting temporary file {temp_json_path}: {e_remove}"
+                            logger.info(
+                                f"Successfully removed temp file: {temp_json_path}"
                             )
-                    elif (
-                        temp_json_path
-                    ):  # If path was generated but file doesn't exist (e.g. pyperformance failed to create it)
-                        logger.info(
-                            f"Temporary file {temp_json_path} was not found for deletion (possibly not created)."
-                        )
+                        except OSError as e_remove_final:
+                            logger.warning(
+                                f"Failed to remove temp file {temp_json_path} in finally block: {e_remove_final}"
+                            )
 
-            profile["cpu_benchmark_score"], profile["cpu_benchmark_time"] = (
-                run_pyperformance()
-            )
-            if profile["cpu_benchmark_score"] is not None:
-                profile["cpu_benchmark"] = {
-                    "score": profile["cpu_benchmark_score"],
-                    "time": profile["cpu_benchmark_time"],
-                    "benchmark": "json_loads",
-                }
-                logger.info(
-                    TranslationManager.translate(
-                        "app.dialogs.hardware_profiler.status.cpu_test_result_saved"
-                    ).format(profile["cpu_benchmark_score"])
-                )  # CHANGED
-
-                # Bezpośrednie zapisanie do pliku hardware.json
-                try:
-                    with open(self.hardware_path, "r", encoding="utf-8") as f:
-                        hardware_data = json.load(f)
-
-                    hardware_data["cpu_benchmark"] = {
-                        "score": profile["cpu_benchmark_score"],
-                        "time": profile["cpu_benchmark_time"],
-                        "benchmark": "json_loads",
-                    }
-
-                    with open(self.hardware_path, "w", encoding="utf-8") as f:
-                        json.dump(hardware_data, f, indent=4, ensure_ascii=False)
-                    logger.info(
-                        TranslationManager.translate(
-                            "app.dialogs.hardware_profiler.status.cpu_test_results_saved_to_file"
-                        )
-                    )  # CHANGED
-                except Exception as e:
-                    logger.error(
-                        TranslationManager.translate(
-                            "app.dialogs.hardware_profiler.status.cpu_test_save_to_file_error"
-                        ).format(e=e)
-                    )  # CHANGED
-            else:
-                logger.warning(
-                    TranslationManager.translate(
-                        "app.dialogs.hardware_profiler.status.cpu_test_result_not_obtained"
-                    )
-                )  # CHANGED
+            # Koniec definicji run_pyperformance
 
             self.progress_update.emit(
                 TranslationManager.translate(
-                    "app.dialogs.hardware_profiler.status.running_ai_benchmark"
+                    "app.dialogs.hardware_profiler.status.running_cpu_benchmark"
                 )
             )
+            logger.info("Rozpoczęcie testu CPU (pyperformance)...")
             try:
-                import time
+                cpu_score, cpu_time = run_pyperformance()
+                profile["cpu_benchmark"] = {"score": cpu_score, "time_s": cpu_time}
+                logger.info(
+                    f"Test CPU (pyperformance) zakończony. Wynik: {cpu_score}, Czas: {cpu_time:.2f}s"
+                )
+                self.progress_update.emit(
+                    TranslationManager.translate(
+                        "app.dialogs.hardware_profiler.status.cpu_benchmark_duration_prefix"
+                    )
+                    + f" {cpu_time:.2f}s"
+                )
+            except Exception as e_cpu_bench:
+                logger.error(
+                    f"Błąd podczas testu CPU (pyperformance): {e_cpu_bench}",
+                    exc_info=True,
+                )
+                profile["cpu_benchmark"] = {"error": str(e_cpu_bench)}
+                self.progress_update.emit(
+                    TranslationManager.translate(
+                        "app.dialogs.hardware_profiler.status.cpu_benchmark_error"
+                    )
+                )
 
-                start = time.time()
-                # Matrix multiplication benchmark
-                a = np.random.rand(AI_BENCHMARK_MATRIX_SIZE, AI_BENCHMARK_MATRIX_SIZE)
-                b = np.random.rand(AI_BENCHMARK_MATRIX_SIZE, AI_BENCHMARK_MATRIX_SIZE)
-                c = np.matmul(a, b)
-                elapsed = time.time() - start
-                profile["ai_benchmark_time"] = elapsed
-                profile["ai_benchmark_score"] = calculate_ai_score(elapsed)
-            except Exception as e:
-                logger.error(f"AI benchmark error: {e}")
-                profile["ai_benchmark_time"] = None
-                profile["ai_benchmark_score"] = None
+            # AI/GPU Benchmark (CuPy)
+            if HAS_CUPY and cp:
+                self.progress_update.emit(
+                    TranslationManager.translate(
+                        "app.dialogs.hardware_profiler.status.running_gpu_benchmark"
+                    )
+                )
+                logger.info("Rozpoczęcie testu AI/GPU (CuPy)...")
+                try:
+                    ai_time_s = self.run_ai_benchmark()
+                    profile["ai_benchmark_cupy"] = {"time_s": ai_time_s}
+                    logger.info(
+                        f"Test AI/GPU (CuPy) zakończony. Czas: {ai_time_s:.4f}s"
+                    )
+                    self.progress_update.emit(
+                        TranslationManager.translate(
+                            "app.dialogs.hardware_profiler.status.gpu_benchmark_duration_prefix"
+                        )
+                        + f" {ai_time_s:.4f}s"
+                    )
+                except Exception as e_gpu_bench:
+                    logger.error(
+                        f"Błąd podczas testu AI/GPU (CuPy): {e_gpu_bench}",
+                        exc_info=True,
+                    )
+                    profile["ai_benchmark_cupy"] = {"error": str(e_gpu_bench)}
+                    self.progress_update.emit(
+                        TranslationManager.translate(
+                            "app.dialogs.hardware_profiler.status.gpu_benchmark_error"
+                        )
+                    )
+            else:
+                logger.info("Pominięto test AI/GPU (CuPy) - CuPy niedostępne.")
+                profile["ai_benchmark_cupy"] = {
+                    "status": TranslationManager.translate(
+                        "app.dialogs.hardware_profiler.status.cupy_not_available"
+                    )
+                }
 
+            self.progress_update.emit(
+                TranslationManager.translate(
+                    "app.dialogs.hardware_profiler.status.profiling_complete"
+                )
+            )
             self.profile_ready.emit(profile)
+            logger.info("Hardware profiling finished successfully.")
+
         except Exception as e:
-            logger.error(f"Error in hardware profiling: {e}")
+            logger.error(f"Hardware profiling failed: {e}", exc_info=True)
+            error_profile = {
+                "error": str(e),
+                "details": traceback.format_exc(),
+            }  # traceback jest teraz zdefiniowany
+            self.profile_ready.emit(error_profile)
             self.progress_update.emit(
                 TranslationManager.translate(
                     "app.dialogs.hardware_profiler.status.profiling_error"
-                ).format(e=str(e))
-            )  # CHANGED
-            self.profile_ready.emit({})
+                )
+            )
+
+    def optimize_memory_usage(self):
+        """Optimize memory usage during profiling"""
+        # Add specific memory optimization techniques here
+        # For example, if using pandas DataFrames:
+        # self.data_frame = self.data_frame.astype('float32') # Or other smaller types
+        # Or trigger garbage collection more aggressively if appropriate
+        import gc
+
+        gc.collect()
+        if cupy and "cupy" in sys.modules:  # Check if cupy was imported successfully
+            try:
+                mempool = cupy.get_default_memory_pool()
+                mempool.free_all_blocks()
+                logger.info("CuPy memory pool freed.")
+            except Exception as e:
+                logger.warning(f"Could not free CuPy memory pool: {e}")
+        logger.info("Memory optimization attempt finished.")
+
+    def get_hardware_info(self):
+        # ...existing code...
+        pass
 
 
 class HardwareProfilerDialog(QDialog):
@@ -763,7 +835,7 @@ class HardwareProfilerDialog(QDialog):
                     TranslationManager.translate(
                         "app.dialogs.hardware_profiler.status.not_available"
                     ),
-                )  # CHANGED
+                )
             )
         )
         ram_gb = self.profile_data.get("memory_total", 0) // (1024**3)
@@ -773,15 +845,12 @@ class HardwareProfilerDialog(QDialog):
             )
         )
         self.gpu_value_label.setText(
-            # translator.translate("app.dialogs.hardware_profiler.gpu").format( # Original line, seems like a bug, GPU is already in the key
-            #    self.profile_data.get("gpu", translator.translate("app.dialogs.hardware_profiler.status.not_available")) # CHANGED
-            # )
             self.profile_data.get(
                 "gpu",
                 TranslationManager.translate(
                     "app.dialogs.hardware_profiler.status.not_available"
                 ),
-            )  # Corrected line
+            )
         )
 
         if not self.profile_data:
@@ -813,86 +882,102 @@ class HardwareProfilerDialog(QDialog):
             self.save_btn.setEnabled(False)
             return
 
-        config_items = [
-            ("uuid", "app.dialogs.hardware_profiler.profile.uuid"),
-            ("system", "app.dialogs.hardware_profiler.profile.system"),
-            ("processor", "app.dialogs.hardware_profiler.profile.processor"),
-            ("cpu_count_physical", "app.dialogs.hardware_profiler.profile.cpu_cores"),
-            (
-                "memory_total",
-                "app.dialogs.hardware_profiler.profile.ram",
-                lambda x: round(x / (1024**3), 1),
-            ),
-            ("gpu", "app.dialogs.hardware_profiler.gpu"),
-            ("timestamp", "app.dialogs.hardware_profiler.profile.last_update"),
-        ]
-
-        # Dodajemy wyniki testu CPU jeśli są dostępne
-        if "cpu_benchmark" in self.profile_data:
-            config_items.extend(
-                [
-                    (
-                        "cpu_benchmark_score",
-                        "app.dialogs.hardware_profiler.profile.cpu_benchmark_score",
-                        lambda x: round(x, 2),
-                    ),
-                    (
-                        "cpu_benchmark_time",
-                        "app.dialogs.hardware_profiler.profile.cpu_benchmark_time",
-                        lambda x: f"{round(x, 2)}s",
-                    ),
-                ]
-            )
-
-        # Dodajemy wyniki testu AI jeśli są dostępne
-        if "ai_benchmark_score" in self.profile_data:
-            config_items.extend(
-                [
-                    (
-                        "ai_benchmark_score",
-                        "app.dialogs.hardware_profiler.profile.ai_benchmark_score",
-                    ),
-                    (
-                        "ai_benchmark_time",
-                        "app.dialogs.hardware_profiler.profile.ai_benchmark_time",
-                        lambda x: f"{round(x, 4)}s",
-                    ),
-                ]
-            )
-
         config_text_parts = []
-        for key, trans_key, *formatter_and_condition in config_items:
-            value = self.profile_data.get(key)
-            if value is not None:
-                if formatter_and_condition and callable(formatter_and_condition[0]):
-                    try:
-                        value = formatter_and_condition[0](value)
-                    except Exception:
-                        value = TranslationManager.translate(
-                            "app.dialogs.hardware_profiler.status.not_available_in_formatter"
-                        )  # CHANGED
 
-                if value is not None and not (
-                    isinstance(value, str)
-                    and (
-                        value.lower()
-                        == TranslationManager.translate(
-                            "app.dialogs.hardware_profiler.status.not_available_short"
-                        ).lower()
-                        or value
-                        == TranslationManager.translate(
-                            "app.dialogs.hardware_profiler.status.error_short"
-                        )
-                    )  # CHANGED
-                ):
-                    try:
-                        config_text_parts.append(
-                            TranslationManager.translate(trans_key).format(value)
-                        )
-                    except KeyError:
-                        config_text_parts.append(
-                            f"{trans_key.split('.')[-1].replace('_', ' ').title()}: {value}"
-                        )
+        # Podstawowe informacje systemowe
+        if "uuid" in self.profile_data:
+            config_text_parts.append(
+                TranslationManager.translate(
+                    "app.dialogs.hardware_profiler.profile.uuid"
+                ).format(self.profile_data["uuid"])
+            )
+
+        if "system" in self.profile_data:
+            config_text_parts.append(
+                TranslationManager.translate(
+                    "app.dialogs.hardware_profiler.profile.system"
+                ).format(self.profile_data["system"])
+            )
+
+        if "processor" in self.profile_data:
+            config_text_parts.append(
+                TranslationManager.translate(
+                    "app.dialogs.hardware_profiler.profile.processor"
+                ).format(self.profile_data["processor"])
+            )
+
+        if "cpu_count_physical" in self.profile_data:
+            config_text_parts.append(
+                TranslationManager.translate(
+                    "app.dialogs.hardware_profiler.profile.cpu_cores"
+                ).format(self.profile_data["cpu_count_physical"])
+            )
+
+        if "memory_total" in self.profile_data:
+            ram_gb = round(self.profile_data["memory_total"] / (1024**3), 1)
+            config_text_parts.append(
+                TranslationManager.translate(
+                    "app.dialogs.hardware_profiler.profile.ram"
+                ).format(ram_gb)
+            )
+
+        if "timestamp" in self.profile_data:
+            config_text_parts.append(
+                TranslationManager.translate(
+                    "app.dialogs.hardware_profiler.profile.last_update"
+                ).format(self.profile_data["timestamp"])
+            )
+
+        # Wynik testu CPU
+        if "cpu_benchmark" in self.profile_data:
+            cpu_bench = self.profile_data["cpu_benchmark"]
+            if "score" in cpu_bench and cpu_bench["score"] is not None:
+                config_text_parts.append(
+                    TranslationManager.translate(
+                        "app.dialogs.hardware_profiler.profile.cpu_benchmark_score"
+                    ).format(round(cpu_bench["score"], 2))
+                )
+            if "time_s" in cpu_bench and cpu_bench["time_s"] is not None:
+                config_text_parts.append(
+                    TranslationManager.translate(
+                        "app.dialogs.hardware_profiler.profile.cpu_benchmark_time"
+                    ).format(f"{round(cpu_bench['time_s'], 2)}s")
+                )
+            if "error" in cpu_bench:
+                config_text_parts.append(
+                    TranslationManager.translate(
+                        "app.dialogs.hardware_profiler.profile.cpu_benchmark"
+                    ).format(f"ERROR: {cpu_bench['error']}")
+                )
+
+        # Wynik testu AI/GPU
+        if "ai_benchmark_cupy" in self.profile_data:
+            ai_bench = self.profile_data["ai_benchmark_cupy"]
+            if "time_s" in ai_bench and ai_bench["time_s"] is not None:
+                config_text_parts.append(
+                    TranslationManager.translate(
+                        "app.dialogs.hardware_profiler.profile.ai_benchmark_time"
+                    ).format(f"{round(ai_bench['time_s'], 4)}s")
+                )
+                # Obliczanie i wyświetlanie wyniku AI
+                ai_score = calculate_ai_score(ai_bench["time_s"])
+                config_text_parts.append(
+                    TranslationManager.translate(
+                        "app.dialogs.hardware_profiler.profile.ai_benchmark_score"
+                    ).format(ai_score)
+                )
+            elif "error" in ai_bench:
+                config_text_parts.append(
+                    TranslationManager.translate(
+                        "app.dialogs.hardware_profiler.profile.ai_benchmark_score"
+                    ).format(f"ERROR: {ai_bench['error']}")
+                )
+            elif "status" in ai_bench:
+                config_text_parts.append(
+                    TranslationManager.translate(
+                        "app.dialogs.hardware_profiler.profile.ai_benchmark_score"
+                    ).format(f"STATUS: {ai_bench['status']}")
+                )
 
         self.config_display.setText("\n".join(config_text_parts))
         self.optimization_display.setText(self.generate_optimizations_text())
@@ -1004,7 +1089,42 @@ class HardwareProfilerDialog(QDialog):
             logger.warning("No valid profile data to save.")
             return
 
+        # Upewnij się, że timestamp jest poprawny
+        if "timestamp" not in self.profile_data or not self.profile_data["timestamp"]:
+            # Dodaj brakujący timestamp
+            from PyQt6.QtCore import QDateTime, Qt
+
+            self.profile_data["timestamp"] = QDateTime.currentDateTime().toString(
+                Qt.DateFormat.ISODate
+            )
+            logger.warning(
+                f"Dodano brakujący timestamp: {self.profile_data['timestamp']}"
+            )
+
         try:
+            # Przed zapisem sprawdź, czy profil może być poprawnie zwalidowany
+            from utils.validators import ConfigValidator
+
+            try:
+                logger.debug(
+                    f"Próba walidacji profilu przed zapisem: {json.dumps(self.profile_data, indent=2)}"
+                )
+                # Walidacja jest możliwa tylko jeśli plik istnieje - zapis tymczasowy
+                temp_path = self.hardware_path + ".temp"
+                with open(temp_path, "w", encoding="utf-8") as f:
+                    json.dump(self.profile_data, f, indent=4, ensure_ascii=False)
+
+                # Spróbuj zwalidować
+                ConfigValidator.validate_hardware_profile(temp_path)
+
+                # Jeśli walidacja się powiedzie, usuń plik tymczasowy
+                os.remove(temp_path)
+                logger.info("Walidacja profilu przed zapisem zakończona pomyślnie")
+            except Exception as e:
+                logger.warning(f"Nieudana walidacja profilu przed zapisem: {e}")
+                # Kontynuuj zapis mimo błędu walidacji (możemy dodać pytanie użytkownika)
+
+            # Właściwy zapis profilu
             with open(self.hardware_path, "w", encoding="utf-8") as f:
                 json.dump(self.profile_data, f, indent=4, ensure_ascii=False)
             msg = TranslationManager.translate(
