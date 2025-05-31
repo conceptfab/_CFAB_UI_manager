@@ -181,13 +181,52 @@ class ApplicationStartup(QObject):
         """
         Inicjalizuje i konfiguruje ResourceManager.
         """
-        self.resource_manager = ResourceManager(self.base_dir)
+        print(
+            "[DEBUG] ApplicationStartup.setup_resource_manager() started."
+        )  # Dodano print
+        if not self.logger:
+            print(
+                "[ERROR] ApplicationStartup.setup_resource_manager(): self.logger is None. Cannot initialize ResourceManager."
+            )  # Dodano print
+            # Emituj błąd lub podnieś wyjątek, jeśli logger jest krytyczny
+            self.startup_failed.emit(
+                "Logger not initialized before ResourceManager setup."
+            )
+            return None  # Lub False, w zależności od logiki obsługi błędów
 
-        # Załaduj zasoby asynchronicznie
-        self.resource_manager.load_all_resources()
+        try:
+            self.resource_manager = ResourceManager(
+                base_dir=self.base_dir, logger_instance=self.logger
+            )
+            print(
+                "[DEBUG] ApplicationStartup.setup_resource_manager(): ResourceManager initialized."
+            )  # Dodano print
 
-        self.logger.info("ResourceManager skonfigurowany")
-        return self.resource_manager
+            # Załaduj zasoby asynchronicznie
+            self.resource_manager.load_all_resources()
+            print(
+                "[DEBUG] ApplicationStartup.setup_resource_manager(): load_all_resources called."
+            )  # Dodano print
+
+            if self.logger:  # Sprawdź ponownie, czy logger istnieje
+                self.logger.info("ResourceManager skonfigurowany")
+            else:
+                print(
+                    "[ERROR] ApplicationStartup.setup_resource_manager(): self.logger became None after ResourceManager init."
+                )  # Dodano print
+            return self.resource_manager
+        except Exception as e:
+            if self.logger:
+                self.logger.error(
+                    f"Failed to setup ResourceManager: {e}", exc_info=True
+                )
+            else:
+                # Jeśli logger nie jest dostępny, użyj print do logowania krytycznego błędu
+                print(
+                    f"[CRITICAL] Failed to setup ResourceManager (logger unavailable): {e}"
+                )
+            self.startup_failed.emit(f"ResourceManager setup error: {e}")
+            return None  # Lub False
 
     @handle_error_gracefully
     def verify_hardware(self):
