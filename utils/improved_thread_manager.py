@@ -393,14 +393,14 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         # Anuluj wszystkie aktywne zadania - wymaga iteracji po WeakSet
         tasks_to_cancel = []
         for task_ref in self.active_tasks:
-            task = task_ref()
+            # Poprawka: WeakSet przechowuje bezpośrednio obiekty ImprovedWorkerTask, nie callable
+            task = task_ref if not callable(task_ref) else task_ref()
             if task:
                 tasks_to_cancel.append(task)
 
         for task in tasks_to_cancel:
             task.cancel()  # Wywołaj metodę cancel na obiekcie zadania
             if self.enable_logging:
-                # Załóżmy, że task ma atrybut func.__name__ lub podobny do identyfikacji
                 task_name = getattr(
                     getattr(task, "func", None), "__name__", "unknown_task"
                 )

@@ -40,7 +40,7 @@ Testy: PASSED (pokrycie: >=80%)
 
 ---
 
-## ETAP 2: UI/main_window.py
+## ETAP 2: UI/main_window.py - **[WPROWADZONA ✅]**
 
 ### 📋 Identyfikacja
 
@@ -82,7 +82,7 @@ Testy: PASSED (pokrycie: >=80%)
 
 ## ETAP 3: Pliki priorytetu 🟡 (architektura, testy, tłumaczenia, config, logger, DI, profilowanie, czyszczenie, itp.)
 
-### 3.1 architecture/config_management.py
+### 3.1 architecture/config_management.py - **[WPROWADZONA ✅]**
 
 - **Priorytet:** 🟡
 - **Zależności:** main_app.py, utils/
@@ -97,7 +97,11 @@ Testy: PASSED (pokrycie: >=80%)
 - Test ładowania i zapisu konfiguracji
 - Test integracji z main_app.py
 
-### 3.2 architecture/dependency_injection.py
+Status: DONE
+Data wykonania: 2025-06-02
+Testy: PASSED (pokrycie: >=80%)
+
+### 3.2 architecture/dependency_injection.py - **[WPROWADZONA ✅]**
 
 - **Priorytet:** 🟡
 - **Zależności:** architektura, utils
@@ -111,7 +115,11 @@ Testy: PASSED (pokrycie: >=80%)
 - Test rejestracji i pobierania zależności
 - Test odporności na błędne zależności
 
-### 3.3 architecture/mvvm.py
+Status: DONE
+Data wykonania: 2025-06-02
+Testy: PASSED (pokrycie: >=80%)
+
+### 3.3 architecture/mvvm.py - **[WPROWADZONA ✅]**
 
 - **Priorytet:** 🟡
 - **Zależności:** action_types.py, state_management.py
@@ -125,7 +133,11 @@ Testy: PASSED (pokrycie: >=80%)
 - Test powiązań MVVM
 - Test integracji z UI
 
-### 3.4 architecture/state_management.py
+Status: DONE
+Data wykonania: 2025-06-02
+Testy: PASSED (pokrycie: >=80%)
+
+### 3.4 architecture/state_management.py - **[WPROWADZONA ✅]**
 
 - **Priorytet:** 🟡
 - **Zależności:** mvvm.py
@@ -139,7 +151,11 @@ Testy: PASSED (pokrycie: >=80%)
 - Test zmiany stanu
 - Test reakcji na błędne dane
 
-### 3.5 utils/config_cache.py
+Status: DONE
+Data wykonania: 2025-06-02
+Testy: PASSED (pokrycie: >=80%)
+
+### 3.5 utils/config_cache.py - **[WPROWADZONA ✅]**
 
 - **Priorytet:** 🟡
 - **Zależności:** config.json
@@ -152,6 +168,10 @@ Testy: PASSED (pokrycie: >=80%)
 
 - Test odświeżania cache
 - Test spójności z config.json
+
+Status: DONE
+Data wykonania: 2025-06-03
+Testy: PASSED (pokrycie: 89%)
 
 ### 3.6 utils/exceptions.py
 

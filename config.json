@@ -1,16 +1,17 @@
 {
-  "language": "en",
+  "language": "pl",
   "show_splash": true,
   "log_to_file": false,
   "log_to_system_console": false,
   "window_size": {
-    "width": 1395,
-    "height": 1019
+    "width": 1089,
+    "height": 538
   },
   "window_position": {
     "x": 164,
     "y": 40
   },
   "remember_window_size": true,
-  "log_level": "INFO"
+  "log_level": "INFO",
+  "logger_debug_mode": false
 }

@@ -102,6 +102,17 @@ class Application(QApplication):
         """Sprzątanie zasobów przed zamknięciem aplikacji"""
         if self.startup:
             self.startup.cleanup()
+        # Poprawka: bezpieczne czyszczenie main_window i thread_manager
+        if hasattr(self, "main_window") and self.main_window:
+            if (
+                hasattr(self.main_window, "thread_manager")
+                and self.main_window.thread_manager
+            ):
+                try:
+                    self.main_window.thread_manager.cleanup()
+                except Exception:
+                    pass
+            self.main_window = None
 
     def setup_ui(self):
         """Konfiguruje i wyświetla główne okno aplikacji."""
