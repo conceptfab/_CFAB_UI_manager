@@ -6,7 +6,6 @@ warnings.filterwarnings(
     module="cupy._environment",
 )
 
-import json
 import os
 import sys
 
@@ -17,15 +16,7 @@ from PyQt6.QtWidgets import QApplication
 from UI.main_window import MainWindow
 from utils.application_startup import ApplicationStartup
 from utils.enhanced_splash import create_optimized_splash
-from utils.exceptions import (
-    ConfigurationError,
-    FileOperationError,
-    ValidationError,
-    handle_error_gracefully,
-)
-from utils.logger import AppLogger
 from utils.performance_optimizer import performance_monitor
-from utils.validators import ConfigValidator
 
 
 class Application(QApplication):
@@ -88,8 +79,6 @@ class Application(QApplication):
             self.app_logger.info(
                 "Application startup completed successfully. AppLogger instance received."
             )
-        # Tutaj można zainicjalizować MainWindow z przekazaniem app_logger, jeśli to konieczne
-        # lub MainWindow samo pobierze logger z app.instance()
 
     def on_config_loaded(self, config):
         """Handler dla załadowanej konfiguracji"""
@@ -105,7 +94,9 @@ class Application(QApplication):
         if self.app_logger:
             self.app_logger.critical(f"CRITICAL STARTUP ERROR: {error}")
         else:
-            print(f"CRITICAL STARTUP ERROR: {error}")  # Fallback if logger not ready
+            sys.stderr.write(
+                f"CRITICAL STARTUP ERROR: {error}\n"
+            )  # Fallback if logger not ready
 
     def cleanup(self):
         """Sprzątanie zasobów przed zamknięciem aplikacji"""
