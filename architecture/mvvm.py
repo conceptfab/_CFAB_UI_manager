@@ -164,7 +164,7 @@ class BaseViewModel(QObject):
 
         Args:
             name: Command name
-            command: Command function or callable
+            command: Command function or callable that will be executed when the command is invoked
         """
         self._commands[name] = command
         logger.debug(f"Command '{name}' registered")
