@@ -34,7 +34,7 @@ class TestConfigManager(unittest.TestCase):
             "language": "pl",
             "show_splash": True,
             "log_to_file": False,
-            "log_ui_to_console": False,
+            "log_to_system_console": False,
             "window_size": {"width": 1024, "height": 768},
             "window_position": {"x": 100, "y": 100},
             "remember_window_size": True,

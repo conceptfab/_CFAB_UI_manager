@@ -20,6 +20,22 @@ class AsyncLogger:
             target=self._process_logs, daemon=True, name="AsyncLoggerThread"
         )
         self.logger = logging.getLogger("AppLogger")
+        # Osobny logger dla wewnętrznych komunikatów diagnostycznych
+        self.internal_logger = logging.getLogger("AsyncLoggerInternal")
+        self.internal_logger.setLevel(logging.ERROR)  # Domyślnie tylko błędy
+        self.internal_logger.propagate = (
+            False  # Nie propagujemy logów do nadrzędnych loggerów
+        )
+
+        # Flaga kontrolująca poziom szczegółowości logów wewnętrznych
+        self._debug_mode = False
+
+        # Dodaj handler dla wewnętrznego loggera, jeśli jeszcze nie ma
+        if not self.internal_logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(logging.Formatter("[ASYNC_LOGGER] %(message)s"))
+            self.internal_logger.addHandler(handler)
+
         self._console_widget_handler = None
         self._formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -37,6 +53,7 @@ class AsyncLogger:
                 if level is None:
                     break
 
+                # Utworzenie rekordu logu
                 if isinstance(message_or_record, logging.LogRecord):
                     record = message_or_record
                 else:
@@ -50,36 +67,36 @@ class AsyncLogger:
                         exc_info=None,
                     )
 
-                self.logger.handle(record)  # Logowanie do standardowych handlerów
+                # Logowanie do standardowych handlerów (plik, konsola systemowa)
+                # zarządzanych przez główny logger
+                self.logger.handle(record)
 
-                self.logger.log(
-                    logging.DEBUG,
-                    f"AsyncLogger: Próba przetworzenia logu dla UI. Handler: {self._console_widget_handler}",
-                )
+                # Wewnętrzne logowanie diagnostyczne tylko w trybie debugowania
+                if self._debug_mode:
+                    self.internal_logger.debug(
+                        f"Przetworzono log: {record.levelname}. UI handler: {self._console_widget_handler is not None}"
+                    )
 
+                # Obsługa konsoli UI (jeśli skonfigurowana)
                 if self._console_widget_handler:
                     try:
                         formatted_message = self._formatter.format(record)
-                        self.logger.log(
-                            logging.DEBUG,
-                            f"AsyncLogger: Wysyłanie sformatowanego logu do UI: {formatted_message[:100]}...",
-                        )
-                        # Próba wywołania handlera konsoli UI
+                        # Loguj szczegóły wysyłania tylko w trybie debugowania
+                        if self._debug_mode:
+                            self.internal_logger.debug(
+                                f"Wysyłanie do UI: {formatted_message[:100]}..."
+                            )
+                        # Wywołanie handlera konsoli UI
                         self._console_widget_handler(formatted_message)
                     except Exception as e:
-                        self.logger.log(
-                            logging.CRITICAL,
-                            f"AsyncLogger: Błąd w handlerze konsoli UI: {e}",
-                            exc_info=True,
+                        # Krytyczne błędy zawsze logujemy
+                        self.internal_logger.critical(
+                            f"Błąd w handlerze konsoli UI: {e}", exc_info=True
                         )
-                        self.logger.log(
-                            logging.DEBUG,
-                            f"AsyncLogger: Typ handlera: {type(self._console_widget_handler)}, Handler: {self._console_widget_handler}",
-                        )
-                else:
-                    self.logger.log(
-                        logging.DEBUG, "AsyncLogger: Brak handlera konsoli UI."
-                    )
+                        if self._debug_mode:
+                            self.internal_logger.debug(
+                                f"Typ handlera: {type(self._console_widget_handler)}"
+                            )
 
                 self.queue.task_done()
             except Exception as e:
@@ -99,6 +116,20 @@ class AsyncLogger:
             message: Wiadomość do zalogowania lub LogRecord
         """
         self.queue.put((level, message))
+
+    def set_debug_mode(self, enabled=False):
+        """
+        Włącza lub wyłącza tryb debugowania, który pokazuje szczegółowe logi wewnętrzne.
+
+        Args:
+            enabled: True włącza tryb debug, False wyłącza.
+        """
+        self._debug_mode = enabled
+        # Dostosuj poziom logowania wewnętrznego loggera
+        if enabled:
+            self.internal_logger.setLevel(logging.DEBUG)
+        else:
+            self.internal_logger.setLevel(logging.ERROR)  # Tylko błędy krytyczne
 
     def set_console_widget_handler(self, handler_method, formatter=None):
         """
@@ -135,6 +166,10 @@ class AppLogger:
         self.config = config
         self.async_logger = AsyncLogger()
         self.setup_logger()
+
+        # Sprawdź, czy tryb debugowania jest włączony w konfiguracji
+        if self.config.get("logger_debug_mode", False):
+            self.set_debug_mode(True)
 
     def cleanup(self):
         """
@@ -177,10 +212,8 @@ class AppLogger:
 
         # Console handler (dla konsoli systemowej, jeśli włączony)
         if self.config.get(
-            "log_ui_to_console", False
-        ):  # Ta opcja może być myląca, może oznaczać logowanie do konsoli systemowej
-            # Należy rozważyć zmianę nazwy tej opcji lub jej przeznaczenia
-            # Na razie zakładamy, że to logowanie do konsoli systemowej, a nie UI
+            "log_to_system_console", self.config.get("log_ui_to_console", False)
+        ):  # Używamy nowej nazwy, ale zachowujemy kompatybilność ze starą
             system_console_handler = logging.StreamHandler()  # Domyślnie sys.stderr
             system_console_handler.setFormatter(standard_formatter)
             self.async_logger.logger.addHandler(system_console_handler)
@@ -211,6 +244,23 @@ class AppLogger:
         """
         self.async_logger.set_console_widget_handler(handler_method, formatter)
 
+    def set_debug_mode(self, enabled=False):
+        """
+        Włącza lub wyłącza tryb debugowania, który pokazuje szczegółowe logi wewnętrzne.
+
+        Args:
+            enabled: True włącza tryb debug, False wyłącza.
+        """
+        self.async_logger.set_debug_mode(enabled)
+        if enabled:
+            self.info(
+                "Logger debug mode: ENABLED - pokazywanie szczegółowych logów wewnętrznych"
+            )
+        else:
+            self.info(
+                "Logger debug mode: DISABLED - pokazywanie tylko błędów krytycznych"
+            )
+
     def debug(self, message):
         self.async_logger.log(logging.DEBUG, message)
 
@@ -223,8 +273,4 @@ class AppLogger:
     def error(self, message):
         self.async_logger.log(logging.ERROR, message)
 
-    def cleanup(self):
-        """
-        Zatrzymuje asynchroniczny logger i czyści zasoby.
-        """
-        self.async_logger.stop()
+    # Usunięto zduplikowaną metodę cleanup, ponieważ jest już zdefiniowana wyżej

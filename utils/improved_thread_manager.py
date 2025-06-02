@@ -167,7 +167,9 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         self._lock = threading.Lock()
 
     # Metody z ImprovedThreadManager
-    def submit_task(self, func: Callable, *args, task_timeout: Optional[int] = None, **kwargs) -> str:
+    def submit_task(
+        self, func: Callable, *args, task_timeout: Optional[int] = None, **kwargs
+    ) -> str:
         """
         Dodaje zadanie do pool'a
 
@@ -182,7 +184,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         """
         # Użyj task_timeout, jeśli podany, w przeciwnym razie używamy domyślnego
         timeout = task_timeout if task_timeout is not None else self.task_timeout
-        
+
         # Zachowaj wsteczną kompatybilność - sprawdź, czy timeout istnieje w kwargs
         if "timeout" in kwargs:
             timeout = kwargs.pop("timeout")
@@ -191,7 +193,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         task_id = f"task_{self.task_counter}"
 
         task = ImprovedWorkerTask(func, timeout, *args, **kwargs)
-        setattr(task, 'task_id', task_id)  # Dodajemy atrybut task_id do obiektu zadania
+        setattr(task, "task_id", task_id)  # Dodajemy atrybut task_id do obiektu zadania
         self.active_tasks.add(task)  # Dodawanie do WeakSet
         self.task_id_map[task_id] = task  # Dodajemy mapowanie task_id -> task
 
@@ -224,7 +226,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
                 logging.DEBUG, f"Submitted task {task_id}: {func.__name__}"
             )
         return task_id
-        
+
     def cancel_task(self, task_id: str) -> bool:
         """
         Anuluje zadanie na podstawie jego ID.
@@ -237,17 +239,19 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         """
         # Używamy WeakValueDictionary do szybkiego dostępu do zadania po ID
         task = self.task_id_map.get(task_id)
-        
+
         if task is not None:
             task.cancel()
             # WeakSet automatycznie usunie zadanie, gdy nie będzie już do niego referencji
             if self.enable_logging:
                 self.log_queue.add_log(logging.DEBUG, f"Cancelled task {task_id}")
             return True
-            
+
         # Zadanie nie zostało znalezione
         if self.enable_logging:
-            self.log_queue.add_log(logging.WARNING, f"Task {task_id} not found for cancellation")
+            self.log_queue.add_log(
+                logging.WARNING, f"Task {task_id} not found for cancellation"
+            )
         return False
 
     def get_active_task_count(self) -> int:
@@ -429,51 +433,53 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         """
         Kompatybilność ze starym API. Tworzy i uruchamia zadanie w sposób kompatybilny
         z poprzednią wersją API.
-        
+
         Args:
             func: Funkcja do wykonania
             *args, **kwargs: Argumenty dla funkcji
-            
+
         Returns:
             obj: Obiekt kompatybilny ze starym API, posiadający sygnały finished i error
         """
         # Używamy naszej ulepszonej implementacji do faktycznego zarządzania zadaniem
         task_id = self.submit_task(func, *args, **kwargs)
         task = self.task_id_map.get(task_id)
-        
+
         if not task:
             if self.enable_logging:
                 self.log_queue.add_log(
-                    logging.ERROR, f"Failed to create compatible worker for {func.__name__}"
+                    logging.ERROR,
+                    f"Failed to create compatible worker for {func.__name__}",
                 )
             return None
-        
+
         # Tworzymy obiekt kompatybilny ze starym API
         worker_compat_obj = QObject()
         worker_compat_obj.finished = task.signals.finished
         worker_compat_obj.error = task.signals.error
-        
+
         # Dodajemy metodę cancel dla kompatybilności
         worker_compat_obj.cancel = lambda: self.cancel_task(task_id)
-        
+
         # Dodajemy identyfikator task_id do obiektu
         worker_compat_obj.task_id = task_id
-        
+
         # Dodajemy metodę do usuwania obiektu z listy workers
         def cleanup_worker():
             if worker_compat_obj in self.workers:
                 self.workers.remove(worker_compat_obj)
-                
+
         # Podłączamy sygnał zakończenia do funkcji czyszczącej
         task.signals.finished.connect(cleanup_worker)
         task.signals.error.connect(cleanup_worker)
-        
+
         # Dodajemy do listy workers dla kompatybilności ze starym kodem
         self.workers.append(worker_compat_obj)
-        
+
         if self.enable_logging:
             self.log_queue.add_log(
-                logging.DEBUG, f"Legacy run_in_thread: {func.__name__} (task_id: {task_id})"
+                logging.DEBUG,
+                f"Legacy run_in_thread: {func.__name__} (task_id: {task_id})",
             )
-            
+
         return worker_compat_obj

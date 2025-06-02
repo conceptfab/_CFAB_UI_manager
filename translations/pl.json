@@ -77,6 +77,8 @@
         "show_splash": "Pokaż ekran powitalny",
         "remember_window": "Zapamiętaj rozmiar okna",
         "log_to_file": "Zapisz logi do pliku",
+        "log_to_system_console": "Loguj do konsoli systemowej",
+        "logger_debug_mode": "Włącz tryb debugowania loggera",
         "log_ui": "Loguj komunikaty UI do konsoli",
         "log_level": "Poziom logowania",
         "language": "Język",

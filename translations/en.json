@@ -77,6 +77,8 @@
         "show_splash": "Show splash screen",
         "remember_window": "Remember window size",
         "log_to_file": "Save logs to file",
+        "log_to_system_console": "Log to system console",
+        "logger_debug_mode": "Enable logger debug mode",
         "log_ui": "Log UI messages to console",
         "log_level": "Log level",
         "language": "Language",

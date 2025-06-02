@@ -75,7 +75,9 @@ class MainWindow(QMainWindow):
     def __init__(self, *args, app_logger=None, **kwargs):
         try:
             # Jednolite używanie app_logger jako głównego loggera aplikacji
-            self.app_logger = app_logger if app_logger else logging.getLogger("AppLogger")
+            self.app_logger = (
+                app_logger if app_logger else logging.getLogger("AppLogger")
+            )
             self.logger = self.app_logger  # Dla wstecznej kompatybilności
 
             self.logger.info("MainWindow: start __init__")
@@ -88,7 +90,7 @@ class MainWindow(QMainWindow):
             self._preferences = {
                 "show_splash": True,
                 "log_to_file": False,
-                "log_ui_to_console": False,
+                "log_to_system_console": False,  # Zmieniona nazwa z log_ui_to_console
                 "log_level": "INFO",
                 "remember_window_size": True,
                 "window_size": {"width": 800, "height": 600},
@@ -215,9 +217,7 @@ class MainWindow(QMainWindow):
         # Zarejestruj metodę append_log konsoli w AppLogger
         if self.app_logger and hasattr(widget, "append_log"):
             # Dodajemy bardziej szczegółowe logowanie dla debugowania
-            self.logger.debug(
-                "Próba rejestracji handlera konsoli w AppLogger."
-            )
+            self.logger.debug("Próba rejestracji handlera konsoli w AppLogger.")
             try:
                 # Sprawdź, czy metoda set_console_widget_handler istnieje w app_logger
                 if hasattr(self.app_logger, "set_console_widget_handler"):
@@ -252,7 +252,7 @@ class MainWindow(QMainWindow):
         self.logger.warning("Warning: Używana wersja testowa (z MainWindow)")
         self.logger.error("Error: Test obsługi błędów (z MainWindow)")
 
-        if self._preferences.get("log_ui_to_console", False):
+        if self._preferences.get("log_to_system_console", False):
             self.logger.info("UI: Logowanie akcji interfejsu włączone (z MainWindow)")
 
     def load_preferences_async(self):
@@ -343,13 +343,19 @@ class MainWindow(QMainWindow):
 
         # Aktualizacja zawartości zakładek - tylko jeśli zostały już załadowane
         # Sprawdzamy czy widgets istnieją w słowniku _tab_widgets
-        if "tab1" in self._tab_widgets and hasattr(self._tab_widgets["tab1"], "update_translations"):
+        if "tab1" in self._tab_widgets and hasattr(
+            self._tab_widgets["tab1"], "update_translations"
+        ):
             self._tab_widgets["tab1"].update_translations()
 
-        if "tab2" in self._tab_widgets and hasattr(self._tab_widgets["tab2"], "update_translations"):
+        if "tab2" in self._tab_widgets and hasattr(
+            self._tab_widgets["tab2"], "update_translations"
+        ):
             self._tab_widgets["tab2"].update_translations()
 
-        if "tab3" in self._tab_widgets and hasattr(self._tab_widgets["tab3"], "update_translations"):
+        if "tab3" in self._tab_widgets and hasattr(
+            self._tab_widgets["tab3"], "update_translations"
+        ):
             self._tab_widgets["tab3"].update_translations()
 
         # Aktualizacja console widget jeśli został załadowany
@@ -378,9 +384,14 @@ class MainWindow(QMainWindow):
             try:
                 with open(self.config_path, "w", encoding="utf-8") as f:
                     json.dump(self._preferences, f, indent=2, ensure_ascii=False)
-                self.logger.info("Preferencje zostały zapisane synchronicznie przed zamknięciem.")
+                self.logger.info(
+                    "Preferencje zostały zapisane synchronicznie przed zamknięciem."
+                )
             except Exception as e:
-                self.logger.error(f"Błąd podczas zapisu preferencji przy zamknięciu: {e}", exc_info=True)
+                self.logger.error(
+                    f"Błąd podczas zapisu preferencji przy zamknięciu: {e}",
+                    exc_info=True,
+                )
 
         reply = QMessageBox.question(
             self,
@@ -418,7 +429,9 @@ class MainWindow(QMainWindow):
     def _create_placeholder_widget(self, tab_name):
         """Create a lightweight placeholder widget."""
         placeholder = QWidget()
-        placeholder.setProperty("is_placeholder", True)  # Jednoznaczne oznaczenie placeholderów
+        placeholder.setProperty(
+            "is_placeholder", True
+        )  # Jednoznaczne oznaczenie placeholderów
         layout = QVBoxLayout(placeholder)
         label = QLabel(f"Loading {tab_name}...")
         label.setStyleSheet("color: gray; font-style: italic;")
@@ -431,36 +444,38 @@ class MainWindow(QMainWindow):
         current_widget = self.tabs.widget(index)
 
         # Check if it's a placeholder that needs replacement
-        if hasattr(current_widget, "property") and current_widget.property("is_placeholder"):
-                # This is a placeholder, replace with real widget
-                if index == 1:  # Tab 2
-                    real_widget = self._tab_widgets["tab2"]
-                    self.tabs.removeTab(index)
-                    self.tabs.insertTab(
-                        index,
-                        real_widget,
-                        TranslationManager.translate("app.tabs.tab2"),
-                    )
-                elif index == 2:  # Tab 3
-                    real_widget = self._tab_widgets["tab3"]
-                    self.tabs.removeTab(index)
-                    self.tabs.insertTab(
-                        index,
-                        real_widget,
-                        TranslationManager.translate("app.tabs.tab3"),
-                    )
-                elif index == 3:  # Console
-                    real_widget = self._get_console_tab()
-                    self.tabs.removeTab(index)
-                    self.tabs.insertTab(
-                        index,
-                        real_widget,
-                        TranslationManager.translate("app.tabs.console.title"),
-                    )
+        if hasattr(current_widget, "property") and current_widget.property(
+            "is_placeholder"
+        ):
+            # This is a placeholder, replace with real widget
+            if index == 1:  # Tab 2
+                real_widget = self._tab_widgets["tab2"]
+                self.tabs.removeTab(index)
+                self.tabs.insertTab(
+                    index,
+                    real_widget,
+                    TranslationManager.translate("app.tabs.tab2"),
+                )
+            elif index == 2:  # Tab 3
+                real_widget = self._tab_widgets["tab3"]
+                self.tabs.removeTab(index)
+                self.tabs.insertTab(
+                    index,
+                    real_widget,
+                    TranslationManager.translate("app.tabs.tab3"),
+                )
+            elif index == 3:  # Console
+                real_widget = self._get_console_tab()
+                self.tabs.removeTab(index)
+                self.tabs.insertTab(
+                    index,
+                    real_widget,
+                    TranslationManager.translate("app.tabs.console.title"),
+                )
 
-                # Set the current tab back to the replaced one
-                self.tabs.setCurrentIndex(index)
-                logging.info(f"Lazy loaded tab at index {index}")
+            # Set the current tab back to the replaced one
+            self.tabs.setCurrentIndex(index)
+            logging.info(f"Lazy loaded tab at index {index}")
 
     @property
     def preferences(self):

@@ -64,9 +64,27 @@ class PreferencesDialog(QDialog):
 
         self.log_ui_console_checkbox = QCheckBox()
         self.log_ui_console_checkbox.setChecked(
-            preferences.get("log_ui_to_console", False)
+            preferences.get(
+                "log_to_system_console", preferences.get("log_ui_to_console", False)
+            )
         )
-        logging_layout.addRow(self.log_ui_console_checkbox)
+        logging_layout.addRow(
+            TranslationManager.translate(
+                "app.dialogs.preferences.log_to_system_console"
+            )
+            or "Log to system console",
+            self.log_ui_console_checkbox,
+        )
+
+        self.logger_debug_mode_checkbox = QCheckBox()
+        self.logger_debug_mode_checkbox.setChecked(
+            preferences.get("logger_debug_mode", False)
+        )
+        logging_layout.addRow(
+            TranslationManager.translate("app.dialogs.preferences.logger_debug_mode")
+            or "Show detailed logger debug info",
+            self.logger_debug_mode_checkbox,
+        )
 
         self.log_level_combo = QComboBox()
         log_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -147,7 +165,8 @@ class PreferencesDialog(QDialog):
             "show_splash": self.splash_checkbox.isChecked(),
             "remember_window_size": self.remember_window_checkbox.isChecked(),
             "log_to_file": self.log_to_file_checkbox.isChecked(),
-            "log_ui_to_console": self.log_ui_console_checkbox.isChecked(),
+            "log_to_system_console": self.log_ui_console_checkbox.isChecked(),
+            "logger_debug_mode": self.logger_debug_mode_checkbox.isChecked(),
             "log_level": self.log_level_combo.currentText(),
             "language": language,
         }

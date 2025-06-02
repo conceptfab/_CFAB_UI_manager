@@ -123,7 +123,7 @@ class ApplicationStartup(QObject):
             default_config_for_logger = {
                 "log_level": "INFO",
                 "log_to_file": False,
-                "log_ui_to_console": True,  # Domyślnie loguj do konsoli, jeśli brak configu
+                "log_to_system_console": True,  # Domyślnie loguj do konsoli, jeśli brak configu
                 "log_dir": log_dir,
             }
             self.logger = AppLogger(default_config_for_logger)

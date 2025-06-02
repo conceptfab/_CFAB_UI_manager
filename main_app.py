@@ -38,7 +38,7 @@ class Application(QApplication):
         self._config = {
             "show_splash": True,
             "log_to_file": False,
-            "log_ui_to_console": False,
+            "log_to_system_console": False,  # Zmieniona nazwa z log_ui_to_console
             "log_level": "INFO",
         }
         self.base_dir = os.path.dirname(os.path.abspath(__file__))

@@ -34,7 +34,7 @@ class ConfigValidator:
         "language": str,
         "show_splash": bool,
         "log_to_file": bool,
-        "log_ui_to_console": bool,
+        "log_to_system_console": bool,  # Zmieniona nazwa z log_ui_to_console
     }
 
     # Optional configuration keys and their expected types
