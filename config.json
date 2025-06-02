@@ -4,7 +4,7 @@
   "log_to_file": false,
   "log_to_system_console": false,
   "window_size": {
-    "width": 1283,
+    "width": 1152,
     "height": 1019
   },
   "window_position": {
@@ -12,6 +12,5 @@
     "y": 40
   },
   "remember_window_size": true,
-  "log_level": "INFO",
-  "logger_debug_mode": false
+  "log_level": "INFO"
 }
