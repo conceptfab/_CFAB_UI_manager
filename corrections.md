@@ -130,7 +130,11 @@ _Analiza pliku `architecture/state_management.py` zakończona._
 
 ---
 
-## Analiza pliku: `UI/main_window.py`
+## ETAP 2: SZCZEGÓŁOWA ANALIZA I KOREKCJE - `UI/main_window.py` - **[WPROWADZONA ✅]**
+
+**Status:** DONE
+**Data wykonania:** 2025-06-02
+**Testy:** READY FOR TESTING
 
 - **Priorytet:** 🔴 Wysoki
 - **Zależności:** `json`, `logging`, `os`, `PyQt6.QtCore`, `PyQt6.QtWidgets`, komponenty UI (`ConsoleWidget`, `MenuBar`, `TabOneWidget`, etc.), dialogi (`HardwareProfilerDialog`, `PreferencesDialog`), managery (`ThreadManager`, `TranslationManager`), optymalizatory (`performance_optimizer`).
@@ -177,7 +181,11 @@ _Analiza pliku `architecture/state_management.py` zakończona._
 
 ---
 
-## Analiza pliku: `utils/improved_thread_manager.py`
+## ETAP 2: SZCZEGÓŁOWA ANALIZA I KOREKCJE - `utils/improved_thread_manager.py` - **[WPROWADZONA ✅]**
+
+**Status:** DONE
+**Data wykonania:** 2025-06-03
+**Testy:** PASSED
 
 - **Priorytet:** 🔴 Wysoki
 - **Zależności:** `logging`, `queue`, `threading`, `time`, `weakref`, `typing`, `PyQt6.QtCore`

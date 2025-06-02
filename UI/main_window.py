@@ -74,14 +74,15 @@ class MainWindow(QMainWindow):
 
     def __init__(self, *args, app_logger=None, **kwargs):
         try:
-            self.logger = app_logger if app_logger else logging.getLogger("AppLogger")
+            # Jednolite używanie app_logger jako głównego loggera aplikacji
+            self.app_logger = app_logger if app_logger else logging.getLogger("AppLogger")
+            self.logger = self.app_logger  # Dla wstecznej kompatybilności
 
             self.logger.info("MainWindow: start __init__")
             super().__init__(*args, **kwargs)
             self.setWindowTitle(TranslationManager.translate("app.title"))
             self.thread_manager = ThreadManager()
             self.file_worker = FileWorker()
-            self.app_logger = app_logger
 
             # Domyślne preferencje
             self._preferences = {
@@ -169,6 +170,9 @@ class MainWindow(QMainWindow):
             TranslationManager.translate("app.tabs.console.title"),
         )
 
+        # Podłącz sygnał zmiany zakładki do mechanizmu lazy loading
+        self.tabs.currentChanged.connect(self._on_tab_changed)
+
         self.setCentralWidget(self.tabs)
 
         # Pasek statusu
@@ -212,16 +216,23 @@ class MainWindow(QMainWindow):
         if self.app_logger and hasattr(widget, "append_log"):
             # Dodajemy bardziej szczegółowe logowanie dla debugowania
             self.logger.debug(
-                f"Próba rejestracji handlera konsoli. app_logger: {self.app_logger}"
+                "Próba rejestracji handlera konsoli w AppLogger."
             )
             try:
-                self.app_logger.set_console_widget_handler(widget.append_log)
-                self.logger.info("ConsoleWidget handler registered with AppLogger.")
-                # Test logu przez AppLogger
-                self.app_logger.async_logger.log(
-                    logging.INFO,
-                    "Test logu przez AsyncLogger po rejestracji ConsoleWidget",
-                )
+                # Sprawdź, czy metoda set_console_widget_handler istnieje w app_logger
+                if hasattr(self.app_logger, "set_console_widget_handler"):
+                    self.app_logger.set_console_widget_handler(widget.append_log)
+                    self.logger.info("ConsoleWidget handler registered with AppLogger.")
+                    # Test logu przez AppLogger
+                    if hasattr(self.app_logger, "async_logger"):
+                        self.app_logger.async_logger.log(
+                            logging.INFO,
+                            "Test logu przez AsyncLogger po rejestracji ConsoleWidget",
+                        )
+                else:
+                    self.logger.warning(
+                        "AppLogger nie ma metody set_console_widget_handler."
+                    )
             except Exception as e:
                 self.logger.error(
                     f"Błąd podczas rejestracji handlera konsoli: {e}", exc_info=True
@@ -331,14 +342,14 @@ class MainWindow(QMainWindow):
         create_menu_bar(self)
 
         # Aktualizacja zawartości zakładek - tylko jeśli zostały już załadowane
-        # Sprawdzamy czy widgets zostały załadowane (lazy loading)
-        if hasattr(self, "_lazy_tab1_widget"):
+        # Sprawdzamy czy widgets istnieją w słowniku _tab_widgets
+        if "tab1" in self._tab_widgets and hasattr(self._tab_widgets["tab1"], "update_translations"):
             self._tab_widgets["tab1"].update_translations()
 
-        if hasattr(self, "_lazy_tab2_widget"):
+        if "tab2" in self._tab_widgets and hasattr(self._tab_widgets["tab2"], "update_translations"):
             self._tab_widgets["tab2"].update_translations()
 
-        if hasattr(self, "_lazy_tab3_widget"):
+        if "tab3" in self._tab_widgets and hasattr(self._tab_widgets["tab3"], "update_translations"):
             self._tab_widgets["tab3"].update_translations()
 
         # Aktualizacja console widget jeśli został załadowany
@@ -363,7 +374,13 @@ class MainWindow(QMainWindow):
                 "x": self.pos().x(),
                 "y": self.pos().y(),
             }
-            self.save_preferences_async()  # Zapisz preferencje przed zamknięciem
+            # Zapisz preferencje synchronicznie przy zamknięciu aplikacji
+            try:
+                with open(self.config_path, "w", encoding="utf-8") as f:
+                    json.dump(self._preferences, f, indent=2, ensure_ascii=False)
+                self.logger.info("Preferencje zostały zapisane synchronicznie przed zamknięciem.")
+            except Exception as e:
+                self.logger.error(f"Błąd podczas zapisu preferencji przy zamknięciu: {e}", exc_info=True)
 
         reply = QMessageBox.question(
             self,
@@ -401,6 +418,7 @@ class MainWindow(QMainWindow):
     def _create_placeholder_widget(self, tab_name):
         """Create a lightweight placeholder widget."""
         placeholder = QWidget()
+        placeholder.setProperty("is_placeholder", True)  # Jednoznaczne oznaczenie placeholderów
         layout = QVBoxLayout(placeholder)
         label = QLabel(f"Loading {tab_name}...")
         label.setStyleSheet("color: gray; font-style: italic;")
@@ -413,9 +431,7 @@ class MainWindow(QMainWindow):
         current_widget = self.tabs.widget(index)
 
         # Check if it's a placeholder that needs replacement
-        if hasattr(current_widget, "findChild") and current_widget.findChild(QLabel):
-            label = current_widget.findChild(QLabel)
-            if label and "Loading" in label.text():
+        if hasattr(current_widget, "property") and current_widget.property("is_placeholder"):
                 # This is a placeholder, replace with real widget
                 if index == 1:  # Tab 2
                     real_widget = self._tab_widgets["tab2"]

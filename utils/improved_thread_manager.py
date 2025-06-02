@@ -4,6 +4,7 @@ import threading
 import time
 import weakref
 from typing import Any, Callable, Dict, List, Optional
+from weakref import WeakValueDictionary
 
 from PyQt6.QtCore import QObject, QRunnable, QThread, QThreadPool, QTimer, pyqtSignal
 
@@ -143,6 +144,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         self.enable_logging = enable_logging
         self.workers = []  # Dla kompatybilności
         self.active_tasks = weakref.WeakSet()  # Zmieniono z Dict na WeakSet
+        self.task_id_map = WeakValueDictionary()  # Mapowanie task_id -> task
         self.log_queue = (
             LogQueue() if enable_logging else None
         )  # Użycie nowej nazwy LogQueue
@@ -165,22 +167,23 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         self._lock = threading.Lock()
 
     # Metody z ImprovedThreadManager
-    def submit_task(self, func: Callable, *args, **kwargs) -> str:
+    def submit_task(self, func: Callable, *args, task_timeout: Optional[int] = None, **kwargs) -> str:
         """
         Dodaje zadanie do pool'a
 
         Args:
             func: Funkcja do wykonania
-            *args, **kwargs: Argumenty dla funkcji
+            *args: Argumenty pozycyjne dla funkcji
+            task_timeout: Opcjonalny timeout dla zadania (w sekundach)
+            **kwargs: Argumenty nazwane dla funkcji
 
         Returns:
             str: ID zadania
         """
-        timeout = self.task_timeout
-        # If the first argument is an integer and there are at least two args, treat as timeout
-        if args and isinstance(args[0], int) and len(args) > 1:
-            timeout = args[0]
-            args = args[1:]
+        # Użyj task_timeout, jeśli podany, w przeciwnym razie używamy domyślnego
+        timeout = task_timeout if task_timeout is not None else self.task_timeout
+        
+        # Zachowaj wsteczną kompatybilność - sprawdź, czy timeout istnieje w kwargs
         if "timeout" in kwargs:
             timeout = kwargs.pop("timeout")
 
@@ -188,7 +191,9 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         task_id = f"task_{self.task_counter}"
 
         task = ImprovedWorkerTask(func, timeout, *args, **kwargs)
+        setattr(task, 'task_id', task_id)  # Dodajemy atrybut task_id do obiektu zadania
         self.active_tasks.add(task)  # Dodawanie do WeakSet
+        self.task_id_map[task_id] = task  # Dodajemy mapowanie task_id -> task
 
         # Weak reference cleanup po zakończeniu
         def on_finished(result):
@@ -219,37 +224,30 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
                 logging.DEBUG, f"Submitted task {task_id}: {func.__name__}"
             )
         return task_id
-
+        
     def cancel_task(self, task_id: str) -> bool:
         """
-        Anuluje zadanie
+        Anuluje zadanie na podstawie jego ID.
 
         Args:
-            task_id: ID zadania do anulowania - UWAGA: WeakSet nie wspiera bezpośredniego usuwania po ID,
-                     trzeba by iterować i sprawdzać atrybut task_id w obiekcie task.
-                     Dla uproszczenia, ta metoda może wymagać przeprojektowania lub usunięcia,
-                     jeśli nie jest krytyczna. Załóżmy na razie, że nie jest używana lub
-                     będzie dostosowana później.
-                     Alternatywnie, można przechowywać mapowanie task_id -> weakref(task)
+            task_id: ID zadania do anulowania
+
         Returns:
-            bool: True jeśli zadanie zostało anulowane
+            bool: True jeśli zadanie zostało anulowane, False w przeciwnym wypadku
         """
-        # Implementacja wymaga dostosowania do WeakSet
-        # Na potrzeby tego etapu, załóżmy, że ta funkcjonalność jest mniej priorytetowa
-        # lub zostanie zaimplementowana inaczej.
-        # Przykład:
-        # for task_ref in self.active_tasks:
-        #     task = task_ref() # Get the actual task object
-        #     if task and hasattr(task, 'id') and task.id == task_id: # Zakładając, że task ma atrybut id
-        #         task.cancel()
-        #         # WeakSet sam usunie obiekt, gdy nie będzie już silnych referencji
-        #         if self.enable_logging:
-        #             self.log_queue.add_log(logging.DEBUG, f"Cancelled task {task_id}")
-        #         return True
+        # Używamy WeakValueDictionary do szybkiego dostępu do zadania po ID
+        task = self.task_id_map.get(task_id)
+        
+        if task is not None:
+            task.cancel()
+            # WeakSet automatycznie usunie zadanie, gdy nie będzie już do niego referencji
+            if self.enable_logging:
+                self.log_queue.add_log(logging.DEBUG, f"Cancelled task {task_id}")
+            return True
+            
+        # Zadanie nie zostało znalezione
         if self.enable_logging:
-            logger.warning(
-                f"cancel_task for WeakSet needs review/reimplementation for task_id: {task_id}"
-            )
+            self.log_queue.add_log(logging.WARNING, f"Task {task_id} not found for cancellation")
         return False
 
     def get_active_task_count(self) -> int:
@@ -429,99 +427,53 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
     # Metody kompatybilności ze starym API
     def run_in_thread(self, func, *args, **kwargs):
         """
-        Kompatybilność ze starym API
+        Kompatybilność ze starym API. Tworzy i uruchamia zadanie w sposób kompatybilny
+        z poprzednią wersją API.
+        
+        Args:
+            func: Funkcja do wykonania
+            *args, **kwargs: Argumenty dla funkcji
+            
+        Returns:
+            obj: Obiekt kompatybilny ze starym API, posiadający sygnały finished i error
         """
-        # Logika dla starego API, jeśli potrzebne zachowanie `workers`
-        # W tym przypadku, po prostu przekierowujemy do submit_task
-        # Jeśli LegacyWorker jest nadal potrzebny, można go tu zaimplementować
-        # ale celem jest unifikacja.
-
-        # Proste przekierowanie, jeśli LegacyWorker nie jest absolutnie konieczne:
+        # Używamy naszej ulepszonej implementacji do faktycznego zarządzania zadaniem
         task_id = self.submit_task(func, *args, **kwargs)
-
-        # Jeśli `self.workers` i sygnały `finished`/`error` na workerze są nadal używane
-        # przez stary kod, trzeba by stworzyć obiekt kompatybilny.
-        # Na podstawie opisu, celem jest konsolidacja, więc idealnie stary kod
-        # powinien zostać zaktualizowany do używania `submit_task` bezpośrednio.
-        # Poniżej uproszczona wersja, która nie tworzy LegacyWorker,
-        # zakładając, że `self.workers` nie jest już krytyczne.
-
-        # Jeśli jednak `LegacyWorker` jest potrzebny dla kompatybilności:
-        class LegacyWorkerCompat:  # Uproszczona wersja dla kompatybilności
-            def __init__(self, task_id_ref, manager_ref, original_task_signals):
-                self.task_id = task_id_ref
-                self.manager = manager_ref
-                # Przekierowanie sygnałów z oryginalnego zadania
-                self.finished = original_task_signals.finished
-                self.error = original_task_signals.error
-                # Można dodać metodę cancel, jeśli potrzebna
-                # self.cancel = lambda: manager_ref.cancel_task(task_id_ref) # Uproszczenie
-
-        # Aby to działało poprawnie, submit_task musiałby zwracać obiekt zadania,
-        # a nie tylko task_id, lub musielibyśmy znaleźć zadanie po task_id.
-        # Dla uproszczenia, na razie zwracamy task_id, co może wymagać dostosowania
-        # w miejscach użycia run_in_thread, jeśli oczekują one obiektu workera.
-
-        # Zgodnie z oryginalnym kodem `ThreadManager` (wrapper):
-        # Tworzymy obiekt podobny do LegacyWorker, ale używając sygnałów z ImprovedWorkerTask
-
-        # Aby to zadziałało, submit_task musiałby zwracać również obiekt task,
-        # albo musielibyśmy go odszukać. Załóżmy, że submit_task zwraca task_id.
-        # To jest problematyczne, bo stary API oczekuje obiektu workera.
-
-        # Zmiana: submit_task powinien zwracać obiekt task, a nie task_id,
-        # jeśli chcemy łatwo zaimplementować run_in_thread w ten sposób.
-        # Alternatywnie, run_in_thread tworzy task i zarządza nim.
-
-        # Podejście z `poprawki.md` (zwracanie task_id) jest prostsze, ale może łamać stary kod.
-        # Załóżmy, że to jest akceptowalne zgodnie z planem.
-
-        # Jeśli jednak chcemy pełniejszą kompatybilność dla `run_in_thread`
-        # bez zmiany `submit_task` za bardzo:
-        task = ImprovedWorkerTask(func, self.task_timeout, *args, **kwargs)
-
-        # Symulacja LegacyWorker dla kompatybilności, jeśli potrzebne
-        # To jest tylko jeśli `self.workers` i zwracany obiekt są krytyczne.
-
-        # Definicja klasy pomocniczej QObject do posiadania sygnałów
-        class CompatSignalsHelper(QObject):
-            finished = pyqtSignal(object)
-            error = pyqtSignal(Exception)
-
-        # Utworzenie instancji klasy pomocniczej
-        signals_helper_instance = CompatSignalsHelper()
-
-        def on_compat_finished(result):
-            signals_helper_instance.finished.emit(result)
-            # Usunięcie z self.workers? Wymagałoby przechowywania referencji.
-
-        def on_compat_error(error):
-            signals_helper_instance.error.emit(error)
-
-        task.signals.finished.connect(on_compat_finished)
-        task.signals.error.connect(on_compat_error)
-
-        self.thread_pool.start(task)
-        self.active_tasks.add(task)  # Dodajemy do WeakSet
-
-        # Tworzymy obiekt, który stary kod może oczekiwać
-        # To jest odstępstwo od `return self.submit_task` z `poprawki.md`
-        # ale zapewnia lepszą kompatybilność.
-        worker_compat_obj = QObject()  # Prosty obiekt
-        worker_compat_obj.finished = (
-            signals_helper_instance.finished
-        )  # Przypisujemy sygnał z instancji klasy pomocniczej
-        worker_compat_obj.error = (
-            signals_helper_instance.error
-        )  # Przypisujemy sygnał z instancji klasy pomocniczej
-        # worker_compat_obj.task = task # Można dodać referencję do zadania
-        # worker_compat_obj.cancel = task.cancel # Przekazanie metody cancel
-
-        self.workers.append(worker_compat_obj)  # Dla kompatybilności z `self.workers`
-
+        task = self.task_id_map.get(task_id)
+        
+        if not task:
+            if self.enable_logging:
+                self.log_queue.add_log(
+                    logging.ERROR, f"Failed to create compatible worker for {func.__name__}"
+                )
+            return None
+        
+        # Tworzymy obiekt kompatybilny ze starym API
+        worker_compat_obj = QObject()
+        worker_compat_obj.finished = task.signals.finished
+        worker_compat_obj.error = task.signals.error
+        
+        # Dodajemy metodę cancel dla kompatybilności
+        worker_compat_obj.cancel = lambda: self.cancel_task(task_id)
+        
+        # Dodajemy identyfikator task_id do obiektu
+        worker_compat_obj.task_id = task_id
+        
+        # Dodajemy metodę do usuwania obiektu z listy workers
+        def cleanup_worker():
+            if worker_compat_obj in self.workers:
+                self.workers.remove(worker_compat_obj)
+                
+        # Podłączamy sygnał zakończenia do funkcji czyszczącej
+        task.signals.finished.connect(cleanup_worker)
+        task.signals.error.connect(cleanup_worker)
+        
+        # Dodajemy do listy workers dla kompatybilności ze starym kodem
+        self.workers.append(worker_compat_obj)
+        
         if self.enable_logging:
             self.log_queue.add_log(
-                logging.DEBUG, f"Legacy run_in_thread: {func.__name__}"
+                logging.DEBUG, f"Legacy run_in_thread: {func.__name__} (task_id: {task_id})"
             )
-
-        return worker_compat_obj  # Zwracamy obiekt z sygnałami
+            
+        return worker_compat_obj

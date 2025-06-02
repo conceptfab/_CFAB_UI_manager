@@ -15,26 +15,30 @@ logger = logging.getLogger(__name__)
 
 # Type definitions for better type checking
 State = Dict[str, Any]
-T = TypeVar('T')  # Generic type for reducer return value
+T = TypeVar("T")  # Generic type for reducer return value
 
 
-def with_immutable_state(reducer_func: Callable[[State, 'Action'], State]) -> Callable[[State, 'Action'], State]:
+def with_immutable_state(
+    reducer_func: Callable[[State, "Action"], State],
+) -> Callable[[State, "Action"], State]:
     """
     Decorator that wraps a reducer function to ensure immutability by creating
     a deepcopy of the state before applying reducer logic.
-    
+
     Args:
         reducer_func: Original reducer function that takes (state, action) and returns new state
-        
+
     Returns:
         Wrapped reducer function that ensures state immutability
     """
+
     @wraps(reducer_func)
-    def wrapper(state: State, action: 'Action') -> State:
+    def wrapper(state: State, action: "Action") -> State:
         # Create a copy of the state first
         new_state = deepcopy(state)
         # Apply the reducer logic to the copied state
         return reducer_func(new_state, action)
+
     return wrapper
 
 
@@ -116,7 +120,9 @@ class ActionDispatcher(QObject):
         except ValueError:
             return False
 
-    def dispatch(self, action: Union[Action, str, ActionType], payload: Any = None) -> None:
+    def dispatch(
+        self, action: Union[Action, str, ActionType], payload: Any = None
+    ) -> None:
         """
         Dispatch an action
 
@@ -140,7 +146,7 @@ class ActionDispatcher(QObject):
 
         # Make a copy of current state for comparison
         old_state = deepcopy(self._current_state)
-        
+
         # Apply reducers
         for reducer in self._reducers:
             try:
@@ -170,22 +176,22 @@ class ActionDispatcher(QObject):
         """
         # Create a list of middleware functions
         middleware_chain = list(self._middleware)
-        
+
         if not middleware_chain:
             return action
-            
+
         # Define the recursive function to process the middleware chain
         def process_middleware(index: int, current_action: Action) -> Optional[Action]:
             # If we've reached the end of the chain, return the action
             if index >= len(middleware_chain):
                 return current_action
-                
+
             current_middleware = middleware_chain[index]
-            
+
             # Define the next function that will be passed to middleware
             def next_middleware(action: Action) -> Optional[Action]:
                 return process_middleware(index + 1, action)
-                
+
             try:
                 # Call the middleware with the action and next function
                 result = current_middleware(current_action, next_middleware)
@@ -194,7 +200,7 @@ class ActionDispatcher(QObject):
                 logger.error(f"Middleware {current_middleware.__name__} failed: {e}")
                 # Continue to next middleware even if current one fails
                 return process_middleware(index + 1, current_action)
-        
+
         # Start processing with the first middleware
         return process_middleware(0, action)
 
@@ -278,7 +284,7 @@ class Store:
         self._dispatcher.register_reducer(self._hardware_reducer)
         self._dispatcher.register_reducer(self._application_reducer)
         self._dispatcher.register_reducer(self._preferences_reducer)
-    
+
     @staticmethod
     @with_immutable_state
     def _ui_reducer(state: Dict[str, Any], action: Action) -> Dict[str, Any]:
@@ -347,7 +353,9 @@ class Store:
 
         return state
 
-    def dispatch(self, action: Union[Action, str, ActionType], payload: Any = None) -> None:
+    def dispatch(
+        self, action: Union[Action, str, ActionType], payload: Any = None
+    ) -> None:
         """
         Dispatch an action to the store
 
@@ -455,6 +463,3 @@ def set_loading(loading: bool) -> None:
 def add_error(error: str) -> None:
     """Add an error to the application state"""
     get_store().dispatch(ActionType.ADD_ERROR, error)
-
-
-
