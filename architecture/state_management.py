@@ -2,12 +2,40 @@
 # Centralized state management with Flux/Redux-like pattern
 
 import logging
+import time
 from copy import deepcopy
-from typing import Any, Callable, Dict, List, Optional, Union
+from functools import wraps
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Union, cast
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
+from architecture.action_types import ActionType
+
 logger = logging.getLogger(__name__)
+
+# Type definitions for better type checking
+State = Dict[str, Any]
+T = TypeVar('T')  # Generic type for reducer return value
+
+
+def with_immutable_state(reducer_func: Callable[[State, 'Action'], State]) -> Callable[[State, 'Action'], State]:
+    """
+    Decorator that wraps a reducer function to ensure immutability by creating
+    a deepcopy of the state before applying reducer logic.
+    
+    Args:
+        reducer_func: Original reducer function that takes (state, action) and returns new state
+        
+    Returns:
+        Wrapped reducer function that ensures state immutability
+    """
+    @wraps(reducer_func)
+    def wrapper(state: State, action: 'Action') -> State:
+        # Create a copy of the state first
+        new_state = deepcopy(state)
+        # Apply the reducer logic to the copied state
+        return reducer_func(new_state, action)
+    return wrapper
 
 
 class Action:
@@ -15,10 +43,10 @@ class Action:
     Represents an action that can modify application state
     """
 
-    def __init__(self, action_type: str, payload: Any = None):
+    def __init__(self, action_type: Union[ActionType, str], payload: Any = None):
         self.type = action_type
         self.payload = payload
-        self.timestamp = None  # Will be set by dispatcher
+        self.timestamp = time.time()  # Set timestamp at creation time
 
     def __repr__(self):
         return f"Action(type='{self.type}', payload={self.payload})"
@@ -88,18 +116,18 @@ class ActionDispatcher(QObject):
         except ValueError:
             return False
 
-    def dispatch(self, action: Union[Action, str], payload: Any = None) -> None:
+    def dispatch(self, action: Union[Action, str, ActionType], payload: Any = None) -> None:
         """
         Dispatch an action
 
         Args:
-            action: Action object or action type string
-            payload: Payload if action is a string
+            action: Action object, action type string, or ActionType enum
+            payload: Payload if action is a string or enum
         """
-        if isinstance(action, str):
+        if isinstance(action, (str, ActionType)):
             action = Action(action, payload)
 
-        # Add to history
+        # Add to history with timestamp
         self._action_history.append(action)
         if len(self._action_history) > self._max_history:
             self._action_history.pop(0)
@@ -107,10 +135,13 @@ class ActionDispatcher(QObject):
         # Apply middleware
         processed_action = self._apply_middleware(action)
         if processed_action is None:
+            logger.debug(f"Action blocked by middleware: {action}")
             return  # Action was blocked by middleware
 
-        # Apply reducers
+        # Make a copy of current state for comparison
         old_state = deepcopy(self._current_state)
+        
+        # Apply reducers
         for reducer in self._reducers:
             try:
                 self._current_state = reducer(self._current_state, processed_action)
@@ -120,15 +151,16 @@ class ActionDispatcher(QObject):
         # Notify subscribers if state changed
         if self._current_state != old_state:
             self._notify_subscribers()
-
-        # Emit signal
-        self.action_dispatched.emit(processed_action)
-
-        logger.debug(f"Action dispatched: {processed_action}")
+            # Emit signal
+            self.action_dispatched.emit(processed_action)
+            logger.debug(f"Action dispatched: {processed_action}")
+        else:
+            logger.debug(f"Action produced no state change: {processed_action}")
 
     def _apply_middleware(self, action: Action) -> Optional[Action]:
         """
-        Apply middleware to action
+        Apply middleware to action in a chain
+        Each middleware receives the action and the next middleware in the chain
 
         Args:
             action: Action to process
@@ -136,18 +168,35 @@ class ActionDispatcher(QObject):
         Returns:
             Processed action or None if blocked
         """
-        current_action = action
-
-        for middleware in self._middleware:
+        # Create a list of middleware functions
+        middleware_chain = list(self._middleware)
+        
+        if not middleware_chain:
+            return action
+            
+        # Define the recursive function to process the middleware chain
+        def process_middleware(index: int, current_action: Action) -> Optional[Action]:
+            # If we've reached the end of the chain, return the action
+            if index >= len(middleware_chain):
+                return current_action
+                
+            current_middleware = middleware_chain[index]
+            
+            # Define the next function that will be passed to middleware
+            def next_middleware(action: Action) -> Optional[Action]:
+                return process_middleware(index + 1, action)
+                
             try:
-                result = middleware(current_action, lambda a: a)
-                if result is None:
-                    return None  # Action blocked
-                current_action = result
+                # Call the middleware with the action and next function
+                result = current_middleware(current_action, next_middleware)
+                return result
             except Exception as e:
-                logger.error(f"Middleware {middleware.__name__} failed: {e}")
-
-        return current_action
+                logger.error(f"Middleware {current_middleware.__name__} failed: {e}")
+                # Continue to next middleware even if current one fails
+                return process_middleware(index + 1, current_action)
+        
+        # Start processing with the first middleware
+        return process_middleware(0, action)
 
     def _notify_subscribers(self) -> None:
         """
@@ -229,84 +278,82 @@ class Store:
         self._dispatcher.register_reducer(self._hardware_reducer)
         self._dispatcher.register_reducer(self._application_reducer)
         self._dispatcher.register_reducer(self._preferences_reducer)
-
-    def _ui_reducer(self, state: Dict[str, Any], action: Action) -> Dict[str, Any]:
+    
+    @staticmethod
+    @with_immutable_state
+    def _ui_reducer(state: Dict[str, Any], action: Action) -> Dict[str, Any]:
         """
         Reducer for UI-related actions
         """
-        new_state = deepcopy(state)
+        # No need for deepcopy here as it's handled by the decorator
+        if action.type == ActionType.SET_CURRENT_TAB:
+            state["ui"]["current_tab"] = action.payload
+        elif action.type == ActionType.SET_WINDOW_MAXIMIZED:
+            state["ui"]["window_maximized"] = action.payload
+        elif action.type == ActionType.SET_THEME:
+            state["ui"]["theme"] = action.payload
+        elif action.type == ActionType.SET_LANGUAGE:
+            state["ui"]["language"] = action.payload
 
-        if action.type == "SET_CURRENT_TAB":
-            new_state["ui"]["current_tab"] = action.payload
-        elif action.type == "SET_WINDOW_MAXIMIZED":
-            new_state["ui"]["window_maximized"] = action.payload
-        elif action.type == "SET_THEME":
-            new_state["ui"]["theme"] = action.payload
-        elif action.type == "SET_LANGUAGE":
-            new_state["ui"]["language"] = action.payload
+        return state
 
-        return new_state
-
-    def _hardware_reducer(
-        self, state: Dict[str, Any], action: Action
-    ) -> Dict[str, Any]:
+    @staticmethod
+    @with_immutable_state
+    def _hardware_reducer(state: Dict[str, Any], action: Action) -> Dict[str, Any]:
         """
         Reducer for hardware-related actions
         """
-        new_state = deepcopy(state)
-
-        if action.type == "SET_HARDWARE_PROFILE":
-            new_state["hardware"].update(action.payload)
-            new_state["hardware"]["profile_loaded"] = True
-        elif action.type == "CLEAR_HARDWARE_PROFILE":
-            new_state["hardware"] = {
+        # No need for deepcopy here as it's handled by the decorator
+        if action.type == ActionType.SET_HARDWARE_PROFILE:
+            state["hardware"].update(action.payload)
+            state["hardware"]["profile_loaded"] = True
+        elif action.type == ActionType.CLEAR_HARDWARE_PROFILE:
+            state["hardware"] = {
                 "profile_loaded": False,
                 "gpu_info": "",
                 "cpu_info": "",
                 "memory_total": 0,
             }
 
-        return new_state
+        return state
 
-    def _application_reducer(
-        self, state: Dict[str, Any], action: Action
-    ) -> Dict[str, Any]:
+    @staticmethod
+    @with_immutable_state
+    def _application_reducer(state: Dict[str, Any], action: Action) -> Dict[str, Any]:
         """
         Reducer for application-related actions
         """
-        new_state = deepcopy(state)
+        # No need for deepcopy here as it's handled by the decorator
+        if action.type == ActionType.SET_INITIALIZED:
+            state["application"]["initialized"] = action.payload
+        elif action.type == ActionType.SET_LOADING:
+            state["application"]["loading"] = action.payload
+        elif action.type == ActionType.ADD_ERROR:
+            state["application"]["errors"].append(action.payload)
+        elif action.type == ActionType.CLEAR_ERRORS:
+            state["application"]["errors"] = []
 
-        if action.type == "SET_INITIALIZED":
-            new_state["application"]["initialized"] = action.payload
-        elif action.type == "SET_LOADING":
-            new_state["application"]["loading"] = action.payload
-        elif action.type == "ADD_ERROR":
-            new_state["application"]["errors"].append(action.payload)
-        elif action.type == "CLEAR_ERRORS":
-            new_state["application"]["errors"] = []
+        return state
 
-        return new_state
-
-    def _preferences_reducer(
-        self, state: Dict[str, Any], action: Action
-    ) -> Dict[str, Any]:
+    @staticmethod
+    @with_immutable_state
+    def _preferences_reducer(state: Dict[str, Any], action: Action) -> Dict[str, Any]:
         """
         Reducer for preferences-related actions
         """
-        new_state = deepcopy(state)
+        # No need for deepcopy here as it's handled by the decorator
+        if action.type == ActionType.UPDATE_PREFERENCES:
+            state["preferences"].update(action.payload)
 
-        if action.type == "UPDATE_PREFERENCES":
-            new_state["preferences"].update(action.payload)
+        return state
 
-        return new_state
-
-    def dispatch(self, action: Union[Action, str], payload: Any = None) -> None:
+    def dispatch(self, action: Union[Action, str, ActionType], payload: Any = None) -> None:
         """
         Dispatch an action to the store
 
         Args:
-            action: Action object or action type string
-            payload: Payload if action is a string
+            action: Action object, action type string, or ActionType enum
+            payload: Payload if action is a string or enum
         """
         self._dispatcher.dispatch(action, payload)
 
@@ -387,24 +434,27 @@ def reset_store() -> None:
 # Convenience functions for common actions
 def set_current_tab(tab_index: int) -> None:
     """Set the current active tab"""
-    get_store().dispatch("SET_CURRENT_TAB", tab_index)
+    get_store().dispatch(ActionType.SET_CURRENT_TAB, tab_index)
 
 
 def set_language(language: str) -> None:
     """Set the application language"""
-    get_store().dispatch("SET_LANGUAGE", language)
+    get_store().dispatch(ActionType.SET_LANGUAGE, language)
 
 
 def set_hardware_profile(profile: Dict[str, Any]) -> None:
     """Set the hardware profile"""
-    get_store().dispatch("SET_HARDWARE_PROFILE", profile)
+    get_store().dispatch(ActionType.SET_HARDWARE_PROFILE, profile)
 
 
 def set_loading(loading: bool) -> None:
     """Set the application loading state"""
-    get_store().dispatch("SET_LOADING", loading)
+    get_store().dispatch(ActionType.SET_LOADING, loading)
 
 
 def add_error(error: str) -> None:
     """Add an error to the application state"""
-    get_store().dispatch("ADD_ERROR", error)
+    get_store().dispatch(ActionType.ADD_ERROR, error)
+
+
+
