@@ -173,7 +173,7 @@ Status: DONE
 Data wykonania: 2025-06-03
 Testy: PASSED (pokrycie: 89%)
 
-### 3.6 utils/exceptions.py
+### 3.6 utils/exceptions.py - **[WPROWADZONA ✅]**
 
 - **Priorytet:** 🟡
 - **Zależności:** cała aplikacja
@@ -186,6 +186,10 @@ Testy: PASSED (pokrycie: 89%)
 
 - Test obsługi wyjątków
 - Test integracji z loggerem
+
+Status: DONE
+Data wykonania: 2025-06-03
+Testy: PASSED (pokrycie: >=85%)
 
 ### 3.7 utils/improved_thread_manager.py
 
