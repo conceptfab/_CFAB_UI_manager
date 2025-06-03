@@ -69,7 +69,7 @@ class ConfigValidator:
         self._check_optional_keys()
         self._validate_specific_values()
         # Add more validation steps as needed
-        logger.info("Configuration validated successfully.")
+        logger.debug("Configuration validated successfully.")
 
     @classmethod
     def validate_config_file(cls, config_path: str) -> Dict[str, Any]:

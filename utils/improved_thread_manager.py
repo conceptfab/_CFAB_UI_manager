@@ -410,7 +410,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
 
         if self.enable_logging:
             self._log_message(
-                logging.INFO, f"ThreadManager initialized with {max_workers} workers"
+                logging.DEBUG, f"ThreadManager initialized with {max_workers} workers"
             )
 
         self.task_timeout = task_timeout  # Dodano z ImprovedThreadManager
@@ -794,7 +794,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
 
         if leaked_count > 0:
             self._log_message(
-                logging.INFO, f"Cleaned up {leaked_count} leaked thread references"
+                logging.DEBUG, f"Cleaned up {leaked_count} leaked thread references"
             )
 
     def cleanup_finished_threads(self):
@@ -981,14 +981,14 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         for i in range(slices):
             if self.thread_pool.activeThreadCount() == 0:
                 if self.enable_logging:
-                    self._log_message(logging.INFO, "All tasks completed")
+                    self._log_message(logging.DEBUG, "All tasks completed")
                 return True
 
             # Poczekaj krótki czas
             result = self.thread_pool.waitForDone(slice_time * 1000)
             if result:
                 if self.enable_logging:
-                    self._log_message(logging.INFO, "All tasks completed")
+                    self._log_message(logging.DEBUG, "All tasks completed")
                 return True
 
             # Zaloguj postęp, jeśli potrzeba
@@ -1019,7 +1019,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         """
         if self.enable_logging:
             self._log_message(
-                logging.INFO,
+                logging.DEBUG,
                 f"Starting ThreadManager cleanup with {len(self.active_tasks)} active tasks",
             )
 
@@ -1054,7 +1054,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
                 tasks_str += f" and {len(active_task_info) - 5} more"
 
             self._log_message(
-                logging.INFO,
+                logging.DEBUG,
                 f"Active tasks before cleanup: {len(active_task_info)}. "
                 f"Including: {tasks_str}",
             )
@@ -1076,7 +1076,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
                     )
 
         if self.enable_logging and cancel_count > 0:
-            self._log_message(logging.INFO, f"Cancelled {cancel_count} active tasks")
+            self._log_message(logging.DEBUG, f"Cancelled {cancel_count} active tasks")
 
         # Poczekaj na zakończenie zadań
         wait_result = self.wait_for_completion(10)
@@ -1121,7 +1121,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         final_metrics = self.get_performance_metrics()
 
         if self.enable_logging:
-            logger.info(
+            logger.debug(
                 f"ThreadManager cleanup completed. Metrics: "
                 f"tasks_total={self.task_counter}, "
                 f"completed={final_metrics['tasks_completed_successfully']}, "

@@ -77,7 +77,7 @@ class ConsoleWidget(QWidget):
         self._flush_timer.timeout.connect(self._flush_buffer_to_console)
         self._flush_timer.start(2000)  # 2000 ms = 2 sekundy
 
-        logging.getLogger("AppLogger").info(
+        logging.getLogger("AppLogger").debug(
             TranslationManager.translate("app.tabs.console.status.initialized")
         )
 

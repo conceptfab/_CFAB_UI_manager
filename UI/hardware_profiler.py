@@ -114,7 +114,7 @@ class HardwareProfilerThread(QThread):
             cp.cuda.Stream.null.synchronize()
 
             # Właściwy pomiar
-            logger.info("Starting GPU benchmark timing...")
+            logger.debug("Starting GPU benchmark timing...")
             start_time = time.time()
 
             # Wykonaj mnożenie macierzy
@@ -130,7 +130,7 @@ class HardwareProfilerThread(QThread):
             mempool = cp.get_default_memory_pool()
             mempool.free_all_blocks()
 
-            logger.info(f"GPU benchmark completed in {duration:.4f} seconds")
+            logger.debug(f"GPU benchmark completed in {duration:.4f} seconds")
             return duration
 
         except Exception as e:
@@ -138,7 +138,7 @@ class HardwareProfilerThread(QThread):
             return None
 
     def run(self):
-        logger.info("Starting hardware profiling thread")
+        logger.debug("Starting hardware profiling thread")
         try:
             self.progress_update.emit(
                 TranslationManager.translate(
@@ -288,10 +288,9 @@ class HardwareProfilerThread(QThread):
                     stdout, stderr = secure_runner.run_command(cmd, timeout=180)
                     elapsed_perf = time.time() - start_time_perf
 
-                    if stdout:
-                        logger.info(f"Output pyperformance (stdout): {stdout.strip()}")
+                    logger.debug(f"Output pyperformance (stdout): {stdout.strip()}")
                     if stderr:
-                        logger.info(f"Output pyperformance (stderr): {stderr.strip()}")
+                        logger.debug(f"Output pyperformance (stderr): {stderr.strip()}")
 
                     score = None
                     try:
@@ -315,7 +314,7 @@ class HardwareProfilerThread(QThread):
                             perf_data = json.load(f)
 
                         if perf_data.get("metadata", {}).get("name") == "json_loads":
-                            logger.info("Found json_loads benchmark in main metadata.")
+                            logger.debug("Found json_loads benchmark in main metadata.")
                             all_run_values = []
                             if perf_data.get("benchmarks"):
                                 for bench_run_detail in perf_data["benchmarks"]:
@@ -488,11 +487,11 @@ class HardwareProfilerThread(QThread):
                         "app.dialogs.hardware_profiler.status.running_gpu_benchmark"
                     )
                 )
-                logger.info("Rozpoczęcie testu AI/GPU (CuPy)...")
+                logger.debug("Rozpoczęcie testu AI/GPU (CuPy)...")
                 try:
                     ai_time_s = self.run_ai_benchmark()
                     profile["ai_benchmark_cupy"] = {"time_s": ai_time_s}
-                    logger.info(
+                    logger.debug(
                         f"Test AI/GPU (CuPy) zakończony. Czas: {ai_time_s:.4f}s"
                     )
                     self.progress_update.emit(
@@ -526,7 +525,8 @@ class HardwareProfilerThread(QThread):
                 )
             )
             self.profile_ready.emit(profile)
-            logger.info("Hardware profiling finished successfully.")
+            # Zmniejszono verbosity - komunikat przeniesiony na poziom DEBUG
+            logger.debug("Hardware profiling finished successfully.")
 
         except Exception as e:
             logger.error(f"Hardware profiling failed: {e}", exc_info=True)
@@ -557,7 +557,7 @@ class HardwareProfilerThread(QThread):
                 logger.info("CuPy memory pool freed.")
             except Exception as e:
                 logger.warning(f"Could not free CuPy memory pool: {e}")
-        logger.info("Memory optimization attempt finished.")
+        logger.debug("Memory optimization attempt finished.")
 
     def get_hardware_info(self):
         # ...existing code...
@@ -1242,7 +1242,7 @@ if __name__ == "__main__":
 
     # To see status messages from the dialog (if it were part of a main window)
     def show_status(message):
-        logger.info(f"STATUS UPDATE (from dialog): {message}")
+        logger.debug(f"STATUS UPDATE (from dialog): {message}")
 
     dialog.status_message_requested.connect(show_status)
 

@@ -246,7 +246,7 @@ class Store:
         # Register built-in reducers
         self._register_built_in_reducers()
 
-        logger.info("Application store initialized")
+        logger.debug("Application store initialized")
 
     def _create_initial_state(self) -> Dict[str, Any]:
         """

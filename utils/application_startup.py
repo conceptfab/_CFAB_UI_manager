@@ -160,7 +160,7 @@ class ApplicationStartup(QObject):
                 "Użyto domyślnej konfiguracji loggera, ponieważ główna konfiguracja nie była dostępna."
             )
 
-        self.logger.info("Logger skonfigurowany")
+        # Logger skonfigurowany - komunikat pomniejszy dla zmniejszenia verbosity
 
     @handle_error_gracefully
     def load_config(self):
@@ -187,7 +187,7 @@ class ApplicationStartup(QObject):
 
             # self.logger może jeszcze nie być zainicjalizowany
             effective_logger = self.logger if self.logger else _early_logger
-            effective_logger.info("Configuration loaded and validated successfully")
+            effective_logger.debug("Configuration loaded and validated successfully")
             self.config = config
             self.config_loaded.emit(config)
 
@@ -217,7 +217,7 @@ class ApplicationStartup(QObject):
         # Załaduj zasoby asynchronicznie
         self.resource_manager.load_all_resources()
         if self.logger:
-            self.logger.info("ResourceManager skonfigurowany")
+            self.logger.debug("ResourceManager skonfigurowany")
         return self.resource_manager
 
     @handle_error_gracefully
@@ -227,7 +227,7 @@ class ApplicationStartup(QObject):
         """
         if self._hardware_verification_attempted:
             if self.logger:
-                self.logger.info(
+                self.logger.debug(
                     "Weryfikacja sprzętu została już wcześniej zainicjowana/wykonana. Pomijanie."
                 )
             else:
@@ -242,13 +242,14 @@ class ApplicationStartup(QObject):
         hardware_path = os.path.join(self.base_dir, "hardware.json")
 
         current_uuid = get_stable_uuid()
-        self.logger.info(f"Aktualny UUID systemu: {current_uuid}")
+        # Zredukowano verbosity - informacje UUID przeniesione na poziom DEBUG
+        self.logger.debug(f"Aktualny UUID systemu: {current_uuid}")
 
         try:
             if os.path.exists(hardware_path):
                 profile = ConfigValidator.validate_hardware_profile(hardware_path)
                 stored_uuid = profile.get("uuid")
-                self.logger.info(f"UUID zapisany w profilu: {stored_uuid}")
+                self.logger.debug(f"UUID zapisany w profilu: {stored_uuid}")
 
                 system_changed = self._check_system_changes(profile)
 
@@ -261,7 +262,7 @@ class ApplicationStartup(QObject):
                         new_profile = self._create_new_hardware_profile()
                         with open(hardware_path, "w") as f:
                             json.dump(new_profile, f, indent=4)
-                        self.logger.info(
+                        self.logger.debug(
                             f"Utworzono nowy profil sprzętowy: {current_uuid}"
                         )
                     else:
@@ -271,7 +272,7 @@ class ApplicationStartup(QObject):
                         profile["uuid"] = current_uuid
                         with open(hardware_path, "w") as f:
                             json.dump(profile, f, indent=4)
-                        self.logger.info(
+                        self.logger.debug(
                             f"Zaktualizowano UUID w profilu sprzętowym: {current_uuid}"
                         )
             else:
@@ -281,9 +282,9 @@ class ApplicationStartup(QObject):
                 new_profile = self._create_new_hardware_profile()
                 with open(hardware_path, "w") as f:
                     json.dump(new_profile, f, indent=4)
-                self.logger.info(f"Utworzono nowy profil sprzętowy: {current_uuid}")
+                self.logger.debug(f"Utworzono nowy profil sprzętowy: {current_uuid}")
 
-            self.logger.info("Weryfikacja profilu sprzętowego zakończona pomyślnie")
+            self.logger.debug("Weryfikacja profilu sprzętowego zakończona pomyślnie")
             return True
         except Exception as e:
             self.logger.error(f"Błąd weryfikacji profilu sprzętowego: {e}")

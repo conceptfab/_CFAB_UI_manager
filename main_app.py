@@ -81,7 +81,7 @@ class Application(QApplication):
         """Handler dla pomyślnego ukończenia startupu."""
         self.app_logger = app_logger_instance
         if self.app_logger:
-            self.app_logger.info(
+            self.app_logger.debug(
                 "Application startup completed successfully. AppLogger instance received."
             )
 

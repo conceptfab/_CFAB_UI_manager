@@ -775,7 +775,8 @@ class AppLogger:
             self.handlers.append(error_file_handler)
 
         self._is_setup = True
-        self.info(
+        # Komunikat zainicjowania przeniesiony na poziom DEBUG dla zmniejszenia verbosity
+        self.debug(
             f"Logger '{self.app_name}' zainicjowany. Poziom logowania: {logging.getLevelName(self.log_level)}"
         )
 

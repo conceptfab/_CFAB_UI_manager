@@ -66,7 +66,7 @@ class ResourceManager(QObject):
 
     def load_all_resources(self):
         """Jednokrotne załadowanie wszystkich zasobów."""
-        self.logger.info("Rozpoczynam ładowanie wszystkich zasobów...")
+        self.logger.debug("Rozpoczynam ładowanie wszystkich zasobów...")
 
         # Załaduj CSS asynchronicznie
         self.async_loader.load_resource_async("main_css", self._load_css_optimized)
@@ -80,7 +80,7 @@ class ResourceManager(QObject):
         try:
             # Najpierw próbuj pobrać z cache
             styles = lazy_loader.get_resource("main_css")
-            self.logger.info("CSS styles loaded from cache")
+            self.logger.debug("CSS styles loaded from cache")
             return styles
         except Exception as e:
             self.logger.warning(f"Could not load CSS from cache: {e}")
@@ -105,7 +105,7 @@ class ResourceManager(QObject):
         try:
             # Próbuj pobrać z cache
             translations = lazy_loader.get_resource("translations")
-            self.logger.info("Translations loaded from cache")
+            self.logger.debug("Translations loaded from cache")
             return translations
         except Exception as e:
             self.logger.warning(f"Could not load translations from cache: {e}")

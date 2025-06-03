@@ -67,7 +67,7 @@ class LazyLoader:
 
         try:
             start_time = time.time()
-            logger.info(f"Lazy loading resource: {resource_name}")
+            logger.debug(f"Lazy loading resource: {resource_name}")
 
             # Load the resource
             loader_func = self._loaders[resource_name]
@@ -79,7 +79,7 @@ class LazyLoader:
                 self._loading_flags.discard(resource_name)
 
             elapsed = time.time() - start_time
-            logger.info(f"Successfully loaded {resource_name} in {elapsed:.2f}s")
+            logger.debug(f"Successfully loaded {resource_name} in {elapsed:.2f}s")
             return resource
 
         except Exception as e:
@@ -138,7 +138,7 @@ class AsyncResourceLoader(QObject):
 
             self.total_tasks += 1
 
-        logger.info(f"Starting async load for: {resource_name}")
+        logger.debug(f"Starting async load for: {resource_name}")
 
         def _load_wrapper():
             try:
@@ -157,7 +157,7 @@ class AsyncResourceLoader(QObject):
                     if self.completed_tasks >= self.total_tasks:
                         self.all_completed.emit()
 
-                logger.info(f"Successfully loaded async resource: {resource_name}")
+                logger.debug(f"Successfully loaded async resource: {resource_name}")
 
             except Exception as e:
                 error_msg = str(e)
@@ -194,7 +194,7 @@ class AsyncResourceLoader(QObject):
             for future in self.loading_tasks.values():
                 future.cancel()
             self.loading_tasks.clear()
-            logger.info("Cancelled all async loading tasks")
+            logger.debug("Cancelled all async loading tasks")
 
     def cleanup(self) -> None:
         """Clean up the executor and cancel pending tasks."""
@@ -443,7 +443,8 @@ class StartupOptimizer:
 
     def _process_deferred_tasks(self) -> None:
         """Process all deferred tasks."""
-        logger.info(f"Processing {len(self.deferred_tasks)} deferred startup tasks")
+        # Zmniejszono verbosity - komunikat przeniesiony na poziom DEBUG
+        logger.debug(f"Processing {len(self.deferred_tasks)} deferred startup tasks")
 
         for task in self.deferred_tasks:
             try:
@@ -452,7 +453,8 @@ class StartupOptimizer:
                 logger.error(f"Error in deferred task: {e}")
 
         self.deferred_tasks.clear()
-        logger.info("Deferred startup tasks completed")
+        # Zmniejszono verbosity - komunikat przeniesiony na poziom DEBUG
+        logger.debug("Deferred startup tasks completed")
 
 
 # Global startup optimizer

@@ -85,7 +85,7 @@ class MainWindow(QMainWindow):
                 self.app_logger = get_logger()
                 self.logger = self.app_logger
 
-            self.logger.info("MainWindow: start __init__")
+            self.logger.debug("MainWindow: start __init__")
             super().__init__(*args, **kwargs)
             self.setWindowTitle(TranslationManager.translate("app.title"))
             self.thread_manager = ThreadManager()
@@ -274,7 +274,7 @@ class MainWindow(QMainWindow):
         task_id = self.thread_manager.submit_task(
             self.file_worker.load_preferences, self.config_path
         )
-        self.logger.info(f"Started preferences loading task: {task_id}")
+        self.logger.debug(f"Started preferences loading task: {task_id}")
 
     def save_preferences_async(self):
         """
@@ -283,7 +283,7 @@ class MainWindow(QMainWindow):
         task_id = self.thread_manager.submit_task(
             self.file_worker.save_preferences, self.config_path, self._preferences
         )
-        self.logger.info(f"Started preferences saving task: {task_id}")
+        self.logger.debug(f"Started preferences saving task: {task_id}")
         self.status_bar.showMessage(TranslationManager.translate("app.status.saving"))
 
     def show_preferences_dialog(self):
@@ -437,7 +437,7 @@ class MainWindow(QMainWindow):
                 self.app_logger.set_console_widget_handler(
                     self._tab_widgets["console"].append_log
                 )
-                self.logger.info(
+                self.logger.debug(
                     "ConsoleWidget handler (lazy-loaded) registered with AppLogger."
                 )
         return self._tab_widgets["console"]
@@ -491,7 +491,7 @@ class MainWindow(QMainWindow):
 
             # Set the current tab back to the replaced one
             self.tabs.setCurrentIndex(index)
-            logging.info(f"Lazy loaded tab at index {index}")
+            logging.debug(f"Lazy loaded tab at index {index}")
 
     @property
     def preferences(self):

@@ -91,7 +91,7 @@ class ConfigManager:
             # Ładowanie i walidacja konfiguracji
             self.config_cache = ConfigValidator.validate_config_file(file_path)
             self.dirty = False
-            self.logger.info(f"Configuration loaded from {file_path}")
+            self.logger.debug(f"Configuration loaded from {file_path}")
 
             return self.config_cache
 

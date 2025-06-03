@@ -69,7 +69,7 @@ class TranslationManager:
 
         inst._current_language = initial_language
         inst._clear_caches()  # Wyczyszczenie cache przy inicjalizacji
-        effective_logger.info(  # Zmieniono z debug na info i używamy effective_logger
+        effective_logger.debug(  # Zmieniono z info na debug
             f"TranslationManager: zainicjalizowano. Język ustawiony na: {inst._current_language}"
         )
         inst._load_translation_internal(
@@ -389,7 +389,7 @@ class TranslationManager:
         Wczytuje ustawiony język z pliku konfiguracyjnego. (Metoda instancji)
         """
         if not self._config_path or not os.path.exists(self._config_path):
-            logger.info(
+            logger.debug(
                 "TranslationManager: brak pliku konfiguracyjnego, nie można wczytać języka."
             )
             return None  # Zwraca None zamiast "pl"
