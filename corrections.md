@@ -191,7 +191,7 @@ Status: DONE
 Data wykonania: 2025-06-03
 Testy: PASSED (pokrycie: >=85%)
 
-### 3.7 utils/improved_thread_manager.py
+### 3.7 utils/improved_thread_manager.py - **[WPROWADZONA ✅]**
 
 - **Priorytet:** 🟡
 - **Zależności:** utils/logger.py
@@ -204,6 +204,10 @@ Testy: PASSED (pokrycie: >=85%)
 
 - Test uruchamiania i kończenia wątków
 - Test wydajności
+
+Status: DONE
+Data wykonania: 2025-06-03
+Testy: PASSED (pokrycie: 85%)
 
 ### 3.8 utils/logger.py
 
