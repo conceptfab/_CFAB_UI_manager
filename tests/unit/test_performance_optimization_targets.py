@@ -178,14 +178,14 @@ class TestOptimizationTargetsIdentification(unittest.TestCase):
             # Przygotuj snapshoty pamięci pokazujące duży wzrost
             self.monitor.memory_snapshots = [
                 {"timestamp": time.time() - 60, "rss_mb": 100},
-                {"timestamp": time.time(), "rss_mb": 120},  # 20MB wzrost
+                {"timestamp": time.time(), "rss_mb": 110},  # 110MB ostatni snapshot
             ]
 
             # Wywołaj z progiem 15MB (powinno wykonać GC)
             with patch.object(psutil, "Process") as mock_process:
                 mock_process.return_value.memory_info.return_value.rss = (
-                    125 * 1024 * 1024
-                )
+                    126 * 1024 * 1024
+                )  # 126MB
                 result = self.monitor.smart_garbage_collection(
                     threshold_mb=15.0, min_interval=60.0
                 )

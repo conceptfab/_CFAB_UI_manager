@@ -1,5 +1,5 @@
 {
-  "language": "pl",
+  "language": "en",
   "show_splash": true,
   "log_to_file": false,
   "log_to_system_console": true,
@@ -8,8 +8,8 @@
     "height": 1007
   },
   "window_position": {
-    "x": 419,
-    "y": 200
+    "x": 743,
+    "y": 208
   },
   "remember_window_size": true,
   "log_level": "INFO",

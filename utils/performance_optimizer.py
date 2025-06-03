@@ -36,8 +36,12 @@ class LazyLoader:
         self._loaded_resources: Dict[str, Any] = {}
         self._loaders: Dict[str, Callable] = {}
         self._loading_flags: Set[str] = set()
-        self._lock = threading.RLock()  # Zmieniono na RLock dla lepszego zarządzania zagnieżdżonymi wywołaniami
-        self._resource_stats: Dict[str, Dict[str, float]] = {}  # Statystyki dla optymalizacji
+        self._lock = (
+            threading.RLock()
+        )  # Zmieniono na RLock dla lepszego zarządzania zagnieżdżonymi wywołaniami
+        self._resource_stats: Dict[str, Dict[str, float]] = (
+            {}
+        )  # Statystyki dla optymalizacji
 
     def register_loader(self, resource_name: str, loader_func: Callable) -> None:
         """Register a lazy loader function for a resource."""
@@ -46,7 +50,7 @@ class LazyLoader:
             self._resource_stats[resource_name] = {
                 "access_count": 0,
                 "last_access": 0,
-                "load_time": 0
+                "load_time": 0,
             }
             logger.debug(f"Registered lazy loader for: {resource_name}")
 
@@ -88,7 +92,7 @@ class LazyLoader:
             with self._lock:
                 self._loaded_resources[resource_name] = resource
                 self._loading_flags.discard(resource_name)
-                
+
                 # Aktualizuj statystyki
                 if resource_name in self._resource_stats:
                     self._resource_stats[resource_name]["access_count"] = 1
@@ -119,7 +123,7 @@ class LazyLoader:
             else:
                 self._loaded_resources.clear()
                 logger.debug("Cleared all resource cache")
-                
+
     def get_resource_stats(self) -> Dict[str, Dict[str, Any]]:
         """Pobierz statystyki dostępu i ładowania dla zasobów."""
         with self._lock:
@@ -129,22 +133,22 @@ class LazyLoader:
                 stats[resource_name] = {
                     **resource_stats,
                     "is_loaded": is_loaded,
-                    "is_loading": resource_name in self._loading_flags
+                    "is_loading": resource_name in self._loading_flags,
                 }
             return stats
-    
+
     def preload_resources(self, resource_names: List[str]) -> Dict[str, bool]:
         """Preładuj grupę zasobów równolegle, zwróć status powodzenia."""
         results = {}
-        
+
         # Użyj ThreadPoolExecutor do równoległego ładowania
         with ThreadPoolExecutor(max_workers=min(len(resource_names), 8)) as executor:
             futures = {}
-            
+
             for name in resource_names:
                 if name in self._loaders and name not in self._loaded_resources:
                     futures[executor.submit(self.get_resource, name)] = name
-            
+
             for future in futures:
                 name = futures[future]
                 try:
@@ -152,7 +156,7 @@ class LazyLoader:
                     results[name] = True
                 except Exception:
                     results[name] = False
-        
+
         return results
 
 
@@ -173,13 +177,19 @@ class AsyncResourceLoader(QObject):
         super().__init__()
         # Automatycznie dostosuj ilość wątków do ilości rdzeni procesora, ale nie więcej niż podany max
         self.max_workers = min(max_workers, os.cpu_count() or 4)
-        self.executor = ThreadPoolExecutor(max_workers=self.max_workers, 
-                                          thread_name_prefix="AsyncLoader")
+        self.executor = ThreadPoolExecutor(
+            max_workers=self.max_workers, thread_name_prefix="AsyncLoader"
+        )
         self.loading_tasks: Dict[str, Any] = {}
         self.completed_tasks = 0
         self.total_tasks = 0
-        self._lock = threading.RLock()  # RLock dla lepszej obsługi zagnieżdżonych wywołań
-        self.resource_priorities: Dict[str, int] = {}  # Priorytety zasobów (1-10, 10 najwyższy)    @handle_error_gracefully
+        self._lock = (
+            threading.RLock()
+        )  # RLock dla lepszej obsługi zagnieżdżonych wywołań
+        self.resource_priorities: Dict[str, int] = (
+            {}
+        )  # Priorytety zasobów (1-10, 10 najwyższy)    @handle_error_gracefully
+
     def load_resource_async(
         self, resource_name: str, loader_func: Callable, *args, **kwargs
     ) -> None:
@@ -188,7 +198,7 @@ class AsyncResourceLoader(QObject):
         priority = 5
         if "priority" in kwargs:
             priority = kwargs.pop("priority")
-            
+
         with self._lock:
             if resource_name in self.loading_tasks:
                 logger.warning(f"Resource {resource_name} is already being loaded")
@@ -209,7 +219,7 @@ class AsyncResourceLoader(QObject):
 
                 self.progress_updated.emit(resource_name, 100)
                 self.resource_loaded.emit(resource_name, resource)
-                
+
                 elapsed = time.time() - start_time
 
                 with self._lock:
@@ -220,7 +230,9 @@ class AsyncResourceLoader(QObject):
                     if self.completed_tasks >= self.total_tasks:
                         self.all_completed.emit()
 
-                logger.debug(f"Successfully loaded async resource: {resource_name} in {elapsed:.2f}s")
+                logger.debug(
+                    f"Successfully loaded async resource: {resource_name} in {elapsed:.2f}s"
+                )
 
             except Exception as e:
                 error_msg = str(e)
@@ -238,63 +250,65 @@ class AsyncResourceLoader(QObject):
         future = self.executor.submit(_load_wrapper)
         with self._lock:
             self.loading_tasks[resource_name] = future
-            
+
     def batch_load(
-        self, 
+        self,
         resources: Dict[str, Tuple[Callable, Dict[str, Any]]],
-        on_batch_completed: Optional[Callable] = None
+        on_batch_completed: Optional[Callable] = None,
     ) -> None:
         """
         Załaduj wiele zasobów asynchronicznie jako wsadową operację.
-        
+
         Args:
             resources: Słownik {nazwa_zasobu: (funkcja_ładująca, parametry)}
             on_batch_completed: Opcjonalna funkcja wywoływana po ukończeniu wsadu
         """
         if not resources:
             return
-            
+
         # Śledź grupę zasobów
         batch_id = str(time.time())
         batch_size = len(resources)
         completed_count = 0
         batch_lock = threading.Lock()
-        
+
         def on_resource_complete():
             nonlocal completed_count
             with batch_lock:
                 completed_count += 1
                 if completed_count >= batch_size and on_batch_completed:
                     on_batch_completed()
-        
+
         # Załaduj wszystkie zasoby, rozpoczynając od tych o wyższym priorytecie
         sorted_resources = sorted(
             resources.items(),
             key=lambda x: x[1].get("priority", 5) if isinstance(x[1], dict) else 5,
-            reverse=True  # Najpierw najwyższy priorytet
+            reverse=True,  # Najpierw najwyższy priorytet
         )
-        
+
         for resource_name, (loader_func, params) in sorted_resources:
             # Wyodrębnij priorytet jeśli istnieje
             priority = 5
             if isinstance(params, dict) and "priority" in params:
                 priority = params.pop("priority")
-                
+
             # Modyfikacja funkcji ładującej aby śledzić zakończenie wsadu
             original_loader = loader_func
-            
+
             def batch_aware_loader(*args, **kwargs):
                 result = original_loader(*args, **kwargs)
                 on_resource_complete()
                 return result
-                
+
             # Przekaż parametry jako kwargs
-            self.load_resource_async(resource_name, batch_aware_loader, priority=priority, **params)
-            
+            self.load_resource_async(
+                resource_name, batch_aware_loader, priority=priority, **params
+            )
+
     def get_loading_status(self) -> Dict[str, Any]:
         """
         Pobierz status ładowania wszystkich zasobów.
-        
+
         Returns:
             Dict zawierający informacje o statusie ładowania
         """
@@ -303,8 +317,10 @@ class AsyncResourceLoader(QObject):
                 "active_tasks": list(self.loading_tasks.keys()),
                 "completed": self.completed_tasks,
                 "total": self.total_tasks,
-                "percent_complete": int(self.completed_tasks / max(1, self.total_tasks) * 100),
-                "priorities": {k: v for k, v in self.resource_priorities.items()}
+                "percent_complete": int(
+                    self.completed_tasks / max(1, self.total_tasks) * 100
+                ),
+                "priorities": {k: v for k, v in self.resource_priorities.items()},
             }
 
     def wait_for_completion(self, timeout: Optional[float] = None) -> bool:
@@ -510,104 +526,114 @@ class PerformanceMonitor:
             f"Garbage collection: {collected} cycles, {gc_stats['objects_freed']} objects freed"
         )
         return gc_stats
-          def identify_optimization_targets(self) -> List[Dict[str, Any]]:
+
+    def identify_optimization_targets(self) -> List[Dict[str, Any]]:
         """
         Zidentyfikuj funkcje, które mogą potrzebować optymalizacji.
-        
+
         Returns:
             Lista funkcji z czasami wykonania i sugestiami optymalizacji.
         """
         targets = []
-        
         for operation, times in self.execution_times.items():
             if not times:
                 continue
-                
             avg_time = sum(times) / len(times)
             max_time = max(times)
             call_count = len(times)
-            
             # Identyfikuj funkcje, które są wolne lub często wywoływane
-            if avg_time > 0.1 or max_time > 0.5 or (avg_time > 0.01 and call_count > 50):
+            if (
+                avg_time > 0.1
+                or max_time > 0.5
+                or (avg_time > 0.01 and call_count > 50)
+            ):
                 suggestion = "Optymalizacja wymagana"  # Domyślna sugestia
-                
                 if avg_time > 0.5:
                     suggestion = "Rozważ użycie cachetowania lub lazy loading"
                 elif max_time > 1.0:
-                    suggestion = "Sprawdź przypadki brzegowe powodujące długie wykonanie"
+                    suggestion = (
+                        "Sprawdź przypadki brzegowe powodujące długie wykonanie"
+                    )
                 elif call_count > 100 and avg_time > 0.01:
-                    suggestion = "Często wywoływana funkcja - optymalizuj wewnętrzne algorytmy"
-                
-                targets.append({
-                    "operation": operation,
-                    "avg_time": avg_time,
-                    "max_time": max_time,
-                    "call_count": call_count,
-                    "total_time": sum(times),
-                    "suggestion": suggestion
-                })
-        
+                    suggestion = (
+                        "Często wywoływana funkcja - optymalizuj wewnętrzne algorytmy"
+                    )
+                targets.append(
+                    {
+                        "operation": operation,
+                        "avg_time": avg_time,
+                        "max_time": max_time,
+                        "call_count": call_count,
+                        "total_time": sum(times),
+                        "suggestion": suggestion,
+                    }
+                )
         # Sortuj według całkowitego czasu (impact)
         targets.sort(key=lambda x: x["total_time"], reverse=True)
         return targets
-    
-    def smart_garbage_collection(self, threshold_mb: float = 10.0, min_interval: float = 60.0) -> bool:
+
+    def smart_garbage_collection(
+        self, threshold_mb: float = 10.0, min_interval: float = 60.0
+    ) -> bool:
         """
         Inteligentne zarządzanie garbage collection, uruchamiane tylko gdy potrzebne.
-        
+
         Args:
             threshold_mb: Próg wzrostu pamięci w MB, który wyzwala GC
             min_interval: Minimalny odstęp czasowy między GC w sekundach
-            
+
         Returns:
             bool: True jeśli GC zostało wykonane, False w przeciwnym razie
         """
         current_time = time.time()
-        
+
         # Sprawdź czy minął minimalny interwał
         if current_time - self._last_gc_time < min_interval:
             return False
-            
+
         process = psutil.Process()
         current_memory = process.memory_info().rss / (1024 * 1024)  # MB
-        
+
         # Sprawdź ostatni snapshot (jeśli dostępny) lub wykonaj GC jeśli brak
         if not self.memory_snapshots:
             self.force_garbage_collection()
             self._last_gc_time = current_time
             return True
-            
+
         # Pobierz ostatni snapshot i oblicz wzrost pamięci
         last_memory = self.memory_snapshots[-1].get("rss_mb", 0)
         memory_increase = current_memory - last_memory
-        
+
         # Wykonaj GC jeśli przekroczono próg
         if memory_increase > threshold_mb:
             # Znaczący wzrost pamięci - uruchom GC
             self.force_garbage_collection()
             self._last_gc_time = current_time
             return True
-                
+
         return False
-    
+
     def get_optimization_report(self) -> Dict[str, Any]:
         """
         Generuj raport z sugestiami optymalizacji na podstawie zebranych danych.
-        
+
         Returns:
             Raport zawierający sugestie optymalizacji i analizę wydajności
         """
         optimization_targets = self.identify_optimization_targets()
         memory_trend = self.get_memory_usage_trend()
-        
+
         # Wygeneruj sugestie dotyczące optymalizacji pamięci
         memory_suggestions = []
-        if memory_trend.get("trend") == "increasing" and memory_trend.get("trend_slope_mb", 0) > 2:
+        if (
+            memory_trend.get("trend") == "increasing"
+            and memory_trend.get("trend_slope_mb", 0) > 2
+        ):
             memory_suggestions.append(
                 f"Wykryto stały wzrost zużycia pamięci: {memory_trend.get('trend_slope_mb', 0):.1f}MB/snapshot. "
                 f"Sprawdź wycieki pamięci i rozważ częstsze wywoływanie garbage collection."
             )
-            
+
         potential_leaks = self.check_memory_leaks()
         if potential_leaks:
             top_leaks = {}
@@ -615,22 +641,30 @@ class PerformanceMonitor:
                 if obj_type not in top_leaks:
                     top_leaks[obj_type] = 0
                 top_leaks[obj_type] += 1
-                
-            top_leak_types = sorted(top_leaks.items(), key=lambda x: x[1], reverse=True)[:5]
-            leak_suggestions = [f"{obj_type}: {count} instancji" for obj_type, count in top_leak_types]
-            
+
+            top_leak_types = sorted(
+                top_leaks.items(), key=lambda x: x[1], reverse=True
+            )[:5]
+            leak_suggestions = [
+                f"{obj_type}: {count} instancji" for obj_type, count in top_leak_types
+            ]
+
             if leak_suggestions:
                 memory_suggestions.append(
                     f"Potencjalne wycieki pamięci w typach obiektów: {', '.join(leak_suggestions)}"
                 )
-                
+
         return {
             "timestamp": time.time(),
-            "operation_optimization_targets": optimization_targets[:10],  # Top 10 operacji do optymalizacji
+            "operation_optimization_targets": optimization_targets[
+                :10
+            ],  # Top 10 operacji do optymalizacji
             "memory_analysis": memory_trend,
             "memory_suggestions": memory_suggestions,
-            "total_operations_tracked": sum(len(times) for times in self.execution_times.values()),
-            "total_memory_snapshots": len(self.memory_snapshots)
+            "total_operations_tracked": sum(
+                len(times) for times in self.execution_times.values()
+            ),
+            "total_memory_snapshots": len(self.memory_snapshots),
         }
 
 
