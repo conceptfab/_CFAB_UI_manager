@@ -1,8 +1,11 @@
 """
 Prosty skrypt testujący działanie ThreadManager.
 """
-from utils.improved_thread_manager import ThreadManager
+
 import time
+
+from utils.improved_thread_manager import ThreadManager
+
 
 def test_func():
     """Prosta funkcja testowa"""
@@ -10,28 +13,30 @@ def test_func():
     print("Zadanie wykonane!")
     return "test result"
 
+
 def main():
     """Funkcja główna testu"""
     manager = ThreadManager(enable_logging=False)
-    print('Inicjalizacja zakończona')
-    
+    print("Inicjalizacja zakończona")
+
     task_id = manager.submit_task(test_func)
-    print(f'Task submitted: {task_id}')
-    
+    print(f"Task submitted: {task_id}")
+
     # Poczekaj na zakończenie
     time.sleep(1)
-    
+
     # Sprawdź metryki
     metrics = manager.get_performance_metrics()
     print(f"Metryki: {metrics}")
-    
+
     # Sprawdź stan zdrowia
     health = manager.get_thread_health_status()
     print(f"Stan zdrowia: {health}")
-    
+
     # Czyszczenie
     manager.cleanup()
-    print('Cleanup zakończony')
+    print("Cleanup zakończony")
+
 
 if __name__ == "__main__":
     main()

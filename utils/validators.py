@@ -49,6 +49,7 @@ class ConfigValidator:
         "window_position": dict,
         "remember_window_size": bool,
         "log_level": str,
+        "logger_debug_mode": bool,
     }
 
     # Valid language codes

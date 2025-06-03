@@ -299,8 +299,12 @@ class MainWindow(QMainWindow):
 
                 # Zastosuj inne zmiany, np. poziom logowania, jeśli AppLogger jest dostępny
                 if self.app_logger and "log_level" in new_preferences:
-                    self.app_logger.config["log_level"] = new_preferences["log_level"]
-                    self.app_logger.setup_logger()  # Rekonfiguruj logger
+                    # Konwersja poziomu logowania z tekstu (np. "INFO") na stałą z modułu logging
+                    log_level_str = new_preferences["log_level"]
+                    log_level = getattr(logging, log_level_str.upper(), logging.INFO)
+
+                    # Użyj poprawnej metody set_log_level do ustawienia poziomu logowania
+                    self.app_logger.set_log_level(log_level)
                     self.logger.info(
                         f"Log level changed to: {new_preferences['log_level']}"
                     )
@@ -405,7 +409,7 @@ class MainWindow(QMainWindow):
             self.logger.info("Zamykanie aplikacji...")
             self.thread_manager.cleanup()  # Najpierw wątki
             if self.app_logger:  # Następnie logger aplikacji
-                self.app_logger.cleanup()
+                self.app_logger.shutdown()  # Użyj poprawnej metody shutdown() zamiast cleanup()
             event.accept()
         else:
             event.ignore()

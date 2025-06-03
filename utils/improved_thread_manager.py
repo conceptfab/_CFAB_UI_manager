@@ -46,7 +46,9 @@ class ImprovedWorkerTask(QRunnable):
         self._start_time = None
         self._end_time = None
         self._thread_id = None
-        self._execution_status = "queued"  # ['queued', 'running', 'completed', 'failed', 'cancelled']
+        self._execution_status = (
+            "queued"  # ['queued', 'running', 'completed', 'failed', 'cancelled']
+        )
         self._exception = None
 
     def run(self):
@@ -169,9 +171,11 @@ class ImprovedWorkerTask(QRunnable):
             "status": self._execution_status,
             "thread_id": self._thread_id,
             "start_time": self._start_time,
-            "duration": (self._end_time - self._start_time)
-            if self._end_time and self._start_time
-            else None,
+            "duration": (
+                (self._end_time - self._start_time)
+                if self._end_time and self._start_time
+                else None
+            ),
             "error": str(self._exception) if self._exception else None,
         }
         self.signals.status_update.emit(status_data)
@@ -186,9 +190,11 @@ class ImprovedWorkerTask(QRunnable):
             "thread_id": self._thread_id,
             "start_time": self._start_time,
             "end_time": self._end_time,
-            "duration": (self._end_time - self._start_time)
-            if self._end_time and self._start_time
-            else None,
+            "duration": (
+                (self._end_time - self._start_time)
+                if self._end_time and self._start_time
+                else None
+            ),
             "error": str(self._exception) if self._exception else None,
             "is_cancelled": self._is_cancelled,
         }
@@ -207,7 +213,7 @@ class LogQueue:
             "processed_logs": 0,
             "dropped_logs": 0,
             "errors": 0,
-            "blocked_seconds": 0
+            "blocked_seconds": 0,
         }
         self._health_check_lock = threading.Lock()
         self._max_wait = max_wait  # Maksymalny czas oczekiwania na przetworzenie logu
@@ -269,8 +275,12 @@ class LogQueue:
             # a kolejka nie jest pusta
             if not self.queue.empty() and time_since_last > self._max_wait:
                 self._health_checks["blocked_seconds"] += 1
-                if self._health_checks["blocked_seconds"] % 10 == 0:  # Log co 10 sekund blokady
-                    logger.warning(f"LogQueue appears to be blocked for {self._health_checks['blocked_seconds']} seconds")
+                if (
+                    self._health_checks["blocked_seconds"] % 10 == 0
+                ):  # Log co 10 sekund blokady
+                    logger.warning(
+                        f"LogQueue appears to be blocked for {self._health_checks['blocked_seconds']} seconds"
+                    )
 
     def add_log(self, level: int, message: str):
         """
@@ -287,8 +297,12 @@ class LogQueue:
             with self._health_check_lock:
                 self._health_checks["dropped_logs"] += 1
 
-            if self._health_checks["dropped_logs"] % 100 == 1:  # Ograniczamy częstość logowania
-                logger.warning(f"Log queue is full, dropping message. Total dropped: {self._health_checks['dropped_logs']}")
+            if (
+                self._health_checks["dropped_logs"] % 100 == 1
+            ):  # Ograniczamy częstość logowania
+                logger.warning(
+                    f"Log queue is full, dropping message. Total dropped: {self._health_checks['dropped_logs']}"
+                )
 
     def get_health_status(self) -> Dict[str, Any]:
         """
@@ -345,7 +359,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         self.workers = []  # Dla kompatybilności
         self.active_tasks = weakref.WeakSet()  # Zmieniono z Dict na WeakSet
         self.task_id_map = WeakValueDictionary()  # Mapowanie task_id -> task
-        
+
         # Użyj AsyncLogger jeśli dostępny, w przeciwnym razie używaj LogQueue
         if AsyncLogger and enable_logging:
             self._async_logger = AsyncLogger()
@@ -361,9 +375,11 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         self._task_history = {}  # task_id -> task_info
         self._history_limit = 100  # Limit historii zadań
         self._long_running_threshold = 30  # Próg dla długotrwałych zadań (sekundy)
-        
+
         if self.enable_logging:
-            self._log_message(logging.INFO, f"ThreadManager initialized with {max_workers} workers")
+            self._log_message(
+                logging.INFO, f"ThreadManager initialized with {max_workers} workers"
+            )
 
         self.task_timeout = task_timeout  # Dodano z ImprovedThreadManager
         self.task_counter = 0  # Dodano z ImprovedThreadManager
@@ -372,7 +388,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         self.cleanup_timer = QTimer()
         self.cleanup_timer.timeout.connect(self._periodic_cleanup)
         self.cleanup_timer.start(30000)  # Cleanup co 30 sekund
-        
+
         # Health check timer - dodatkowy timer dla częstszych kontroli zdrowia
         self.health_check_timer = QTimer()
         self.health_check_timer.timeout.connect(self._check_thread_health)
@@ -384,14 +400,14 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         self._tasks_failed = 0
         self._tasks_cancelled = 0
         self._lock = threading.Lock()
-        
+
     def _log_message(self, level: int, message: str):
         """
         Centralna metoda logowania korzystająca z odpowiedniego loggera
         """
         if not self.enable_logging:
             return
-            
+
         if self._async_logger:
             self._async_logger.log(level, message)
         elif self.log_queue:
@@ -429,19 +445,21 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         setattr(task, "task_id", task_id)  # Dodajemy atrybut task_id do obiektu zadania
         self.active_tasks.add(task)  # Dodawanie do WeakSet
         self.task_id_map[task_id] = task  # Dodajemy mapowanie task_id -> task
-        
+
         # Monitorowanie statusu zadania
-        task.signals.status_update.connect(lambda status_dict: self._on_status_update(task_id, status_dict))
+        task.signals.status_update.connect(
+            lambda status_dict: self._on_status_update(task_id, status_dict)
+        )
 
         # Weak reference cleanup po zakończeniu
         def on_finished(result):
             # Aktualizacja metryk
             with self._lock:
                 self._tasks_completed += 1
-                
+
             # Aktualizacja historii zadań
             self._update_task_history(task_id, "completed", result)
-            
+
             if self.enable_logging and self._log_rate_limiter():
                 self._log_message(
                     logging.DEBUG, f"Task {task_id} finished with result: {result}"
@@ -451,10 +469,10 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
             # Aktualizacja metryk
             with self._lock:
                 self._tasks_failed += 1
-                
+
             # Aktualizacja historii zadań
             self._update_task_history(task_id, "failed", None, error)
-            
+
             if self.enable_logging:
                 self._log_message(
                     logging.ERROR, f"Task {task_id} failed with error: {error}"
@@ -464,7 +482,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         task.signals.error.connect(on_error)
 
         self.thread_pool.start(task)
-        
+
         # Zapisz podstawowe informacje o zadaniu w historii
         self._update_task_history(task_id, "submitted")
 
@@ -473,57 +491,68 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
                 logging.DEBUG, f"Submitted task {task_id}: {func.__name__}"
             )
         return task_id
-        
+
     def _on_status_update(self, task_id: str, status_dict: Dict[str, Any]):
         """
         Obsługuje aktualizacje statusu zadania
         """
         # Aktualizacja historii zadania w oparciu o status
-        self._update_task_history(task_id, status_dict["status"], status_dict=status_dict)
-        
+        self._update_task_history(
+            task_id, status_dict["status"], status_dict=status_dict
+        )
+
         # Jesli zadanie zostało anulowane, aktualizuj licznik
         if status_dict["status"] == "cancelled":
             with self._lock:
                 self._tasks_cancelled += 1
-                
+
         # Loguj aktualizacje statusu dla długotrwałych zadań
-        if (status_dict["status"] == "running" and status_dict.get("duration") and 
-                status_dict["duration"] > self._long_running_threshold):
+        if (
+            status_dict["status"] == "running"
+            and status_dict.get("duration")
+            and status_dict["duration"] > self._long_running_threshold
+        ):
             self._log_message(
-                logging.WARNING, 
+                logging.WARNING,
                 f"Long running task detected: {task_id} ({status_dict.get('task_name', 'unknown')}) "
-                f"running for {status_dict['duration']:.2f}s"
+                f"running for {status_dict['duration']:.2f}s",
             )
-            
-    def _update_task_history(self, task_id: str, status: str, result=None, error=None, status_dict=None):
+
+    def _update_task_history(
+        self, task_id: str, status: str, result=None, error=None, status_dict=None
+    ):
         """
         Aktualizuje historię zadania
         """
         if len(self._task_history) >= self._history_limit:
             # Usuń najstarsze wpisy, gdy przekraczamy limit
-            oldest_ids = sorted(self._task_history.keys(), 
-                               key=lambda k: self._task_history[k].get("submit_time", 0))[:10]
+            oldest_ids = sorted(
+                self._task_history.keys(),
+                key=lambda k: self._task_history[k].get("submit_time", 0),
+            )[:10]
             for old_id in oldest_ids:
                 self._task_history.pop(old_id, None)
-        
+
         if task_id not in self._task_history:
             # Nowy wpis w historii
             self._task_history[task_id] = {
                 "task_id": task_id,
                 "submit_time": time.time(),
-                "status": status
+                "status": status,
             }
         else:
             # Aktualizacja istniejącego wpisu
             self._task_history[task_id]["status"] = status
-            
+
             if status == "completed":
                 self._task_history[task_id]["completion_time"] = time.time()
-                
+
             elif status == "failed":
                 self._task_history[task_id]["completion_time"] = time.time()
-                self._task_history[task_id]["error"] = str(error) if error else "Unknown error"
-                
+                self._task_history[task_id]["error"] = (
+                    str(error) if error else "Unknown error"
+                )
+
         # Dodaj dodatkowe dane statusu, jeśli dostępne
         if status_dict:
             self._task_history[task_id].update(status_dict)
@@ -545,7 +574,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
             task.cancel()
             # Aktualizacja historii zadania
             self._update_task_history(task_id, "cancelled")
-            
+
             # WeakSet automatycznie usunie zadanie, gdy nie będzie już do niego referencji
             if self.enable_logging:
                 self._log_message(logging.DEBUG, f"Cancelled task {task_id}")
@@ -603,25 +632,31 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
             status = "Overloaded"
         elif load_percentage > 70:
             status = "High Load"
-            
+
         # Znajdź długotrwałe zadania
         long_running_tasks = []
         now = time.time()
         for task_id, info in self._task_history.items():
-            if (info.get("status") == "running" and 
-                    info.get("start_time") and 
-                    now - info.get("start_time") > self._long_running_threshold):
-                long_running_tasks.append({
-                    "task_id": task_id,
-                    "duration": now - info.get("start_time"),
-                    "task_name": info.get("task_name", "unknown")
-                })
-                
+            if (
+                info.get("status") == "running"
+                and info.get("start_time")
+                and now - info.get("start_time") > self._long_running_threshold
+            ):
+                long_running_tasks.append(
+                    {
+                        "task_id": task_id,
+                        "duration": now - info.get("start_time"),
+                        "task_name": info.get("task_name", "unknown"),
+                    }
+                )
+
         # Sprawdź czy mamy potencjalne wycieki wątków
         leaked_thread_count = 0
         for task_ref in list(self.active_tasks):
             # Sprawdź czy task nie jest już zakończony, ale nadal w aktywnych
-            if hasattr(task_ref, '_execution_status') and task_ref._execution_status in ["completed", "failed", "cancelled"]:
+            if hasattr(
+                task_ref, "_execution_status"
+            ) and task_ref._execution_status in ["completed", "failed", "cancelled"]:
                 leaked_thread_count += 1
 
         return {
@@ -631,102 +666,124 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
             "status": status,
             "active_tasks_in_weakset": len(self.active_tasks),
             "long_running_tasks": long_running_tasks,
-            "potential_leaked_threads": leaked_thread_count
+            "potential_leaked_threads": leaked_thread_count,
         }
-        
+
     def _check_thread_health(self):
         """
         Sprawdza stan zdrowia wątków i podejmuje działania naprawcze w razie problemów
         """
         health_status = self.get_thread_health_status()
-        
+
         # Sprawdź LogQueue, jeśli jest używana
         if self.log_queue:
             log_health = self.log_queue.get_health_status()
             if log_health["health_status"] != "healthy":
-                self._log_message(logging.WARNING, 
+                self._log_message(
+                    logging.WARNING,
                     f"LogQueue health issues detected: {log_health['health_status']}. "
                     f"Dropped logs: {log_health['dropped_logs']}, "
-                    f"Blocked seconds: {log_health['blocked_seconds']}")
-                    
+                    f"Blocked seconds: {log_health['blocked_seconds']}",
+                )
+
         # Sprawdź długotrwałe zadania
         if health_status["long_running_tasks"]:
-            tasks_str = ", ".join([
-                f"{t['task_id']}({t['task_name']}, {t['duration']:.1f}s)" 
-                for t in health_status["long_running_tasks"][:3]  # Pokaż max 3
-            ])
-            self._log_message(logging.WARNING, 
+            tasks_str = ", ".join(
+                [
+                    f"{t['task_id']}({t['task_name']}, {t['duration']:.1f}s)"
+                    for t in health_status["long_running_tasks"][:3]  # Pokaż max 3
+                ]
+            )
+            self._log_message(
+                logging.WARNING,
                 f"Long running tasks detected: {len(health_status['long_running_tasks'])} tasks, "
-                f"including: {tasks_str}")
-                
+                f"including: {tasks_str}",
+            )
+
         # Sprawdź czy mamy potencjalne wycieki wątków
         if health_status["potential_leaked_threads"] > 0:
-            self._log_message(logging.WARNING, 
+            self._log_message(
+                logging.WARNING,
                 f"Potential thread leaks detected: {health_status['potential_leaked_threads']} tasks "
-                f"marked as completed but still in active_tasks")
+                f"marked as completed but still in active_tasks",
+            )
             # Automatyczne czyszczenie potencjalnych wycieków
             if health_status["potential_leaked_threads"] > 5:
                 self._cleanup_leaked_threads()
-                
+
         # Jeśli obciążenie jest wysokie, rozważ działania naprawcze
         if health_status["load_percentage"] > 90:
-            self._log_message(logging.WARNING, 
+            self._log_message(
+                logging.WARNING,
                 f"Thread pool overloaded: {health_status['load_percentage']}% "
-                f"({health_status['active_threads']}/{health_status['max_threads']})")
-                
+                f"({health_status['active_threads']}/{health_status['max_threads']})",
+            )
+
     def _cleanup_leaked_threads(self):
         """
         Czyści potencjalnie wyciekające wątki
         """
         leaked_count = 0
         for task_ref in list(self.active_tasks):
-            if hasattr(task_ref, '_execution_status') and task_ref._execution_status in ["completed", "failed", "cancelled"]:
+            if hasattr(
+                task_ref, "_execution_status"
+            ) and task_ref._execution_status in ["completed", "failed", "cancelled"]:
                 # Zadanie zakończone, ale nadal w aktywnych - usuń referencję
                 task_id = getattr(task_ref, "task_id", "unknown")
                 self.active_tasks.discard(task_ref)
                 if task_id != "unknown":
                     self.task_id_map.pop(task_id, None)
                 leaked_count += 1
-                
+
         if leaked_count > 0:
-            self._log_message(logging.INFO, f"Cleaned up {leaked_count} leaked thread references")
+            self._log_message(
+                logging.INFO, f"Cleaned up {leaked_count} leaked thread references"
+            )
 
     def cleanup_finished_threads(self):
         """
         Cleanup completed threads and free resources.
-        
+
         This method performs a thorough cleanup:
         1. Removes tasks that are completed but still in active_tasks
         2. Checks for long-running tasks that might be stuck
         3. Cleans up task history for completed tasks
         """
         cleaned_tasks = self._cleanup_leaked_threads()
-        
+
         # Sprawdź długotrwałe zadania
         now = time.time()
         long_running_count = 0
         for task_id, info in list(self._task_history.items()):
             if info.get("status") == "running":
-                if info.get("start_time") and now - info.get("start_time") > self._long_running_threshold * 2:
+                if (
+                    info.get("start_time")
+                    and now - info.get("start_time") > self._long_running_threshold * 2
+                ):
                     # Zadanie działa ponad dwukrotnie dłużej niż próg - oznacz jako podejrzane
-                    self._log_message(logging.WARNING, 
-                        f"Potentially stuck task: {task_id} running for {now - info.get('start_time'):.1f}s")
+                    self._log_message(
+                        logging.WARNING,
+                        f"Potentially stuck task: {task_id} running for {now - info.get('start_time'):.1f}s",
+                    )
                     long_running_count += 1
-                    
+
         # Usuń zakończone zadania z historii, które są starsze niż 5 minut
         cleaned_history = 0
         for task_id, info in list(self._task_history.items()):
             if info.get("status") in ["completed", "failed", "cancelled"]:
-                if info.get("completion_time") and now - info.get("completion_time") > 300:  # 5 minut
+                if (
+                    info.get("completion_time")
+                    and now - info.get("completion_time") > 300
+                ):  # 5 minut
                     self._task_history.pop(task_id, None)
                     cleaned_history += 1
-                    
+
         if self.enable_logging:
             self._log_message(
                 logging.DEBUG,
                 f"Thread cleanup: Cleaned {cleaned_tasks} leaked tasks, "
                 f"Found {long_running_count} potentially stuck tasks, "
-                f"Cleaned {cleaned_history} history entries"
+                f"Cleaned {cleaned_history} history entries",
             )
 
     def get_performance_metrics(self) -> Dict[str, Any]:
@@ -739,25 +796,29 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
 
         tasks_processed = tasks_completed + tasks_failed + tasks_cancelled
         tps = tasks_processed / uptime if uptime > 0 else 0
-        
+
         # Calculate failure rate
-        failure_rate = (tasks_failed / tasks_processed * 100) if tasks_processed > 0 else 0
-        
+        failure_rate = (
+            (tasks_failed / tasks_processed * 100) if tasks_processed > 0 else 0
+        )
+
         # Analyze task history for performance insights
         task_durations = []
         status_counts = {"running": 0, "completed": 0, "failed": 0, "cancelled": 0}
-        
+
         for task_info in self._task_history.values():
             status = task_info.get("status", "unknown")
             if status in status_counts:
                 status_counts[status] += 1
-                
+
             # Collect durations for completed tasks
             if status == "completed" and task_info.get("duration") is not None:
                 task_durations.append(task_info["duration"])
-                
+
         # Calculate average and max duration if we have any completed tasks
-        avg_duration = sum(task_durations) / len(task_durations) if task_durations else 0
+        avg_duration = (
+            sum(task_durations) / len(task_durations) if task_durations else 0
+        )
         max_duration = max(task_durations) if task_durations else 0
 
         return {
@@ -772,7 +833,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
             "tasks_in_weakset_queue": len(self.active_tasks),
             "active_task_status": status_counts,
             "avg_task_duration": round(avg_duration, 3) if avg_duration else 0,
-            "max_task_duration": round(max_duration, 3) if max_duration else 0
+            "max_task_duration": round(max_duration, 3) if max_duration else 0,
         }
 
     def _periodic_cleanup(self):
@@ -786,7 +847,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         """
         # Uruchom czyszczenie zakończonych wątków
         self.cleanup_finished_threads()
-        
+
         if self.enable_logging:
             # Zbierz statystyki
             active_count = len(self.active_tasks)
@@ -804,77 +865,95 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
                 f"({perf_metrics['failure_rate_percent']}% fail rate). "
                 f"TPS={perf_metrics['tasks_processed_per_second']:.2f}"
             )
-            
+
             # Dodaj informacje o długotrwałych zadaniach, jeśli są
-            if health_status['long_running_tasks']:
-                top_tasks = health_status['long_running_tasks'][:2]  # Pokaż max 2
-                status_report += f". Long running: {len(health_status['long_running_tasks'])} tasks"
+            if health_status["long_running_tasks"]:
+                top_tasks = health_status["long_running_tasks"][:2]  # Pokaż max 2
+                status_report += (
+                    f". Long running: {len(health_status['long_running_tasks'])} tasks"
+                )
                 for task in top_tasks:
                     status_report += f", {task['task_name']}({task['duration']:.1f}s)"
-            
+
             # Dodaj informacje o wyciekach, jeśli występują
-            if health_status['potential_leaked_threads'] > 0:
-                status_report += f". Potential leaks: {health_status['potential_leaked_threads']}"
-                
+            if health_status["potential_leaked_threads"] > 0:
+                status_report += (
+                    f". Potential leaks: {health_status['potential_leaked_threads']}"
+                )
+
             # Loguj raport z odpowiednim poziomem w zależności od statusu
-            if health_status['status'] == "Overloaded":
+            if health_status["status"] == "Overloaded":
                 self._log_message(logging.WARNING, status_report)
             else:
                 self._log_message(logging.DEBUG, status_report)
-                
+
             # Jeśli mamy istotne problemy, zaloguj więcej szczegółów
-            if (health_status['status'] == "Overloaded" or 
-                    len(health_status['long_running_tasks']) > 3 or
-                    health_status['potential_leaked_threads'] > 5):
-                self._log_message(logging.WARNING, 
+            if (
+                health_status["status"] == "Overloaded"
+                or len(health_status["long_running_tasks"]) > 3
+                or health_status["potential_leaked_threads"] > 5
+            ):
+                self._log_message(
+                    logging.WARNING,
                     f"Performance issues detected - avg task duration: {perf_metrics['avg_task_duration']:.3f}s, "
-                    f"max duration: {perf_metrics['max_task_duration']:.3f}s")
+                    f"max duration: {perf_metrics['max_task_duration']:.3f}s",
+                )
 
     def wait_for_completion(self, timeout: int = 30) -> bool:
         """
         Czeka na zakończenie wszystkich zadań z monitoringiem postępu
-        
+
         Args:
             timeout: Maksymalny czas oczekiwania w sekundach
-            
+
         Returns:
             bool: True jeśli wszystkie zadania się zakończyły, False w przeciwnym wypadku
         """
         if self.enable_logging:
             initial_count = len(self.active_tasks)
             if initial_count > 0:
-                self._log_message(logging.INFO, 
-                    f"Waiting for {initial_count} active tasks to complete (timeout: {timeout}s)")
-        
+                self._log_message(
+                    logging.INFO,
+                    f"Waiting for {initial_count} active tasks to complete (timeout: {timeout}s)",
+                )
+
         # Podziel timeout na krótsze interwały, aby monitorować postęp
         slice_time = 3  # sekundy
         slices = max(1, int(timeout / slice_time))
-        
+
         for i in range(slices):
             if self.thread_pool.activeThreadCount() == 0:
                 if self.enable_logging:
                     self._log_message(logging.INFO, "All tasks completed")
                 return True
-                
+
             # Poczekaj krótki czas
             result = self.thread_pool.waitForDone(slice_time * 1000)
             if result:
                 if self.enable_logging:
                     self._log_message(logging.INFO, "All tasks completed")
                 return True
-                
+
             # Zaloguj postęp, jeśli potrzeba
             if self.enable_logging and i % 2 == 0:  # Co 6 sekund
                 remaining = len(self.active_tasks)
-                completed = initial_count - remaining if 'initial_count' in locals() else "unknown"
-                self._log_message(logging.DEBUG, 
-                    f"Still waiting: {remaining} tasks active, {completed} completed")
-        
+                completed = (
+                    initial_count - remaining
+                    if "initial_count" in locals()
+                    else "unknown"
+                )
+                self._log_message(
+                    logging.DEBUG,
+                    f"Still waiting: {remaining} tasks active, {completed} completed",
+                )
+
         # Timeout upłynął, ale zadania nie zakończyły się
         if self.enable_logging:
             remaining = len(self.active_tasks)
-            self._log_message(logging.WARNING, 
-                f"Wait timeout: {remaining} tasks still active after {timeout}s")
+            self._log_message(
+                logging.WARNING,
+                f"Wait timeout: {remaining} tasks still active after {timeout}s",
+            )
         return False
 
     def cleanup(self):
@@ -882,8 +961,10 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         Czyści wszystkie zasoby z pogłębioną diagnostyką i obsługą błędów
         """
         if self.enable_logging:
-            self._log_message(logging.INFO, 
-                f"Starting ThreadManager cleanup with {len(self.active_tasks)} active tasks")
+            self._log_message(
+                logging.INFO,
+                f"Starting ThreadManager cleanup with {len(self.active_tasks)} active tasks",
+            )
 
         # Zatrzymaj timery
         self.cleanup_timer.stop()
@@ -892,43 +973,50 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         # Zbierz informacje o aktywnych zadaniach przed anulowaniem
         active_task_info = []
         for task_ref in self.active_tasks:
-            if hasattr(task_ref, 'func') and hasattr(task_ref.func, '__name__'):
+            if hasattr(task_ref, "func") and hasattr(task_ref.func, "__name__"):
                 task_name = task_ref.func.__name__
             else:
                 task_name = "unknown_task"
-                
-            task_status = getattr(task_ref, '_execution_status', 'unknown')
-            task_id = getattr(task_ref, 'task_id', 'unknown')
-            
-            active_task_info.append({
-                'task_id': task_id,
-                'name': task_name,
-                'status': task_status
-            })
-            
+
+            task_status = getattr(task_ref, "_execution_status", "unknown")
+            task_id = getattr(task_ref, "task_id", "unknown")
+
+            active_task_info.append(
+                {"task_id": task_id, "name": task_name, "status": task_status}
+            )
+
         # Zapisz szczegółowy log przed anulowaniem
         if active_task_info and self.enable_logging:
-            tasks_str = ", ".join([f"{t['task_id']}({t['name']}, {t['status']})" 
-                                  for t in active_task_info[:5]])  # Pokaż max 5
+            tasks_str = ", ".join(
+                [
+                    f"{t['task_id']}({t['name']}, {t['status']})"
+                    for t in active_task_info[:5]
+                ]
+            )  # Pokaż max 5
             if len(active_task_info) > 5:
                 tasks_str += f" and {len(active_task_info) - 5} more"
-                
-            self._log_message(logging.INFO,
+
+            self._log_message(
+                logging.INFO,
                 f"Active tasks before cleanup: {len(active_task_info)}. "
-                f"Including: {tasks_str}")
+                f"Including: {tasks_str}",
+            )
 
         # Anuluj wszystkie aktywne zadania
         cancel_count = 0
-        tasks_to_cancel = list(self.active_tasks)  # Tworzę kopię, żeby uniknąć modyfikacji podczas iteracji
+        tasks_to_cancel = list(
+            self.active_tasks
+        )  # Tworzę kopię, żeby uniknąć modyfikacji podczas iteracji
         for task in tasks_to_cancel:
             try:
-                if hasattr(task, 'cancel'):
+                if hasattr(task, "cancel"):
                     task.cancel()
                     cancel_count += 1
             except Exception as e:
                 if self.enable_logging:
-                    self._log_message(logging.WARNING, 
-                        f"Error cancelling task: {str(e)}")
+                    self._log_message(
+                        logging.WARNING, f"Error cancelling task: {str(e)}"
+                    )
 
         if self.enable_logging and cancel_count > 0:
             self._log_message(logging.INFO, f"Cancelled {cancel_count} active tasks")
@@ -936,38 +1024,42 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         # Poczekaj na zakończenie zadań
         wait_result = self.wait_for_completion(10)
         if not wait_result and self.enable_logging:
-            self._log_message(logging.WARNING,
-                f"Some tasks ({len(self.active_tasks)}) did not complete within timeout during cleanup")
+            self._log_message(
+                logging.WARNING,
+                f"Some tasks ({len(self.active_tasks)}) did not complete within timeout during cleanup",
+            )
 
         # Dodatkowe czyszczenie i raportowanie
         self._cleanup_leaked_threads()
-        
+
         # Wyczyść historię zadań
         task_history_size = len(self._task_history)
         self._task_history.clear()
-        
+
         # Zatrzymaj log queue
         if self.log_queue:
-            if hasattr(self.log_queue, 'get_health_status'):
+            if hasattr(self.log_queue, "get_health_status"):
                 log_stats = self.log_queue.get_health_status()
                 if self.enable_logging:
-                    self._log_message(logging.DEBUG, 
+                    self._log_message(
+                        logging.DEBUG,
                         f"LogQueue final stats: processed={log_stats['processed_logs']}, "
-                        f"dropped={log_stats['dropped_logs']}, errors={log_stats['errors']}")
+                        f"dropped={log_stats['dropped_logs']}, errors={log_stats['errors']}",
+                    )
             self.log_queue.stop()
-        
+
         # Zatrzymaj AsyncLogger, jeśli używany
         if self._async_logger:
-            if hasattr(self._async_logger, 'stop'):
+            if hasattr(self._async_logger, "stop"):
                 self._async_logger.stop()
 
         # Wyczyść pool
         self.thread_pool.clear()
-        
+
         # Wyczyść pozostałe struktury danych
         self.active_tasks.clear()
         self.task_id_map.clear()
-        
+
         # Zbierz metryki performance przed zakończeniem
         final_metrics = self.get_performance_metrics()
 
@@ -1002,7 +1094,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
             if self.enable_logging:
                 self._log_message(
                     logging.ERROR,
-                    f"Failed to create compatible worker for {func.__name__}"
+                    f"Failed to create compatible worker for {func.__name__}",
                 )
             return None
 
@@ -1017,7 +1109,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
 
         # Dodajemy identyfikator task_id do obiektu
         worker_compat_obj.task_id = task_id
-        
+
         # Dodajemy czas startu i funkcję
         worker_compat_obj.start_time = time.time()
         worker_compat_obj.func_name = func.__name__
@@ -1037,7 +1129,7 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         if self.enable_logging:
             self._log_message(
                 logging.DEBUG,
-                f"Legacy run_in_thread: {func.__name__} (task_id: {task_id})"
+                f"Legacy run_in_thread: {func.__name__} (task_id: {task_id})",
             )
 
         return worker_compat_obj

@@ -116,17 +116,32 @@ class ApplicationStartup(QObject):
 
         # Sprawdź, czy self.config zostało poprawnie załadowane
         if self.config:
-            self.logger = AppLogger(self.config)  # Tworzenie instancji AppLogger
+            # Konwersja poziomu logowania z stringa na stałą logging
+            log_level_str = self.config.get("log_level", "INFO")
+            log_level = getattr(logging, log_level_str.upper(), logging.INFO)
+
+            # Inicjalizacja loggera z odpowiednimi parametrami z konfiguracji
+            self.logger = AppLogger(
+                log_dir=log_dir,
+                app_name="CFAB",
+                log_level=log_level,
+                enable_console=self.config.get("log_to_system_console", True),
+                enable_file_logging=self.config.get("log_to_file", False),
+                max_queue_size=1000,
+            )
+
+            # Ustawienie trybu debug dla loggera jeśli skonfigurowany
+            if self.config.get("logger_debug_mode", False):
+                self.logger.async_logger.set_debug_mode(True)
         else:
             # Obsługa przypadku, gdy konfiguracja nie jest dostępna
-            # Można użyć domyślnej konfiguracji lub zalogować błąd
-            default_config_for_logger = {
-                "log_level": "INFO",
-                "log_to_file": False,
-                "log_to_system_console": True,  # Domyślnie loguj do konsoli, jeśli brak configu
-                "log_dir": log_dir,
-            }
-            self.logger = AppLogger(default_config_for_logger)
+            self.logger = AppLogger(
+                log_dir=log_dir,
+                app_name="CFAB",
+                log_level=logging.INFO,
+                enable_console=True,
+                enable_file_logging=False,
+            )
             # Używamy globalnego loggera tylko do tego komunikatu, bo self.logger jeszcze nie istnieje
             logger.warning(
                 "Użyto domyślnej konfiguracji loggera, ponieważ główna konfiguracja nie była dostępna."
