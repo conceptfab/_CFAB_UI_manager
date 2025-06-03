@@ -1,0 +1,20 @@
+============================================== test session starts ===============================================
+platform win32 -- Python 3.13.3, pytest-8.3.5, pluggy-1.6.0 -- C:\tools\python\python.exe
+cachedir: .pytest_cache
+PyQt6 6.9.0 -- Qt runtime 6.9.0 -- Qt compiled 6.9.0
+rootdir: c:\_cloud\_CFAB_UI_manager
+plugins: anyio-4.9.0, cov-6.1.1, mock-3.14.1, qt-4.4.0
+collecting ... collected 10 items
+
+tests/unit/test_translation_manager.py::TestTranslationManager::test_broken_json PASSED                     [ 10%]
+tests/unit/test_translation_manager.py::TestTranslationManager::test_export_report PASSED                   [ 20%]
+tests/unit/test_translation_manager.py::TestTranslationManager::test_get_available_languages PASSED         [ 30%]
+tests/unit/test_translation_manager.py::TestTranslationManager::test_initialization PASSED                  [ 40%]
+tests/unit/test_translation_manager.py::TestTranslationManager::test_load_translations PASSED               [ 50%]
+tests/unit/test_translation_manager.py::TestTranslationManager::test_missing_keys PASSED                    [ 60%]
+tests/unit/test_translation_manager.py::TestTranslationManager::test_register_widgets PASSED                [ 70%]
+tests/unit/test_translation_manager.py::TestTranslationManager::test_set_language PASSED                    [ 80%]
+tests/unit/test_translation_manager.py::TestTranslationManager::test_translate PASSED                       [ 90%]
+tests/unit/test_translation_manager.py::TestTranslationManager::test_validate_translations PASSED           [100%]
+
+=============================================== 10 passed in 0.20s ===============================================

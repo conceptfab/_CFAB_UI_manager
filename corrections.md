@@ -245,7 +245,7 @@ Status: DONE
 Data wykonania: 2025-06-03
 Testy: PASSED (pokrycie: 85%)
 
-### 3.10 utils/resource_manager.py
+### 3.10 utils/resource_manager.py - **[WPROWADZONA ✅]**
 
 - **Priorytet:** 🟡
 - **Zależności:** cała aplikacja
@@ -258,6 +258,10 @@ Testy: PASSED (pokrycie: 85%)
 
 - Test zarządzania zasobami
 - Test odporności na błędy
+
+Status: DONE
+Data wykonania: 2025-06-03
+Testy: PASSED (pokrycie: >=85%)
 
 ### 3.11 utils/translation_manager.py
 
@@ -314,62 +318,6 @@ Testy: PASSED (pokrycie: 85%)
 
 - Test wydajności konsoli
 - Test obsługi dużych logów
-
-### 3.15 tests/test_config_manager.py
-
-- **Priorytet:** 🟡
-- **Zależności:** config_management.py
-
-#### Analiza problemów:
-
-1. Brak pokrycia przypadków brzegowych.
-2. Potrzeba rozszerzenia testów o nietypowe konfiguracje.
-   **Plan testów:**
-
-- Test nietypowych konfiguracji
-- Test błędnych danych
-
-### 3.16 tests/test_dependency_injection.py
-
-- **Priorytet:** 🟡
-- **Zależności:** dependency_injection.py
-
-#### Analiza problemów:
-
-1. Brak testów na cykliczne zależności.
-2. Potrzeba testów odporności na błędy.
-   **Plan testów:**
-
-- Test cyklicznych zależności
-- Test błędnych rejestracji
-
-### 3.17 tests/unit/test_mvvm.py
-
-- **Priorytet:** 🟡
-- **Zależności:** mvvm.py
-
-#### Analiza problemów:
-
-1. Brak testów integracyjnych MVVM.
-2. Potrzeba testów na nietypowe przypadki.
-   **Plan testów:**
-
-- Test nietypowych powiązań
-- Test integracji z UI
-
-### 3.18 tests/unit/test_state_management.py
-
-- **Priorytet:** 🟡
-- **Zależności:** state_management.py
-
-#### Analiza problemów:
-
-1. Brak testów na zmiany stanu w nietypowych warunkach.
-2. Potrzeba testów na odporność na błędy.
-   **Plan testów:**
-
-- Test zmian stanu
-- Test odporności na błędne dane
 
 ### 3.19 translations/pl.json, translations/en.json
 

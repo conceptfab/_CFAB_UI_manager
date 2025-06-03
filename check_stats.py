@@ -1,0 +1,1 @@
+from utils.translation_manager import TranslationManager\nTranslationManager.initialize()\nstats = TranslationManager.get_completion_stats()\nfor lang, data in stats.items():\n    print(f"{lang}: {data['completion_percent']}% kompletno˜ci")  
