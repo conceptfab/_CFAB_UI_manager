@@ -31,13 +31,19 @@ class AsyncLogger:
             logger.log(logging.ERROR, f"Błąd: {e}", exc_info=True)
     """
 
-    def __init__(self, max_queue_size: int = 1000, process_interval: float = 0.01):
+    def __init__(
+        self,
+        max_queue_size: int = 1000,
+        process_interval: float = 0.01,
+        logger_name: str = "AppLogger",
+    ):
         """
         Inicjalizuje asynchroniczny logger z kolejką i wątkiem przetwarzającym.
 
         Args:
             max_queue_size: Maksymalny rozmiar kolejki logów
             process_interval: Interwał (w sekundach) oczekiwania przy pustej kolejce
+            logger_name: Nazwa loggera do użycia
         """
         self.queue = Queue(maxsize=max_queue_size)
         self._shutdown_flag = False
@@ -69,7 +75,7 @@ class AsyncLogger:
         }
 
         # Główny logger aplikacji
-        self.logger = logging.getLogger("AppLogger")
+        self.logger = logging.getLogger(logger_name)
 
         # Osobny logger dla wewnętrznych komunikatów diagnostycznych
         self.internal_logger = logging.getLogger("AsyncLoggerInternal")
@@ -685,7 +691,9 @@ class AppLogger:
         self.logger.propagate = False  # Nie propaguj do root loggera
 
         # Asynchroniczny logger do buforowania i przetwarzania logów
-        self.async_logger = AsyncLogger(max_queue_size=max_queue_size)
+        self.async_logger = AsyncLogger(
+            max_queue_size=max_queue_size, logger_name=self.app_name
+        )
 
         # Ścieżki plików logów
         self.log_file_path = os.path.join(self.log_dir, f"{self.app_name}.log")
@@ -779,7 +787,7 @@ class AppLogger:
             widget_handler: Funkcja do wyświetlania logów w UI
         """
         self.async_logger.set_console_widget_handler(widget_handler)
-        self.debug("Handler konsoli UI ustawiony")
+        self.info("Handler konsoli UI ustawiony")
 
     # Alias dla kompatybilności z kodem oczekującym set_console_widget_handler
     def set_console_widget_handler(self, widget_handler: Callable[[str], None]):
@@ -811,6 +819,17 @@ class AppLogger:
                 handler, logging.handlers.RotatingFileHandler
             ):
                 handler.setLevel(level)
+
+        # Ustaw także poziom dla modułu-rodzica (aplikacji)
+        logging.getLogger().setLevel(level)
+
+        # Ustaw poziom logowania dla wszystkich istniejących loggerów
+        for logger_name in logging.root.manager.loggerDict:
+            logger_obj = logging.getLogger(logger_name)
+            # Nie zmieniaj poziomu dla loggerów, które mają włączoną propagację
+            # i nie mają własnych handlerów - będą korzystać z konfiguracji rodzica
+            if not (logger_obj.propagate and not logger_obj.handlers):
+                logger_obj.setLevel(level)
 
         self.info(f"Poziom logowania zmieniony na: {logging.getLevelName(level)}")
 
@@ -943,6 +962,16 @@ def initialize_logger(
     global _app_logger
 
     if _app_logger is None:
+        # Najpierw ustaw globalną konfigurację logowania
+        logging.basicConfig(level=log_level, force=True)
+
+        # Ustaw poziom dla root loggera
+        logging.getLogger().setLevel(log_level)
+
+        # Ustaw poziom dla wszystkich istniejących loggerów
+        for logger_name in logging.root.manager.loggerDict:
+            logging.getLogger(logger_name).setLevel(log_level)
+
         _app_logger = AppLogger(
             log_dir=log_dir,
             app_name=app_name,

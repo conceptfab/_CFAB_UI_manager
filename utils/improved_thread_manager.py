@@ -10,12 +10,22 @@ from PyQt6.QtCore import QObject, QRunnable, QThread, QThreadPool, QTimer, pyqtS
 
 # Bezpośredni import klasy AsyncLogger z logger
 try:
-    from .logger import AsyncLogger
+    from .logger import AsyncLogger, get_logger
 except ImportError:
     # Fallback dla testów lub gdy ścieżka importu jest inna
     AsyncLogger = None
+    get_logger = None
 
-logger = logging.getLogger(__name__)
+# Użyj głównego loggera aplikacji, jeśli jest dostępny, w przeciwnym razie utwórz własny
+if get_logger:
+    app_logger = get_logger()
+    logger = logging.getLogger(__name__)
+    # Ustaw poziom logowania zgodnie z poziomem głównego loggera aplikacji
+    logger.setLevel(app_logger.log_level)
+else:
+    logger = logging.getLogger(__name__)
+    # Domyślnie ustaw na WARNING, jeśli główny logger nie jest dostępny
+    logger.setLevel(logging.WARNING)
 
 
 class WorkerSignals(QObject):
@@ -360,16 +370,38 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         self.active_tasks = weakref.WeakSet()  # Zmieniono z Dict na WeakSet
         self.task_id_map = WeakValueDictionary()  # Mapowanie task_id -> task
 
+        # Pobierz główny logger i jego poziom logowania
+        root_log_level = logging.getLogger().level
+        app_log_level = root_log_level
+
+        # Pobierz poziom logowania z głównego loggera aplikacji, jeśli dostępny
+        if get_logger:
+            try:
+                app_logger = get_logger()
+                if hasattr(app_logger, "log_level"):
+                    app_log_level = app_logger.log_level
+                    # Ustaw poziom logowania dla tego modułu
+                    logger.setLevel(app_log_level)
+            except:
+                pass  # Użyj domyślnego poziomu, jeśli coś pójdzie nie tak
+
         # Użyj AsyncLogger jeśli dostępny, w przeciwnym razie używaj LogQueue
         if AsyncLogger and enable_logging:
             self._async_logger = AsyncLogger()
+            # Ustaw poziom logowania dla AsyncLogger
+            if hasattr(self._async_logger, "logger"):
+                self._async_logger.logger.setLevel(app_log_level)
             self.log_queue = None
-            logger.debug("Using AsyncLogger for thread management")
+            # Użyj metody _log_message zamiast bezpośredniego logger.debug
+            if app_log_level <= logging.DEBUG:
+                self._log_message(
+                    logging.DEBUG, "Using AsyncLogger for thread management"
+                )
         else:
             self._async_logger = None
             self.log_queue = LogQueue() if enable_logging else None
-            if enable_logging:
-                logger.debug("Using LogQueue for thread management")
+            if enable_logging and app_log_level <= logging.DEBUG:
+                self._log_message(logging.DEBUG, "Using LogQueue for thread management")
 
         # Historia zadań do analizy wycieków
         self._task_history = {}  # task_id -> task_info
@@ -408,11 +440,36 @@ class ThreadManager(QObject):  # Zmieniono nazwę z ImprovedThreadManager
         if not self.enable_logging:
             return
 
+        # Pobierz główny logger i jego poziom logowania
+        root_log_level = logging.getLogger().level
+        app_log_level = root_log_level
+
+        # Jeśli dostępny get_logger(), użyj jego poziomu
+        if get_logger:
+            try:
+                app_logger = get_logger()
+                # Sprawdź bezpośrednio w AppLogger
+                if hasattr(app_logger, "log_level"):
+                    app_log_level = app_logger.log_level
+            except:
+                pass  # Użyj domyślnego poziomu, jeśli coś pójdzie nie tak
+
+        # Nie loguj, jeśli poziom jest niższy niż poziom głównego loggera aplikacji
+        if level < app_log_level:
+            return
+
+        # Wybierz najlepszy dostępny mechanizm logowania
         if self._async_logger:
+            # Jeśli używamy AsyncLogger, przekazujemy także app_log_level
+            if hasattr(self._async_logger, "logger") and self._async_logger.logger:
+                # Upewnij się, że AsyncLogger ma właściwy poziom
+                self._async_logger.logger.setLevel(app_log_level)
             self._async_logger.log(level, message)
         elif self.log_queue:
             self.log_queue.add_log(level, message)
         else:
+            # Upewnij się, że logger.__name__ ma również właściwy poziom
+            logger.setLevel(app_log_level)
             logger.log(level, message)
 
     # Metody z ImprovedThreadManager

@@ -23,7 +23,8 @@ from utils.resource_manager import ResourceManager
 from utils.system_info import get_stable_uuid
 from utils.validators import ConfigValidator
 
-logger = logging.getLogger(__name__)
+# Użyj standardowego loggera tylko do wczesnych komunikatów
+_early_logger = logging.getLogger(__name__)
 
 
 class ApplicationStartup(QObject):
@@ -108,8 +109,10 @@ class ApplicationStartup(QObject):
             except Exception as e:
                 # Użyj domyślnej konfiguracji, jeśli ładowanie zawiedzie
                 # lub rzuć błąd krytyczny, jeśli konfiguracja jest niezbędna do logowania
-                # Używamy globalnego loggera tylko do tego komunikatu, bo self.logger jeszcze nie istnieje
-                logger.error(f"Nie udało się załadować konfiguracji dla loggera: {e}")
+                # Używamy wczesnego loggera tylko do tego komunikatu, bo self.logger jeszcze nie istnieje
+                _early_logger.error(
+                    f"Nie udało się załadować konfiguracji dla loggera: {e}"
+                )
                 # Można tu ustawić domyślną konfigurację lub przerwać
                 # Dla uproszczenia, kontynuujemy z potencjalnym brakiem konfiguracji
                 # co może prowadzić do domyślnych ustawień w AppLogger
@@ -119,6 +122,16 @@ class ApplicationStartup(QObject):
             # Konwersja poziomu logowania z stringa na stałą logging
             log_level_str = self.config.get("log_level", "INFO")
             log_level = getattr(logging, log_level_str.upper(), logging.INFO)
+
+            # Najpierw zresetuj globalną konfigurację logowania i ustaw poziom dla wszystkich istniejących loggerów
+            logging.basicConfig(level=log_level, force=True)
+
+            # Również ustaw poziom logowania dla wszystkich istniejących loggerów
+            for logger_name in logging.root.manager.loggerDict:
+                logging.getLogger(logger_name).setLevel(log_level)
+
+            # Root logger również
+            logging.getLogger().setLevel(log_level)
 
             # Inicjalizacja loggera z odpowiednimi parametrami z konfiguracji
             self.logger = AppLogger(
@@ -142,8 +155,8 @@ class ApplicationStartup(QObject):
                 enable_console=True,
                 enable_file_logging=False,
             )
-            # Używamy globalnego loggera tylko do tego komunikatu, bo self.logger jeszcze nie istnieje
-            logger.warning(
+            # Używamy wczesnego loggera tylko do tego komunikatu, bo self.logger jeszcze nie istnieje
+            _early_logger.warning(
                 "Użyto domyślnej konfiguracji loggera, ponieważ główna konfiguracja nie była dostępna."
             )
 
@@ -157,8 +170,8 @@ class ApplicationStartup(QObject):
         config_path = os.path.join(self.base_dir, "config.json")
 
         # self.logger może jeszcze nie być zainicjalizowany, jeśli load_config jest wywoływane z setup_logging
-        # przed inicjalizacją self.logger. W takim przypadku użyj globalnego loggera.
-        effective_logger = self.logger if self.logger else logger
+        # przed inicjalizacją self.logger. W takim przypadku użyj wczesnego loggera.
+        effective_logger = self.logger if self.logger else _early_logger
         effective_logger.debug(f"Loading configuration from: {config_path}")
 
         if not os.path.exists(config_path):
@@ -173,7 +186,7 @@ class ApplicationStartup(QObject):
             config = ConfigValidator.validate_config_file(config_path)
 
             # self.logger może jeszcze nie być zainicjalizowany
-            effective_logger = self.logger if self.logger else logger
+            effective_logger = self.logger if self.logger else _early_logger
             effective_logger.info("Configuration loaded and validated successfully")
             self.config = config
             self.config_loaded.emit(config)
@@ -393,4 +406,4 @@ class ApplicationStartup(QObject):
         if self.thread_manager:
             self.thread_manager.cleanup()
 
-        logger.info("Przeprowadzono cleanup aplikacji")
+        _early_logger.info("Przeprowadzono cleanup aplikacji")

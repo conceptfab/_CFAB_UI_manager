@@ -6,6 +6,7 @@ warnings.filterwarnings(
     module="cupy._environment",
 )
 
+import logging
 import os
 import sys
 
@@ -17,6 +18,10 @@ from UI.main_window import MainWindow
 from utils.application_startup import ApplicationStartup
 from utils.enhanced_splash import create_optimized_splash
 from utils.performance_optimizer import performance_monitor
+
+# Ustaw globalny poziom logowania na INFO na samym początku, aby zapobiec logom DEBUG
+logging.basicConfig(level=logging.INFO, force=True)
+logging.getLogger().setLevel(logging.INFO)
 
 
 class Application(QApplication):

@@ -75,10 +75,15 @@ class MainWindow(QMainWindow):
     def __init__(self, *args, app_logger=None, **kwargs):
         try:
             # Jednolite używanie app_logger jako głównego loggera aplikacji
-            self.app_logger = (
-                app_logger if app_logger else logging.getLogger("AppLogger")
-            )
-            self.logger = self.app_logger  # Dla wstecznej kompatybilności
+            if app_logger:
+                self.app_logger = app_logger
+                self.logger = self.app_logger  # Dla wstecznej kompatybilności
+            else:
+                # Jeśli app_logger nie został przekazany, użyj globalnego loggera
+                from utils.logger import get_logger
+
+                self.app_logger = get_logger()
+                self.logger = self.app_logger
 
             self.logger.info("MainWindow: start __init__")
             super().__init__(*args, **kwargs)
@@ -208,7 +213,14 @@ class MainWindow(QMainWindow):
 
     def _init_console(self):
         """Inicjalizacja zakładki konsoli."""
-        self.logger.debug("Inicjalizacja ConsoleWidget...")
+        # Sprawdź poziom logowania przed debugiem
+        if hasattr(self.logger, "log_level"):
+            current_level = self.logger.log_level
+            self.logger.info(
+                f"Aktualny poziom logowania w main_window: {logging.getLevelName(current_level)}"
+            )
+
+        # self.logger.debug("Inicjalizacja ConsoleWidget...")
         # ConsoleWidget nie potrzebuje już app_logger w konstruktorze
         widget = ConsoleWidget(parent=self)
         TranslationManager.register_widget(widget)
@@ -217,7 +229,7 @@ class MainWindow(QMainWindow):
         # Zarejestruj metodę append_log konsoli w AppLogger
         if self.app_logger and hasattr(widget, "append_log"):
             # Dodajemy bardziej szczegółowe logowanie dla debugowania
-            self.logger.debug("Próba rejestracji handlera konsoli w AppLogger.")
+            # self.logger.debug("Próba rejestracji handlera konsoli w AppLogger.")
             try:
                 # Sprawdź, czy metoda set_console_widget_handler istnieje w app_logger
                 if hasattr(self.app_logger, "set_console_widget_handler"):
