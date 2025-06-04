@@ -263,47 +263,7 @@ Status: DONE
 Data wykonania: 2025-06-03
 Testy: PASSED (pokrycie: >=85%)
 
-### 3.11 utils/translation_manager.py
 
-- **Priorytet:** 🟡
-- **Zależności:** translations/
-
-#### Analiza problemów:
-
-1. Brak walidacji tłumaczeń, możliwe braki w obsłudze języków.
-2. Potrzeba testów na przełączanie języków.
-   **Plan testów:**
-
-- Test ładowania tłumaczeń
-- Test przełączania języków
-
-### 3.12 UI/hardware_profiler.py
-
-- **Priorytet:** 🟡
-- **Zależności:** hardware.json
-
-#### Analiza problemów:
-
-1. Możliwe nieoptymalne zarządzanie pamięcią i ostrzeżeniami.
-2. Brak testów na obsługę różnych konfiguracji sprzętu.
-   **Plan testów:**
-
-- Test profilowania sprzętu
-- Test obsługi błędów
-
-### 3.13 UI/preferences_dialog.py
-
-- **Priorytet:** 🟡
-- **Zależności:** config.json
-
-#### Analiza problemów:
-
-1. Możliwe błędy w zapisie/odczycie preferencji.
-2. Brak testów na walidację danych.
-   **Plan testów:**
-
-- Test zapisu i odczytu preferencji
-- Test walidacji danych
 
 ### 3.14 UI/components/console_widget.py
 

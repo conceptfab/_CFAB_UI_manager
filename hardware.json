@@ -8,7 +8,7 @@
     "cpu_count_logical": 20,
     "cpu_count_physical": 14,
     "memory_total": 16855232512,
-    "timestamp": "2025-06-03T23:10:54",
+    "timestamp": "2025-06-04T17:59:05",
     "gpu": "Intel(R) Iris(R) Xe Graphics, NVIDIA GeForce RTX 3050 Laptop GPU",
     "optimizations_flags": {
         "multithreading": true,
@@ -23,10 +23,10 @@
         "psutil"
     ],
     "cpu_benchmark": {
-        "score": 19.952830077348455,
-        "time_s": 30.5996572971344
+        "score": 26.34713574138914,
+        "time_s": 23.544888973236084
     },
     "ai_benchmark_cupy": {
-        "time_s": 0.6949429512023926
+        "time_s": 0.21309828758239746
     }
 }
