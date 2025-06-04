@@ -1,5 +1,3 @@
-
-
 ---
 
 ## ETAP 4: Pliki priorytetu 🟢 (drobne komponenty, style, dokumentacja, benchmarki, obrazy)

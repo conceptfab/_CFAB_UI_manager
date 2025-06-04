@@ -1,38 +1,41 @@
+# CFAB UI Manager - wymagania zależności
+# Wymaga Python 3.11+ (zalecana wersja 3.13+)
+
 # Core GUI Framework
-PyQt6>=6.5.0
+PyQt6>=6.5.0  # Framework GUI używany w całej aplikacji
 
 # System Information and Hardware Detection
-psutil>=5.9.0
+psutil>=5.9.0  # Biblioteka do zbierania informacji o systemie i sprzęcie
 
 # Scientific Computing (for hardware profiling)
-numpy>=1.24.0
+numpy>=1.24.0  # Biblioteka do obliczeń numerycznych używana w profilowaniu sprzętu
 
 # Optional GPU Computing (for advanced hardware profiling)
-cupy-cuda12x>=12.0.0; sys_platform == "win32"  # For NVIDIA GPUs with CUDA 12.x
+cupy-cuda12x>=12.0.0; sys_platform == "win32"  # Dla kart NVIDIA z CUDA 12.x
 # Alternative for other CUDA versions:
-# cupy-cuda11x>=11.0.0; sys_platform == "win32"  # For CUDA 11.x
+# cupy-cuda11x>=11.0.0; sys_platform == "win32"  # Dla kart z CUDA 11.x
 
 # Performance Benchmarking
-pyperformance>=1.0.9
+pyperformance>=1.0.9  # Biblioteka do benchmarków wydajności
 
 # Development and Testing
-pytest>=7.0.0
-pytest-cov>=4.0.0
-pytest-qt>=4.2.0
+pytest>=7.0.0         # Framework testowy
+pytest-cov>=4.0.0     # Rozszerzenie pytest do raportów pokrycia kodu
+pytest-qt>=4.2.0      # Rozszerzenie pytest dla testów PyQt
 
 # Code Quality
-black>=23.0.0
-flake8>=6.0.0
-mypy>=1.0.0
+black>=23.0.0         # Formatter kodu Python
+flake8>=6.0.0         # Linter sprawdzający zgodność z PEP8
+mypy>=1.0.0           # Sprawdzanie typów statycznych
 
 # Documentation
-sphinx>=6.0.0
-sphinx-rtd-theme>=1.2.0
+sphinx>=6.0.0         # Generator dokumentacji
+sphinx-rtd-theme>=1.2.0  # Motyw Read-the-Docs dla dokumentacji Sphinx
 
 # Build Tools (for distribution)
-pyinstaller>=5.10.0
-setuptools>=67.0.0
-wheel>=0.40.0
+pyinstaller>=5.10.0   # Narzędzie do pakowania aplikacji Python w samodzielne programy
+setuptools>=67.0.0    # Narzędzie do dystrybucji pakietów Python
+wheel>=0.40.0         # Format pakietów binarnych do dystrybucji
 
 # Utilities
-typing-extensions>=4.5.0; python_version < "3.11"
+typing-extensions>=4.5.0; python_version < "3.11"  # Rozszerzenia typowania dla starszych wersji Pythona
