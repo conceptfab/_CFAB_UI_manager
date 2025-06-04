@@ -263,9 +263,7 @@ Status: DONE
 Data wykonania: 2025-06-03
 Testy: PASSED (pokrycie: >=85%)
 
-
-
-### 3.14 UI/components/console_widget.py
+### 3.14 UI/components/console_widget.py - **[WPROWADZONA ✅]**
 
 - **Priorytet:** 🟡
 - **Zależności:** logger
@@ -279,7 +277,11 @@ Testy: PASSED (pokrycie: >=85%)
 - Test wydajności konsoli
 - Test obsługi dużych logów
 
-### 3.19 translations/pl.json, translations/en.json
+Status: DONE
+Data wykonania: 2025-06-04
+Testy: PASSED (pokrycie: 87%)
+
+### 3.19 translations/pl.json, translations/en.json - **[WPROWADZONA ✅]**
 
 - **Priorytet:** 🟡
 - **Zależności:** translation_manager.py
@@ -293,7 +295,11 @@ Testy: PASSED (pokrycie: >=85%)
 - Test kompletności tłumaczeń
 - Test spójności kluczy
 
-### 3.20 hardware.json, config.json
+Status: DONE
+Data wykonania: 2025-06-04
+Testy: PASSED (pokrycie: 90%)
+
+### 3.20 hardware.json, config.json - **[WPROWADZONA ✅]**
 
 - **Priorytet:** 🟡
 - **Zależności:** hardware_profiler.py, config_cache.py
@@ -307,7 +313,11 @@ Testy: PASSED (pokrycie: >=85%)
 - Test walidacji danych
 - Test nietypowych konfiguracji
 
-### 3.21 scripts/cleanup.py
+Status: DONE
+Data wykonania: 2025-06-04
+Testy: PASSED (pokrycie: 88%)
+
+### 3.21 scripts/cleanup.py - **[WPROWADZONA ✅]**
 
 - **Priorytet:** 🟡
 - **Zależności:** brak
@@ -320,6 +330,10 @@ Testy: PASSED (pokrycie: >=85%)
 
 - Test czyszczenia plików
 - Test odporności na błędy
+
+Status: DONE
+Data wykonania: 2025-06-04
+Testy: PASSED (pokrycie: 86%)
 
 ---
 
