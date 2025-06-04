@@ -113,7 +113,9 @@ class HardwareProfilerThread(QThread):
             # Monitorowanie użycia pamięci
             try:
                 before_mem = cp.cuda.Device().mem_info
-                logger.debug(f"GPU memory before benchmark - Free: {before_mem[0]}, Total: {before_mem[1]}")
+                logger.debug(
+                    f"GPU memory before benchmark - Free: {before_mem[0]}, Total: {before_mem[1]}"
+                )
             except Exception as mem_info_err:
                 logger.warning(f"Could not get GPU memory info: {mem_info_err}")
 
@@ -146,17 +148,21 @@ class HardwareProfilerThread(QThread):
             # Monitorowanie użycia pamięci po benchmarku
             try:
                 after_mem = cp.cuda.Device().mem_info
-                logger.debug(f"GPU memory after benchmark - Free: {after_mem[0]}, Total: {after_mem[1]}")
+                logger.debug(
+                    f"GPU memory after benchmark - Free: {after_mem[0]}, Total: {after_mem[1]}"
+                )
                 memory_used = before_mem[0] - after_mem[0]
                 logger.debug(f"GPU memory used by benchmark: {memory_used} bytes")
             except Exception as mem_info_err:
-                logger.warning(f"Could not get GPU memory info after benchmark: {mem_info_err}")
+                logger.warning(
+                    f"Could not get GPU memory info after benchmark: {mem_info_err}"
+                )
 
             # Systematyczne zwalnianie zasobów GPU
             try:
                 # Najpierw usuń poszczególne tablice
                 del a_gpu, b_gpu, c_gpu
-                # Następnie wymuś synchronizację 
+                # Następnie wymuś synchronizację
                 cp.cuda.Stream.null.synchronize()
                 # Na koniec wyczyść całą pamięć podręczną
                 mempool = cp.get_default_memory_pool()
@@ -164,13 +170,13 @@ class HardwareProfilerThread(QThread):
                 logger.debug("Successfully released GPU memory resources")
             except Exception as e:
                 logger.error(f"Error during GPU memory cleanup: {e}")
-            
+
             logger.debug(f"GPU benchmark completed in {duration:.4f} seconds")
             return duration
 
         except Exception as e:
             logger.error(f"Error during GPU benchmark: {e}", exc_info=True)
-            
+
             # Próba odzyskania zasobów nawet w przypadku błędu
             try:
                 mempool = cp.get_default_memory_pool()
@@ -178,63 +184,72 @@ class HardwareProfilerThread(QThread):
                 logger.debug("Cleaned GPU memory pool after benchmark error")
             except Exception:
                 pass
-                
+
             return None
 
     def _save_profile_to_json(self, profile, file_path=None):
         """
         Zapisuje profil sprzętowy do pliku JSON z walidacją danych.
-        
+
         Args:
             profile (dict): Słownik z danymi profilu sprzętowego
             file_path (str, optional): Ścieżka do pliku JSON. Jeśli None, używa self.hardware_path.
-            
+
         Returns:
             bool: True jeśli zapis się powiódł, False w przeciwnym razie.
         """
         if not file_path and self.hardware_path:
             file_path = self.hardware_path
-        
+
         if not file_path:
             logger.error("No file path provided for hardware profile")
             return False
-            
+
         # Walidacja profilu przed zapisem
-        required_keys = ["uuid", "system", "processor", "cpu_count_logical", "memory_total"]
+        required_keys = [
+            "uuid",
+            "system",
+            "processor",
+            "cpu_count_logical",
+            "memory_total",
+        ]
         for key in required_keys:
             if key not in profile:
                 logger.error(f"Invalid hardware profile: missing required key '{key}'")
                 return False
-                
+
         # Formatowanie timestamp dla lepszej czytelności
         if "timestamp" in profile:
             current_time = QDateTime.currentDateTime()
             profile["created_at"] = current_time.toString("yyyy-MM-dd HH:mm:ss")
-            
-        # Restrukturyzacja dla lepszej organizacji
-        structured_profile = {
-            "uuid": profile["uuid"],
-            "created_at": profile.get("created_at", profile.get("timestamp", "")),
-            "system_info": {
-                "system": profile["system"],
-                "node": platform.node(),
-                "release": profile["release"],
-                "version": profile["version"],
-                "machine": profile["machine"],
-                "processor": profile["processor"]
-            }
+            # Restrukturyzacja dla lepszej organizacji, ale zachowując wszystkie dane oryginalne
+        structured_profile = profile.copy()  # Kopiujemy cały profil
+
+        # Dodajemy dodatkowe informacje strukturalne
+        structured_profile["system_info"] = {
+            "system": profile["system"],
+            "node": platform.node(),
+            "release": profile["release"],
+            "version": profile["version"],
+            "machine": profile["machine"],
+            "processor": profile["processor"],
         }
-            
+
+        # Upewniamy się, że created_at jest ustawione
+        structured_profile["created_at"] = profile.get(
+            "created_at", profile.get("timestamp", "")
+        )
+
         try:
             # Sprawdź czy katalog istnieje, jeśli nie, utwórz go
             directory = os.path.dirname(file_path)
             if directory and not os.path.exists(directory):
                 os.makedirs(directory)
-                
+
             # Zapisz plik z wcięciami dla lepszej czytelności
-            with open(file_path, 'w', encoding='utf-8') as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(structured_profile, f, indent=4, ensure_ascii=False)
-                
+
             logger.info(f"Hardware profile successfully saved to {file_path}")
             return True
         except Exception as e:
@@ -278,13 +293,13 @@ class HardwareProfilerThread(QThread):
                     "app.dialogs.hardware_profiler.status.detecting_gpu"
                 )
             )
-            
+
             # Obsługa błędów i walidacja dla informacji o GPU
             try:
                 gpu_info = self.hardware_detector.get_gpu_info()
                 if not gpu_info or not isinstance(gpu_info, str):
                     raise ValueError("Invalid GPU information format")
-                    
+
                 profile["gpu"] = gpu_info
                 logger.debug(f"GPU detected: {profile['gpu']}")
             except Exception as e:
@@ -301,8 +316,10 @@ class HardwareProfilerThread(QThread):
                 cpu_cores = profile.get("cpu_count_logical", 1)
                 if not isinstance(cpu_cores, int) or cpu_cores <= 0:
                     cpu_cores = 1
-                    logger.warning("Could not detect valid CPU core count, using fallback value of 1")
-            
+                    logger.warning(
+                        "Could not detect valid CPU core count, using fallback value of 1"
+                    )
+
             # Walidacja i bezpieczne przypisanie pamięci
             memory_gb = 0
             try:
@@ -310,9 +327,11 @@ class HardwareProfilerThread(QThread):
                 if memory_gb <= 0:
                     raise ValueError("Invalid memory size")
             except (KeyError, TypeError, ValueError) as e:
-                logger.warning(f"Invalid memory information: {e}. Using fallback value.")
+                logger.warning(
+                    f"Invalid memory information: {e}. Using fallback value."
+                )
                 memory_gb = 4  # Wartość domyślna 4GB
-                
+
             # Konfiguracja flag optymalizacji
             optimizations = {
                 "multithreading": cpu_cores >= 4,
@@ -321,7 +340,7 @@ class HardwareProfilerThread(QThread):
                 "standard_memory_buffering": memory_gb >= 8,
             }
             profile["optimizations_flags"] = optimizations
-            
+
             # Walidacja i bezpieczne przypisanie bibliotek Pythona
             python_libraries = ["numpy", "psutil", "PyQt6"]
             if optimizations["multithreading"]:
@@ -335,11 +354,15 @@ class HardwareProfilerThread(QThread):
                             "app.dialogs.hardware_profiler.status.numba_not_installed"
                         )
                     )
-                    
+
             # Sprawdź GPU NVIDIA + CuPy
-            if isinstance(profile.get("gpu"), str) and "nvidia" in profile["gpu"].lower() and HAS_CUPY:
+            if (
+                isinstance(profile.get("gpu"), str)
+                and "nvidia" in profile["gpu"].lower()
+                and HAS_CUPY
+            ):
                 python_libraries.append("cupy")
-                
+
             profile["python_libraries"] = sorted(list(set(python_libraries)))
 
             # Definicja run_pyperformance musi być tutaj, aby była w zasięgu
@@ -647,14 +670,9 @@ class HardwareProfilerThread(QThread):
                     "status": TranslationManager.translate(
                         "app.dialogs.hardware_profiler.status.cupy_not_available"
                     )
-                }
-
-            # Now save the profile to JSON with validation
-            try:
-                if not self._save_profile_to_json(profile):
-                    logger.error("Profile saved with errors, please check the logs.")
-            except Exception as e_save:
-                logger.error(f"Unexpected error during profile saving: {e_save}")
+                }  # Przygotuj profil do zapisu z walidacją
+            # Usuwamy pierwsze wywołanie bez ścieżki, które nie było poprawne
+            # Zapiszemy tylko raz z odpowiednią ścieżką poniżej
 
             # Zapisz profil do hardware.json jeśli ścieżka została podana
             if self.hardware_path:
@@ -663,7 +681,7 @@ class HardwareProfilerThread(QThread):
                         "app.dialogs.hardware_profiler.status.saving_profile"
                     )
                 )
-                
+
                 # Walidacja profilu przed zapisem
                 is_valid, validation_errors = self._validate_hardware_profile(profile)
                 if not is_valid:
@@ -671,24 +689,23 @@ class HardwareProfilerThread(QThread):
                         f"Hardware profile validation errors: {validation_errors}"
                     )
                     profile["validation_errors"] = validation_errors
-                    
+
                 self._save_profile_to_json(profile, self.hardware_path)
-            
+
             # Generuj rekomendacje dla różnych konfiguracji sprzętu
             recommendations = self._generate_hardware_recommendations(profile)
             profile["recommendations"] = recommendations
-            
+
             # Emituj sygnał o gotowości profilu
             self.profile_ready.emit(profile)
-            
+
         except Exception as e:
             logger.error(f"Hardware profiling error: {e}", exc_info=True)
-            error_profile = {
-                "error": str(e),
-                "traceback": traceback.format_exc()
-            }
+            error_profile = {"error": str(e), "traceback": traceback.format_exc()}
             self.profile_ready.emit(error_profile)
-            raise HardwareProfilingError(f"Error during hardware profiling: {e}", details=str(e))
+            raise HardwareProfilingError(
+                f"Error during hardware profiling: {e}", details=str(e)
+            )
 
     def optimize_memory_usage(self):
         """Optimize memory usage during profiling"""
@@ -715,31 +732,45 @@ class HardwareProfilerThread(QThread):
     def _validate_hardware_profile(self, profile):
         """
         Waliduje poprawność struktury profilu sprzętowego.
-        
+
         Args:
             profile (dict): Profil sprzętowy do walidacji
-            
+
         Returns:
             tuple: (is_valid, errors_list) - czy profil jest poprawny i lista błędów
         """
         errors = []
-        
+
         # Wymagane pola
-        required_fields = ["uuid", "system", "processor", "cpu_count_logical", "memory_total"]
+        required_fields = [
+            "uuid",
+            "system",
+            "processor",
+            "cpu_count_logical",
+            "memory_total",
+        ]
         for field in required_fields:
             if field not in profile:
                 errors.append(f"Brakujące pole: {field}")
-                
+
         # Walidacja typów danych
-        if "cpu_count_logical" in profile and not isinstance(profile["cpu_count_logical"], int):
-            errors.append(f"Niepoprawny typ pola cpu_count_logical: {type(profile['cpu_count_logical'])}, oczekiwano: int")
-            
+        if "cpu_count_logical" in profile and not isinstance(
+            profile["cpu_count_logical"], int
+        ):
+            errors.append(
+                f"Niepoprawny typ pola cpu_count_logical: {type(profile['cpu_count_logical'])}, oczekiwano: int"
+            )
+
         if "memory_total" in profile and not isinstance(profile["memory_total"], int):
-            errors.append(f"Niepoprawny typ pola memory_total: {type(profile['memory_total'])}, oczekiwano: int")
-            
+            errors.append(
+                f"Niepoprawny typ pola memory_total: {type(profile['memory_total'])}, oczekiwano: int"
+            )
+
         if "gpu" in profile and not isinstance(profile["gpu"], str):
-            errors.append(f"Niepoprawny typ pola gpu: {type(profile['gpu'])}, oczekiwano: str")
-            
+            errors.append(
+                f"Niepoprawny typ pola gpu: {type(profile['gpu'])}, oczekiwano: str"
+            )
+
         # Walidacja poprawności UUID
         if "uuid" in profile:
             try:
@@ -748,40 +779,46 @@ class HardwareProfilerThread(QThread):
                     errors.append(f"Niepoprawny format UUID: {profile['uuid']}")
             except (ValueError, AttributeError):
                 errors.append(f"Niepoprawny format UUID: {profile['uuid']}")
-                
+
         # Walidacja flag optymalizacji
         if "optimizations_flags" in profile:
             if not isinstance(profile["optimizations_flags"], dict):
                 errors.append("Flagi optymalizacji muszą być słownikiem")
             else:
                 # Sprawdź wymagane flagi optymalizacji
-                required_flags = ["multithreading", "advanced_multithreading", 
-                                  "high_memory_buffering", "standard_memory_buffering"]
-                                  
+                required_flags = [
+                    "multithreading",
+                    "advanced_multithreading",
+                    "high_memory_buffering",
+                    "standard_memory_buffering",
+                ]
+
                 for flag in required_flags:
                     if flag not in profile["optimizations_flags"]:
                         errors.append(f"Brakująca flaga optymalizacji: {flag}")
                     elif not isinstance(profile["optimizations_flags"][flag], bool):
-                        errors.append(f"Flaga optymalizacji {flag} powinna być typu bool")
-        
+                        errors.append(
+                            f"Flaga optymalizacji {flag} powinna być typu bool"
+                        )
+
         return len(errors) == 0, errors
 
     def _generate_hardware_recommendations(self, profile):
         """
         Generuje rekomendacje dotyczące optymalizacji na podstawie profilu sprzętu.
-        
+
         Args:
             profile (dict): Profil sprzętowy
-            
+
         Returns:
             dict: Słownik z rekomendacjami
         """
         recommendations = {}
-        
+
         # Sprawdzenie CPU
         cpu_cores_physical = profile.get("cpu_count_physical", 0)
         cpu_cores_logical = profile.get("cpu_count_logical", 0)
-        
+
         if cpu_cores_physical > 0 and cpu_cores_logical > 0:
             # Analiza rdzeni CPU
             if cpu_cores_physical >= 8:
@@ -799,7 +836,7 @@ class HardwareProfilerThread(QThread):
                     "app.dialogs.hardware_profiler.recommendations.cpu_minimal"
                 )
                 recommendations["cpu_level"] = "minimal"
-                
+
         # Sprawdzenie RAM
         memory_gb = profile.get("memory_total", 0) // (1024**3)
         if memory_gb >= 16:
@@ -817,17 +854,22 @@ class HardwareProfilerThread(QThread):
                 "app.dialogs.hardware_profiler.recommendations.ram_minimal"
             )
             recommendations["ram_level"] = "minimal"
-            
+
         # Sprawdzenie GPU
         gpu_info = profile.get("gpu", "")
         if isinstance(gpu_info, str):
             if "nvidia" in gpu_info.lower():
-                if any(model in gpu_info.lower() for model in ["rtx", "titan", "a100", "v100"]):
+                if any(
+                    model in gpu_info.lower()
+                    for model in ["rtx", "titan", "a100", "v100"]
+                ):
                     recommendations["gpu"] = TranslationManager.translate(
                         "app.dialogs.hardware_profiler.recommendations.gpu_excellent"
                     )
                     recommendations["gpu_level"] = "excellent"
-                elif any(model in gpu_info.lower() for model in ["gtx", "quadro", "tesla"]):
+                elif any(
+                    model in gpu_info.lower() for model in ["gtx", "quadro", "tesla"]
+                ):
                     recommendations["gpu"] = TranslationManager.translate(
                         "app.dialogs.hardware_profiler.recommendations.gpu_good"
                     )
@@ -837,7 +879,10 @@ class HardwareProfilerThread(QThread):
                         "app.dialogs.hardware_profiler.recommendations.gpu_minimal"
                     )
                     recommendations["gpu_level"] = "minimal"
-            elif any(vendor in gpu_info.lower() for vendor in ["amd", "radeon", "intel", "iris"]):
+            elif any(
+                vendor in gpu_info.lower()
+                for vendor in ["amd", "radeon", "intel", "iris"]
+            ):
                 recommendations["gpu"] = TranslationManager.translate(
                     "app.dialogs.hardware_profiler.recommendations.gpu_limited"
                 )
@@ -852,7 +897,7 @@ class HardwareProfilerThread(QThread):
                 "app.dialogs.hardware_profiler.recommendations.gpu_not_detected"
             )
             recommendations["gpu_level"] = "not_detected"
-            
+
         # Generowanie ogólnej oceny
         scores = {
             "excellent": 3,
@@ -860,28 +905,28 @@ class HardwareProfilerThread(QThread):
             "minimal": 1,
             "limited": 0.5,
             "unknown": 0,
-            "not_detected": 0
+            "not_detected": 0,
         }
-        
+
         total_score = 0
         components = 0
-        
+
         # Obliczanie średniej ważonej (CPU i RAM mają większą wagę niż GPU)
         if "cpu_level" in recommendations:
             total_score += scores.get(recommendations["cpu_level"], 0) * 1.5
             components += 1.5
-            
+
         if "ram_level" in recommendations:
             total_score += scores.get(recommendations["ram_level"], 0) * 1.2
             components += 1.2
-            
+
         if "gpu_level" in recommendations:
             total_score += scores.get(recommendations["gpu_level"], 0) * 1.0
             components += 1.0
-            
+
         if components > 0:
             average_score = total_score / components
-            
+
             if average_score >= 2.5:
                 recommendations["overall"] = TranslationManager.translate(
                     "app.dialogs.hardware_profiler.recommendations.overall_excellent"
@@ -902,7 +947,7 @@ class HardwareProfilerThread(QThread):
                 "app.dialogs.hardware_profiler.recommendations.overall_unknown"
             )
             recommendations["overall_level"] = "unknown"
-            
+
         return recommendations
 
 
@@ -974,7 +1019,7 @@ class HardwareProfilerDialog(QDialog):
             }
         """
         )
-        
+
         current_layout = QVBoxLayout(self.current_group)
         self.config_display = QTextEdit()
         self.config_display.setReadOnly(True)
@@ -988,7 +1033,9 @@ class HardwareProfilerDialog(QDialog):
 
         # Grupa dla rekomendacji
         self.recommendation_group = QGroupBox(
-            TranslationManager.translate("app.dialogs.hardware_profiler.recommendations")
+            TranslationManager.translate(
+                "app.dialogs.hardware_profiler.recommendations"
+            )
         )
         self.recommendation_group.setStyleSheet(
             """
@@ -1005,7 +1052,7 @@ class HardwareProfilerDialog(QDialog):
             }
         """
         )
-        
+
         recommendation_layout = QVBoxLayout(self.recommendation_group)
         self.recommendation_display = QTextEdit()
         self.recommendation_display.setReadOnly(True)
@@ -1025,14 +1072,18 @@ class HardwareProfilerDialog(QDialog):
         self.status_label.setWordWrap(True)
         layout.addWidget(self.status_label)
 
-        # Progress bar 
+        # Progress bar
         self.progress_bar = QProgressBar()
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(100)
         self.progress_bar.setValue(0)
         self.progress_bar.setTextVisible(True)
-        self.progress_bar.setFormat("%p% - %v/%m " + 
-            TranslationManager.translate("app.dialogs.hardware_profiler.status.seconds"))
+        self.progress_bar.setFormat(
+            "%p% - %v/%m "
+            + TranslationManager.translate(
+                "app.dialogs.hardware_profiler.status.seconds"
+            )
+        )
         self.progress_bar.setStyleSheet(
             """
             QProgressBar {
@@ -1078,7 +1129,7 @@ class HardwareProfilerDialog(QDialog):
             }
         """
         )
-        
+
         self.close_button = QPushButton(
             TranslationManager.translate("app.dialogs.hardware_profiler.close_button")
         )  # CHANGED
@@ -1099,65 +1150,87 @@ class HardwareProfilerDialog(QDialog):
 
         # Ukryj grupę rekomendacji na początku
         self.recommendation_group.hide()
-        
+
     def _display_recommendation_html(self, recommendations):
         """
         Wyświetla rekomendacje w formacie HTML z kolorowym formatowaniem.
-        
+
         Args:
             recommendations (dict): Słownik z rekomendacjami
         """
         if not recommendations:
             return
-            
+
         # Mapowanie poziomów na kolory
         level_colors = {
             "excellent": "#339933",  # Zielony
-            "good": "#3366CC",       # Niebieski
-            "minimal": "#FF9933",    # Pomarańczowy
-            "limited": "#FF6600",    # Ciemny pomarańczowy
-            "unknown": "#999999",    # Szary
-            "not_detected": "#CC3333" # Czerwony
+            "good": "#3366CC",  # Niebieski
+            "minimal": "#FF9933",  # Pomarańczowy
+            "limited": "#FF6600",  # Ciemny pomarańczowy
+            "unknown": "#999999",  # Szary
+            "not_detected": "#CC3333",  # Czerwony
         }
-        
+
         html = "<div style='font-family: Arial, sans-serif;'>"
-        
+
         # Ogólna rekomendacja
         if "overall" in recommendations and "overall_level" in recommendations:
             color = level_colors.get(recommendations["overall_level"], "#000000")
             html += f"<div style='margin-bottom: 15px;'>"
             html += f"<div style='font-weight: bold; font-size: 16px; color: {color};'>"
-            html += TranslationManager.translate("app.dialogs.hardware_profiler.recommendations.overall_header") + "</div>"
-            html += f"<div style='margin-left: 10px;'>{recommendations['overall']}</div>"
+            html += (
+                TranslationManager.translate(
+                    "app.dialogs.hardware_profiler.recommendations.overall_header"
+                )
+                + "</div>"
+            )
+            html += (
+                f"<div style='margin-left: 10px;'>{recommendations['overall']}</div>"
+            )
             html += "</div>"
-            
+
         # Rekomendacje CPU
         if "cpu" in recommendations and "cpu_level" in recommendations:
             color = level_colors.get(recommendations["cpu_level"], "#000000")
             html += f"<div style='margin-bottom: 10px;'>"
             html += f"<div style='font-weight: bold; color: {color};'>"
-            html += TranslationManager.translate("app.dialogs.hardware_profiler.recommendations.cpu_header") + "</div>"
+            html += (
+                TranslationManager.translate(
+                    "app.dialogs.hardware_profiler.recommendations.cpu_header"
+                )
+                + "</div>"
+            )
             html += f"<div style='margin-left: 10px;'>{recommendations['cpu']}</div>"
             html += "</div>"
-            
+
         # Rekomendacje RAM
         if "ram" in recommendations and "ram_level" in recommendations:
             color = level_colors.get(recommendations["ram_level"], "#000000")
             html += f"<div style='margin-bottom: 10px;'>"
             html += f"<div style='font-weight: bold; color: {color};'>"
-            html += TranslationManager.translate("app.dialogs.hardware_profiler.recommendations.ram_header") + "</div>"
+            html += (
+                TranslationManager.translate(
+                    "app.dialogs.hardware_profiler.recommendations.ram_header"
+                )
+                + "</div>"
+            )
             html += f"<div style='margin-left: 10px;'>{recommendations['ram']}</div>"
             html += "</div>"
-            
+
         # Rekomendacje GPU
         if "gpu" in recommendations and "gpu_level" in recommendations:
             color = level_colors.get(recommendations["gpu_level"], "#000000")
             html += f"<div style='margin-bottom: 10px;'>"
             html += f"<div style='font-weight: bold; color: {color};'>"
-            html += TranslationManager.translate("app.dialogs.hardware_profiler.recommendations.gpu_header") + "</div>"
+            html += (
+                TranslationManager.translate(
+                    "app.dialogs.hardware_profiler.recommendations.gpu_header"
+                )
+                + "</div>"
+            )
             html += f"<div style='margin-left: 10px;'>{recommendations['gpu']}</div>"
             html += "</div>"
-            
+
         html += "</div>"
         self.recommendation_display.setHtml(html)
         self.recommendation_group.show()
@@ -1165,14 +1238,16 @@ class HardwareProfilerDialog(QDialog):
     def display_profile(self, profile):
         """
         Wyświetla informacje o profilu sprzętu w dialogu.
-        
+
         Args:
             profile (dict): Profil sprzętu do wyświetlenia
         """
         # Sprawdź czy wystąpił błąd
         if "error" in profile:
             self.status_label.setText(
-                TranslationManager.translate("app.dialogs.hardware_profiler.status.error")
+                TranslationManager.translate(
+                    "app.dialogs.hardware_profiler.status.error"
+                )
                 + f": {profile['error']}"
             )
             self.status_label.setStyleSheet("color: #CC3333; font-weight: bold;")
@@ -1181,23 +1256,28 @@ class HardwareProfilerDialog(QDialog):
         # CPU i RAM
         cpu_physical = profile.get("cpu_count_physical", 0)
         cpu_logical = profile.get("cpu_count_logical", 0)
-        
+
         memory_gb = profile.get("memory_total", 0) // (1024**3)
-        
+
         self.cpu_label.setText(
-            TranslationManager.translate("app.dialogs.hardware_profiler.cpu_label") 
+            TranslationManager.translate("app.dialogs.hardware_profiler.cpu_label")
             + f" {cpu_physical} ({cpu_logical})"
         )
-        
+
         self.ram_label.setText(
-            TranslationManager.translate("app.dialogs.hardware_profiler.ram_label") 
+            TranslationManager.translate("app.dialogs.hardware_profiler.ram_label")
             + f" {memory_gb} GB"
         )
 
         # GPU
-        gpu_info = profile.get("gpu", TranslationManager.translate("app.dialogs.hardware_profiler.status.gpu_not_detected"))
+        gpu_info = profile.get(
+            "gpu",
+            TranslationManager.translate(
+                "app.dialogs.hardware_profiler.status.gpu_not_detected"
+            ),
+        )
         self.gpu_value_label.setText(gpu_info)
-        
+
         # Warnungi związane z GPU
         if "gpu_error_details" in profile:
             self.gpu_value_label.setStyleSheet("color: #CC3333;")
@@ -1207,21 +1287,25 @@ class HardwareProfilerDialog(QDialog):
         # Aktualna konfiguracja w formacie JSON
         config_json = json.dumps(profile, indent=2)
         self.config_display.setText(config_json)
-        
+
         # Rekomendacje
         if "recommendations" in profile:
             self._display_recommendation_html(profile["recommendations"])
-            
+
         # Status
         self.status_label.setText(
-            TranslationManager.translate("app.dialogs.hardware_profiler.status.finished")
+            TranslationManager.translate(
+                "app.dialogs.hardware_profiler.status.finished"
+            )
         )
         self.status_label.setStyleSheet("color: #339933; font-weight: bold;")
-        
+
         # Ukryj progres i zaktualizuj przyciski
         self.progress_bar.hide()
         self.run_button.setText(
-            TranslationManager.translate("app.dialogs.hardware_profiler.run_again_button")
+            TranslationManager.translate(
+                "app.dialogs.hardware_profiler.run_again_button"
+            )
         )
         self.run_button.setEnabled(True)
 
@@ -1241,7 +1325,7 @@ class HardwareProfilerDialog(QDialog):
         self.status_label.setText(
             TranslationManager.translate("app.dialogs.hardware_profiler.status.running")
         )
-        
+
         # Zresetuj licznik czasu
         self.elapsed_seconds = 0
 
@@ -1250,12 +1334,12 @@ class HardwareProfilerDialog(QDialog):
         self.profiler_thread.profile_ready.connect(self.display_profile)
         self.profiler_thread.progress_update.connect(self.status_label.setText)
         self.profiler_thread.finished.connect(self.on_thread_finished)
-        
+
         # Uruchom timer do aktualizacji paska postępu
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_progress)
         self.timer.start(1000)  # Co sekundę
-        
+
         # Uruchom wątek
         self.profiler_thread.start()
 
@@ -1265,12 +1349,12 @@ class HardwareProfilerDialog(QDialog):
         """
         self.elapsed_seconds += 1
         max_seconds = self.progress_bar.maximum()
-        
+
         if self.elapsed_seconds >= max_seconds:
             # Jeśli przekroczono maksymalny czas, zwiększ go
             new_max = max_seconds + 10
             self.progress_bar.setMaximum(new_max)
-            
+
         self.progress_bar.setValue(self.elapsed_seconds)
 
     def on_thread_finished(self):
@@ -1279,10 +1363,14 @@ class HardwareProfilerDialog(QDialog):
         """
         if self.timer and self.timer.isActive():
             self.timer.stop()
-            
+
         # Jeśli wystąpił błąd, przywróć przycisk do stanu początkowego
-        if self.status_label.text().startswith(TranslationManager.translate("app.dialogs.hardware_profiler.status.error")):
+        if self.status_label.text().startswith(
+            TranslationManager.translate("app.dialogs.hardware_profiler.status.error")
+        ):
             self.run_button.setEnabled(True)
             self.run_button.setText(
-                TranslationManager.translate("app.dialogs.hardware_profiler.run_again_button")
+                TranslationManager.translate(
+                    "app.dialogs.hardware_profiler.run_again_button"
+                )
             )

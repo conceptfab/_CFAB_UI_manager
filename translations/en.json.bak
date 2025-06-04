@@ -1,0 +1,208 @@
+{
+  "app": {
+    "title": "CFAB",
+    "menu": {
+      "file": "File",
+      "edit": "Edit",
+      "help": "Help",
+      "new": "New",
+      "open": "Open",
+      "save": "Save",
+      "exit": "Exit",
+      "preferences": "Preferences",
+      "about": "About",
+      "copy": "Copy",
+      "hardware_profiler": "Hardware Profiler",
+      "hardware_profiler_tip": "Hardware profile configuration"
+    },
+    "tabs": {
+      "tab1": "Tab 1",
+      "tab2": "Tab 2",
+      "tab3": "Tab 3",
+      "console": {
+        "title": "Console",
+        "clear": "Clear",
+        "save_logs": "Save logs",
+        "save_logs_title": "Save logs",
+        "file_filters": "Text files (*.txt);;All files (*.*)",
+        "error": "Error",
+        "save_error": "Failed to save logs: {0}",
+        "placeholder": "Application logs...",
+        "status": {
+          "initialized": "Console widget initialized."
+        }
+      },
+      "content": {
+        "tab1": {
+          "content": "This is the content of the first tab.",
+          "button": "Button in tab 1",
+          "placeholder": "Type something in tab 1...",
+          "text_entered": "In tab 1 entered: {0}",
+          "nothing_entered": "Nothing was entered in tab 1."
+        },
+        "tab2": {
+          "content": "This is the content of the second tab.",
+          "checkbox": "Check me in tab 2",
+          "select_value": "Select value:",
+          "checkbox_checked": "Tab 2: Checkbox is checked!",
+          "checkbox_unchecked": "Tab 2: Checkbox is not checked.",
+          "new_value": "New spinbox value: {0}"
+        },
+        "tab3": {
+          "content": "This is the content of the third tab.",
+          "placeholder": "Type a longer text here...",
+          "show_text": "Show text from field",
+          "text_content": "Text from field in tab 3:\n{0}...",
+          "empty_field": "Text field in tab 3 is empty."
+        }
+      }
+    },
+    "status": {
+      "ready": "Ready",
+      "loading": "Loading...",
+      "saving": "Saving...",
+      "error": "Error: {0}"
+    },
+    "dialogs": {
+      "exit": {
+        "title": "Exit Application",
+        "message": "Are you sure you want to exit?",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "preferences": {
+        "title": "Preferences",
+        "general": "General",
+        "logging": "Logging",
+        "show_splash": "Show splash screen",
+        "remember_window": "Remember window size",
+        "log_to_file": "Save logs to file",
+        "log_to_system_console": "Log to system console",
+        "logger_debug_mode": "Enable logger debug mode",
+        "log_ui": "Log UI messages to console",
+        "log_level": "Log level",
+        "language": "Language",
+        "save": "Save",
+        "cancel": "Cancel"
+      },
+      "about": {
+        "title": "About",
+        "version": "Version 1.0",
+        "description": "Created with PyQt6\n\nDemo application with advanced user interface features.",
+        "ok": "OK"
+      },
+      "hardware_profiler": {
+        "title": "Hardware Profiler",
+        "current_config": "Current hardware configuration",
+        "available_optimizations": "Available optimizations",
+        "scan_hardware": "Scan hardware",
+        "scanning": "Scanning...",
+        "save_profile": "Save profile",
+        "close": "Close",
+        "header": "Hardware Profiler",
+        "description": "This tool analyzes your computer's hardware to determine optimal settings for this application.",
+        "recommendations": "Hardware Recommendations",
+        "run_button": "Run Hardware Scan",
+        "close_button": "Close",
+        "gpu_label": "GPU Support:",
+        "recommendations": {
+          "overall_header": "Overall System Assessment",
+          "cpu_header": "CPU Assessment",
+          "ram_header": "RAM Assessment",
+          "gpu_header": "GPU Assessment",
+          "cpu_excellent": "Your CPU is excellent for running this application. All features will run smoothly.",
+          "cpu_good": "Your CPU is suitable for running this application. Most features will run well.",
+          "cpu_minimal": "Your CPU meets minimum requirements. Some features may be slower.",
+          "ram_excellent": "You have plenty of RAM available for optimal performance.",
+          "ram_good": "Your RAM is sufficient for standard operations.",
+          "ram_minimal": "Your RAM meets minimum requirements. Consider closing other applications for better performance.",
+          "gpu_excellent": "You have an excellent GPU that fully supports hardware acceleration.",
+          "gpu_good": "Your GPU supports hardware acceleration for improved performance.",
+          "gpu_minimal": "Your GPU provides basic acceleration support.",
+          "gpu_limited": "Your GPU has limited support for hardware acceleration.",
+          "gpu_unknown": "Your GPU capabilities could not be determined.",
+          "gpu_not_detected": "No GPU detected or GPU does not support required features.",
+          "overall_excellent": "Your system is ideal for running this application with all features enabled.",
+          "overall_good": "Your system meets recommended requirements for this application.",
+          "overall_minimal": "Your system meets minimum requirements. Some features may have reduced performance.",
+          "overall_unknown": "System capabilities could not be fully determined."
+        },
+        "cpu": "CPU: {0}",
+        "ram": "RAM: {0} GB",
+        "gpu": "GPU: {0}",        "status": {
+          "starting": "Starting scan...",
+          "scan_completed": "Scan completed.",
+          "scan_error_detailed": "Scan completed with errors. Check details.",
+          "scan_failed": "Scan did not generate a profile.",
+          "profile_ready": "Profile ready.",
+          "profile_loaded": "Loaded existing profile.",
+          "profile_corrupt": "Error loading profile (corrupted?): {error}",
+          "profile_load_error": "Error loading profile: {error}",
+          "no_profile_found": "No existing profile found. Scan hardware to create new one.",
+          "save_no_data": "No valid profile data to save.",
+          "profile_saved": "Hardware profile saved to: {path}",
+          "profile_save_error": "Error saving profile: {error}",
+          "collecting_info": "Collecting system information...",
+          "detecting_gpu": "Detecting GPU...",
+          "gpu_detection_error": "Error detecting GPU",
+          "running_cpu_benchmark": "Running CPU benchmark (pyperformance)...",
+          "running_gpu_benchmark": "Running GPU benchmark (CuPy)...",
+          "numba_not_installed": "Numba not installed, skipping.",
+          "pyperformance_installed": "Pyperformance is installed",
+          "pyperformance_not_installed": "pyperformance not installed! Skipping CPU test.",
+          "profiling_complete": "Hardware profiling completed",
+          "using_python_path": "Using Python from: {path}",
+          "running_command": "Running command: {command}",
+          "cpu_benchmark_error": "CPU benchmark error: {error}",
+          "cpu_test_result": "CPU test result: {score} (time: {time:.2f}s)",
+          "cpu_test_result_not_found": "CPU test result not found in output",
+          "cpu_test_result_not_found_json": "CPU test result (json_loads benchmark) not found in JSON output",
+          "pyperformance_run_error": "Error running pyperformance: {error}",
+          "cpu_test_unexpected_error": "Unexpected error during CPU test: {error}",
+          "cpu_test_result_saved": "Saved CPU test result in profile: {}",
+          "cpu_test_results_saved_to_file": "Saved CPU test results to hardware.json",
+          "cpu_test_save_to_file_error": "Error saving CPU results to file: {error}",
+          "cpu_test_result_not_obtained": "Failed to obtain CPU test result",
+          "profiling_error": "Error during hardware profiling",
+          "ready_status": "Ready.",
+          "cpu_benchmark_duration_prefix": "CPU benchmark lasted:",
+          "cpu_benchmark_duration_suffix": "seconds",
+          "gpu_benchmark_duration_prefix": "GPU benchmark lasted:",
+          "gpu_benchmark_duration_suffix": "seconds",
+          "seconds": "seconds",
+          "not_available": "N/A",
+          "no_details_available": "No details available",
+          "not_available_in_formatter": "N/A (formatter)",
+          "not_available_short": "n/a",
+          "error_short": "Error"
+        },
+        "profile": {
+          "uuid": "UUID: {}",
+          "system": "System: {}",
+          "processor": "Processor: {}",
+          "cpu_cores": "CPU Cores: {}",
+          "ram": "RAM: {} GB",
+          "last_update": "Last Update: {}",
+          "no_data": "No profile data",
+          "error_display": "Error during profiling:",
+          "traceback": "Error details:",
+          "no_optimizations_due_to_error": "Cannot determine optimizations due to error",
+          "no_optimizations": "No optimizations available",
+          "cpu_benchmark": "CPU Test: {}",
+          "cpu_benchmark_score": "CPU Benchmark Score: {}",
+          "cpu_benchmark_time": "CPU Benchmark Time: {}",
+          "ai_benchmark_score": "AI Benchmark Score: {}",
+          "ai_benchmark_time": "AI Benchmark Time: {}",
+          "optimizations": {
+            "multithreading_high": "Enable multithreading (8+ cores)",
+            "multithreading_medium": "Partial multithreading (4-7 cores)",
+            "multithreading_low": "Single thread mode (less than 4 cores)",
+            "buffering_high": "Enable advanced buffering (16+ GB RAM)",
+            "buffering_medium": "Standard buffering (8-15 GB RAM)",
+            "buffering_low": "Limited buffering (less than 8 GB RAM)"
+          }
+        }
+      }
+    }
+  }
+}
