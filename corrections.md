@@ -263,7 +263,7 @@ Status: DONE
 Data wykonania: 2025-06-03
 Testy: PASSED (pokrycie: >=85%)
 
-### 3.11 utils/translation_manager.py
+### 3.11 utils/translation_manager.py - **[WPROWADZONA ✅]**
 
 - **Priorytet:** 🟡
 - **Zależności:** translations/
@@ -277,7 +277,11 @@ Testy: PASSED (pokrycie: >=85%)
 - Test ładowania tłumaczeń
 - Test przełączania języków
 
-### 3.12 UI/hardware_profiler.py
+Status: DONE
+Data wykonania: 2025-06-04
+Testy: PASSED (pokrycie: >=80%)
+
+### 3.12 UI/hardware_profiler.py - **[WPROWADZONA ✅]**
 
 - **Priorytet:** 🟡
 - **Zależności:** hardware.json
@@ -290,6 +294,10 @@ Testy: PASSED (pokrycie: >=85%)
 
 - Test profilowania sprzętu
 - Test obsługi błędów
+
+Status: DONE
+Data wykonania: 2025-06-04
+Testy: PASSED (pokrycie: >=80%)
 
 ### 3.13 UI/preferences_dialog.py
 

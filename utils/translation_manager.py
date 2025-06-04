@@ -80,7 +80,7 @@ class TranslationManager:
         inst._load_translation_internal(
             inst._current_language
         )  # Zmieniono na metodę instancji
-        
+
         # Zweryfikuj kompletność tłumaczeń dla wszystkich dostępnych języków
         inst.validate_all_translations()
 
@@ -118,7 +118,7 @@ class TranslationManager:
                         logger.debug(
                             f"TranslationManager: załadowano tłumaczenia dla języka {language_code} z {file_path}"
                         )
-                        
+
                         # Po załadowaniu waliduj tłumaczenia
                         self._validate_translation_format(language_code)
             else:
@@ -161,17 +161,17 @@ class TranslationManager:
 
         inst = cls.get_instance()
         lang_to_load = language_code if language_code else inst._current_language
-        
+
         custom_dir = translations_dir
         if custom_dir is None:
             custom_dir = os.path.join(
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                "translations"
+                "translations",
             )
-            
+
         file_path = os.path.join(custom_dir, f"{lang_to_load}.json")
         loaded_translations = {}
-        
+
         try:
             if os.path.exists(file_path):
                 try:
@@ -181,7 +181,7 @@ class TranslationManager:
                     logger.debug(
                         f"TranslationManager: Załadowano (przez load_translations) tłumaczenia dla języka {lang_to_load} z {file_path}"
                     )
-                    
+
                     # Walidacja po załadowaniu
                     inst._validate_translation_format(lang_to_load)
                 except json.JSONDecodeError as json_error:
@@ -189,7 +189,9 @@ class TranslationManager:
                         f"TranslationManager: Błąd dekodowania JSON dla {lang_to_load} z {file_path}: {json_error}"
                     )
                     inst._translations[lang_to_load] = {}
-                    inst._add_validation_error(lang_to_load, f"Błąd dekodowania JSON: {json_error}")
+                    inst._add_validation_error(
+                        lang_to_load, f"Błąd dekodowania JSON: {json_error}"
+                    )
             else:
                 logger.warning(
                     f"TranslationManager: Plik tłumaczeń (przez load_translations) nie istnieje: {file_path}"
@@ -202,7 +204,7 @@ class TranslationManager:
             )
             inst._translations[lang_to_load] = {}
             inst._add_validation_error(lang_to_load, f"Błąd ładowania: {e}")
-        
+
         return inst._translations.get(lang_to_load, {})
 
     def set_language_internal(self, language_code: str) -> bool:
@@ -333,8 +335,10 @@ class TranslationManager:
                 # Zapisz nie-stringową wartość do cache, aby uniknąć powtarzania logów
                 if self._current_language not in self._translation_cache:
                     self._translation_cache[self._current_language] = {}
-                self._translation_cache[self._current_language][key] = default_value  # Lub specjalny marker
-                
+                self._translation_cache[self._current_language][
+                    key
+                ] = default_value  # Lub specjalny marker
+
                 # Dodaj informację do brakujących kluczy
                 self._add_missing_key(self._current_language, key)
                 return default_value
@@ -356,7 +360,7 @@ class TranslationManager:
             if self._current_language not in self._translation_cache:
                 self._translation_cache[self._current_language] = {}
             self._translation_cache[self._current_language][key] = default_value
-            
+
             # Dodaj informację do brakujących kluczy
             self._add_missing_key(self._current_language, key)
             return default_value
@@ -534,7 +538,7 @@ class TranslationManager:
     def _add_missing_key(self, language_code: str, key: str) -> None:
         """
         Dodaje brakujący klucz do cache dla danego języka.
-        
+
         Args:
             language_code: Kod języka
             key: Klucz, który nie został znaleziony
@@ -542,11 +546,11 @@ class TranslationManager:
         if language_code not in self._missing_keys_cache:
             self._missing_keys_cache[language_code] = set()
         self._missing_keys_cache[language_code].add(key)
-    
+
     def _add_validation_error(self, language_code: str, error: str) -> None:
         """
         Dodaje błąd walidacji dla danego języka.
-        
+
         Args:
             language_code: Kod języka
             error: Komunikat błędu
@@ -554,41 +558,41 @@ class TranslationManager:
         if language_code not in self._validation_errors:
             self._validation_errors[language_code] = []
         self._validation_errors[language_code].append(error)
-    
+
     def _validate_translation_format(self, language_code: str) -> None:
         """
         Waliduje format pliku tłumaczeń.
         Sprawdza strukturę, zagnieżdżenie, formaty placeholderów, itp.
-        
+
         Args:
             language_code: Kod języka do walidacji
         """
         if language_code not in self._translations:
             self._add_validation_error(language_code, "Brak załadowanych tłumaczeń")
             return
-        
+
         translations = self._translations[language_code]
         if not translations:
             self._add_validation_error(language_code, "Plik tłumaczeń jest pusty")
             return
-        
+
         def validate_dict(dict_obj, path=""):
             for key, value in dict_obj.items():
                 current_path = f"{path}.{key}" if path else key
-                
+
                 # Sprawdź czy klucz jest prawidłowy
                 if not isinstance(key, str):
                     self._add_validation_error(
                         language_code, f"Klucz {current_path} nie jest stringiem"
                     )
-                
+
                 # Sprawdź typ wartości
                 if isinstance(value, dict):
                     validate_dict(value, current_path)
                 elif isinstance(value, str):
                     # Sprawdź czy zawiera placeholdery w formacie {0}, {1}, itp.
                     # i czy są one poprawne
-                    placeholders = re.findall(r'\{(\d+)\}', value)
+                    placeholders = re.findall(r"\{(\d+)\}", value)
                     if placeholders:
                         # Upewnij się że są kolejne liczby od 0
                         placeholder_indexes = [int(p) for p in placeholders]
@@ -596,51 +600,51 @@ class TranslationManager:
                         expected_indexes = set(range(max_index + 1))
                         if set(placeholder_indexes) != expected_indexes:
                             self._add_validation_error(
-                                language_code, 
-                                f"Nieprawidłowe indeksy placeholderów w {current_path}: {placeholders}"
+                                language_code,
+                                f"Nieprawidłowe indeksy placeholderów w {current_path}: {placeholders}",
                             )
                 else:
                     self._add_validation_error(
                         language_code,
-                        f"Wartość dla klucza {current_path} nie jest stringiem ani słownikiem: {type(value)}"
+                        f"Wartość dla klucza {current_path} nie jest stringiem ani słownikiem: {type(value)}",
                     )
-        
+
         # Uruchom walidację na całym słowniku
         validate_dict(translations)
-    
+
     def validate_all_translations(self) -> Dict[str, List[str]]:
         """
         Waliduje wszystkie tłumaczenia.
         - Sprawdza spójność kluczy pomiędzy różnymi językami
         - Sprawdza poprawność formatów
-        
+
         Returns:
             Słownik z błędami walidacji dla każdego języka
         """
         logger.info("TranslationManager: Rozpoczynam walidację wszystkich tłumaczeń")
-        
+
         # Ładujemy wszystkie dostępne języki
         languages = self.get_available_languages_internal()
-        
+
         # Czyszczenie cache błędów i brakujących kluczy
         self._validation_errors = {}
         self._missing_keys_cache = {}
-        
+
         # Upewnij się, że wszystkie języki są załadowane
         for lang in languages:
             if lang not in self._translations or not self._translations[lang]:
                 self._load_translation_internal(lang)
-                
+
             # Waliduj format każdego pliku
             self._validate_translation_format(lang)
-        
+
         # Zbierz wszystkie klucze ze wszystkich języków
         all_keys = set()
         keys_by_language = {}
-        
+
         for lang in languages:
             keys_by_language[lang] = set()
-            
+
             # Rekurencyjne zbieranie kluczy
             def collect_keys(dict_obj, prefix=""):
                 for key, value in dict_obj.items():
@@ -650,9 +654,9 @@ class TranslationManager:
                     else:
                         all_keys.add(current_key)
                         keys_by_language[lang].add(current_key)
-            
+
             collect_keys(self._translations.get(lang, {}))
-        
+
         # Sprawdź brakujące klucze dla każdego języka
         for lang in languages:
             missing_keys = all_keys - keys_by_language[lang]
@@ -660,18 +664,20 @@ class TranslationManager:
                 for key in missing_keys:
                     self._add_missing_key(lang, key)
                 self._add_validation_error(
-                    lang, 
-                    f"Brakujące klucze: {len(missing_keys)} (np. {list(missing_keys)[:5]})"
+                    lang,
+                    f"Brakujące klucze: {len(missing_keys)} (np. {list(missing_keys)[:5]})",
                 )
-            
+
             # Log dla każdego języka
             log_message = f"Język {lang}: {len(keys_by_language[lang])} kluczy"
             if missing_keys:
                 log_message += f", brakuje {len(missing_keys)} kluczy"
             if lang in self._validation_errors and self._validation_errors[lang]:
-                log_message += f", {len(self._validation_errors[lang])} błędów walidacji"
+                log_message += (
+                    f", {len(self._validation_errors[lang])} błędów walidacji"
+                )
             logger.info(log_message)
-        
+
         # Zwróć wszystkie błędy walidacji
         return self._validation_errors.copy()
 
@@ -679,20 +685,22 @@ class TranslationManager:
     def get_validation_errors(cls) -> Dict[str, List[str]]:
         """
         Publiczna metoda klasowa zwracająca błędy walidacji.
-        
+
         Returns:
             Słownik z błędami walidacji dla każdego języka
         """
         return cls.get_instance()._validation_errors.copy()
-    
+
     @classmethod
-    def get_missing_keys(cls, language_code: Optional[str] = None) -> Dict[str, Set[str]]:
+    def get_missing_keys(
+        cls, language_code: Optional[str] = None
+    ) -> Dict[str, Set[str]]:
         """
         Publiczna metoda klasowa zwracająca brakujące klucze.
-        
+
         Args:
             language_code: Opcjonalny kod języka. Jeśli nie podano, zwraca dla wszystkich języków.
-            
+
         Returns:
             Słownik z brakującymi kluczami dla każdego języka lub dla konkretnego języka
         """
@@ -700,15 +708,15 @@ class TranslationManager:
         if language_code:
             return {language_code: inst._missing_keys_cache.get(language_code, set())}
         return inst._missing_keys_cache.copy()
-    
+
     @classmethod
     def export_missing_keys_report(cls, file_path: str) -> bool:
         """
         Eksportuje raport brakujących kluczy do pliku.
-        
+
         Args:
             file_path: Ścieżka do pliku wyjściowego
-            
+
         Returns:
             True jeśli udało się zapisać raport, False w przeciwnym wypadku
         """
@@ -716,20 +724,22 @@ class TranslationManager:
         try:
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write("# Raport brakujących kluczy tłumaczeń\n\n")
-                
+
                 languages = inst.get_available_languages_internal()
-                
+
                 # Najpierw podsumowanie
                 f.write("## Podsumowanie\n\n")
                 for lang in languages:
                     missing_keys = inst._missing_keys_cache.get(lang, set())
                     errors = inst._validation_errors.get(lang, [])
-                    f.write(f"- {lang}: {len(missing_keys)} brakujących kluczy, {len(errors)} błędów walidacji\n")
-                
+                    f.write(
+                        f"- {lang}: {len(missing_keys)} brakujących kluczy, {len(errors)} błędów walidacji\n"
+                    )
+
                 # Szczegóły dla każdego języka
                 for lang in languages:
                     f.write(f"\n## {lang}\n\n")
-                    
+
                     # Brakujące klucze
                     f.write("### Brakujące klucze\n\n")
                     missing_keys = inst._missing_keys_cache.get(lang, set())
@@ -738,7 +748,7 @@ class TranslationManager:
                             f.write(f"- `{key}`\n")
                     else:
                         f.write("Brak brakujących kluczy\n")
-                    
+
                     # Błędy walidacji
                     f.write("\n### Błędy walidacji\n\n")
                     errors = inst._validation_errors.get(lang, [])
@@ -747,35 +757,40 @@ class TranslationManager:
                             f.write(f"- {error}\n")
                     else:
                         f.write("Brak błędów walidacji\n")
-                
+
                 # Data generacji raportu
                 import datetime
-                f.write(f"\n\nRaport wygenerowany: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            
-            logger.info(f"TranslationManager: Zapisano raport brakujących kluczy do {file_path}")
+
+                f.write(
+                    f"\n\nRaport wygenerowany: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+                )
+
+            logger.info(
+                f"TranslationManager: Zapisano raport brakujących kluczy do {file_path}"
+            )
             return True
         except Exception as e:
             logger.error(f"TranslationManager: Błąd zapisywania raportu: {e}")
             return False
-    
+
     @classmethod
     def get_completion_stats(cls) -> Dict[str, Dict]:
         """
         Zwraca statystyki kompletności tłumaczeń dla każdego języka.
-        
+
         Returns:
             Słownik ze statystykami dla każdego języka
         """
         inst = cls.get_instance()
         languages = inst.get_available_languages_internal()
-        
+
         # Zbierz wszystkie unikalne klucze ze wszystkich języków
         all_keys = set()
         keys_by_language = {}
-        
+
         for lang in languages:
             keys_by_language[lang] = set()
-            
+
             # Rekurencyjne zbieranie kluczy
             def collect_keys(dict_obj, prefix=""):
                 for key, value in dict_obj.items():
@@ -785,40 +800,44 @@ class TranslationManager:
                     else:
                         all_keys.add(current_key)
                         keys_by_language[lang].add(current_key)
-            
+
             collect_keys(inst._translations.get(lang, {}))
-        
+
         # Oblicz statystyki
         stats = {}
         for lang in languages:
             missing_keys = all_keys - keys_by_language[lang]
             total_keys = len(all_keys)
             present_keys = len(keys_by_language[lang])
-            completion_percent = round((present_keys / total_keys) * 100, 2) if total_keys > 0 else 0
-            
+            completion_percent = (
+                round((present_keys / total_keys) * 100, 2) if total_keys > 0 else 0
+            )
+
             stats[lang] = {
                 "total_keys": total_keys,
                 "present_keys": present_keys,
                 "missing_keys": len(missing_keys),
                 "completion_percent": completion_percent,
-                "errors": len(inst._validation_errors.get(lang, []))
+                "errors": len(inst._validation_errors.get(lang, [])),
             }
-        
+
         return stats
-    
+
     @classmethod
     def is_complete(cls, min_completion_percent: float = 100.0) -> bool:
         """
         Sprawdza czy wszystkie tłumaczenia są kompletne.
-        
+
         Args:
             min_completion_percent: Minimalny procent kompletności, aby uznać tłumaczenia za kompletne
-            
+
         Returns:
             True jeśli wszystkie języki mają kompletność >= min_completion_percent, False w przeciwnym wypadku
         """
         stats = cls.get_completion_stats()
-        return all(s["completion_percent"] >= min_completion_percent for s in stats.values())
+        return all(
+            s["completion_percent"] >= min_completion_percent for s in stats.values()
+        )
 
 
 # Usunięcie klasy Translator z tego pliku, jeśli była tu zdefiniowana,
